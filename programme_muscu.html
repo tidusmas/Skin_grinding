@@ -537,9 +537,83 @@ body {
   .timer-bar { padding: 10px 16px; flex-wrap: wrap; }
   .maxes-bar { gap: 12px; font-size: 12px; flex-wrap: wrap; }
 }
+
+/* LOGIN SCREEN */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.login-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px 32px;
+  text-align: center;
+  width: 320px;
+  max-width: 90vw;
+}
+.login-box h2 {
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+.login-box h2 span { color: var(--green); }
+.login-box p {
+  color: var(--text2);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+.login-box input {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 16px;
+  outline: none;
+  margin-bottom: 16px;
+}
+.login-box input:focus {
+  border-color: var(--green);
+}
+.login-box button {
+  width: 100%;
+  padding: 12px;
+  background: var(--green-dim);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.login-box button:hover {
+  background: var(--green);
+}
+.login-error {
+  color: var(--red);
+  font-size: 13px;
+  margin-top: 12px;
+  display: none;
+}
 </style>
 </head>
 <body>
+
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h2><span>&#9679;</span> Programme Muscu</h2>
+    <p>Mot de passe requis</p>
+    <input type="password" id="loginPassword" placeholder="Mot de passe" autocomplete="off">
+    <button onclick="attemptLogin()">Entrer</button>
+    <div class="login-error" id="loginError">Mot de passe incorrect</div>
+  </div>
+</div>
 
 <div class="header">
   <h1><span>&#9679;</span> Programme Muscu — <span id="cycleDisplay" style="color:var(--green)">Cycle 1</span></h1>
@@ -590,6 +664,7 @@ body {
       <div style="display:flex;gap:8px">
         <button class="danger" onclick="resetAllProgress()">Reset prog.</button>
         <button class="danger" onclick="resetHistory()">Reset histo.</button>
+        <button class="danger" onclick="logout()">Déconnexion</button>
       </div>
       <div style="display:flex;gap:8px;margin-left:auto">
         <button onclick="closeSettings()">Annuler</button>
@@ -600,6 +675,38 @@ body {
 </div>
 
 <script>
+// ============================================================
+// PASSWORD PROTECTION
+// ============================================================
+const PASSWORD_HASH = '46946c6f5a5426b464311253c31e21893a36e492a1e7196c1baf3c84c38690d8';
+
+async function hashPassword(pwd) {
+  const data = new TextEncoder().encode(pwd);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function attemptLogin() {
+  const input = document.getElementById('loginPassword').value;
+  const hash = await hashPassword(input);
+  if (hash === PASSWORD_HASH) {
+    localStorage.setItem('muscu_auth', '1');
+    document.getElementById('loginOverlay').style.display = 'none';
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+    document.getElementById('loginPassword').value = '';
+  }
+}
+
+document.getElementById('loginPassword').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') attemptLogin();
+});
+
+// Check auth
+if (localStorage.getItem('muscu_auth') === '1') {
+  document.getElementById('loginOverlay').style.display = 'none';
+}
+
 // ============================================================
 // PROGRAM DATA — 4-week cycle
 // Each exercise has optional `ref` ("squat"|"bench"|"deadlift")
@@ -1636,6 +1743,12 @@ function resetHistory() {
     closeSettings();
     renderHistory();
   }
+}
+
+function logout() {
+  localStorage.removeItem('muscu_auth');
+  document.getElementById('loginOverlay').style.display = 'flex';
+  closeSettings();
 }
 
 // ============================================================
