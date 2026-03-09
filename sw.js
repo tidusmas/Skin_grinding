@@ -1,4 +1,4 @@
-const CACHE_NAME = 'muscu-v1';
+const CACHE_NAME = 'muscu-v2';
 const ASSETS = [
   '/programme_muscu.html',
   '/manifest.json',

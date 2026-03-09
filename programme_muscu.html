@@ -708,6 +708,27 @@ if (localStorage.getItem('muscu_auth') === '1') {
 }
 
 // ============================================================
+// FIREBASE SYNC
+// ============================================================
+const FIREBASE_DB = 'https://skin-grinding-default-rtdb.firebaseio.com';
+const FB_USER_PATH = PASSWORD_HASH.substring(0, 16); // short hash as path
+
+function fbPut(path, data) {
+  fetch(`${FIREBASE_DB}/users/${FB_USER_PATH}/${path}.json`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }).catch(() => {});
+}
+
+async function fbGet(path) {
+  try {
+    const res = await fetch(`${FIREBASE_DB}/users/${FB_USER_PATH}/${path}.json`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch(e) { return null; }
+}
+
+// ============================================================
 // PROGRAM DATA — 4-week cycle
 // Each exercise has optional `ref` ("squat"|"bench"|"deadlift")
 // Sets with `pct` compute weight from the referenced max
@@ -1766,6 +1787,7 @@ function saveState() {
     timerDuration: state.timerDuration
   };
   localStorage.setItem('muscu_program', JSON.stringify(data));
+  fbPut('state', data);
 }
 
 function loadState() {
@@ -1805,6 +1827,7 @@ function loadHistory() {
 
 function saveHistory(history) {
   localStorage.setItem('muscu_history', JSON.stringify(history));
+  fbPut('history', history);
 }
 
 function logSession(week, day) {
@@ -2088,6 +2111,30 @@ loadState();
 render();
 updateTimerDisplay();
 logMaxChange(); // Track initial maxes
+
+// Sync from Firebase (async — overwrites local if cloud data exists)
+(async () => {
+  const [fbState, fbHistory] = await Promise.all([fbGet('state'), fbGet('history')]);
+  if (fbState) {
+    state.cycle = fbState.cycle || 1;
+    state.week = fbState.week || 0;
+    state.day = fbState.day || 0;
+    state.completions = fbState.completions || {};
+    state.maxSquat = fbState.maxSquat || 110;
+    state.maxBench = fbState.maxBench || 97;
+    state.maxDeadlift = fbState.maxDeadlift || 120;
+    state.timerDuration = fbState.timerDuration || 120;
+    state.timerRemaining = state.timerDuration;
+    if (!isBlocUnlocked(state.week)) { state.week = 0; state.day = 0; }
+    localStorage.setItem('muscu_program', JSON.stringify(fbState));
+    render();
+    updateTimerDisplay();
+  }
+  if (fbHistory) {
+    localStorage.setItem('muscu_history', JSON.stringify(fbHistory));
+    if (currentPage === 'history') renderHistory();
+  }
+})();
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
