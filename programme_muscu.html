@@ -236,6 +236,25 @@ body {
   font-weight: 700;
   margin-left: 6px;
 }
+.weight-input {
+  width: 58px;
+  padding: 4px 6px;
+  margin-left: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  font-family: inherit;
+  -moz-appearance: textfield;
+}
+.weight-input::-webkit-outer-spin-button,
+.weight-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.weight-input:focus { outline: none; border-color: var(--blue); }
+.weight-input.empty { color: var(--text2); border-style: dashed; }
+.weight-unit { color: var(--text2); font-size: 12px; margin-left: 2px; }
 
 /* TIMER */
 .timer-bar {
@@ -1381,6 +1400,7 @@ let state = {
   maxSquat: 110,
   maxBench: 97,
   maxDeadlift: 120,
+  customWeights: {}, // { [exerciseName]: [weightGroup0, weightGroup1, ...] }
   timerDuration: 120,
   timerRemaining: 120,
   timerRunning: false,
@@ -1554,7 +1574,7 @@ function renderContent() {
         info += `${set.r} rep${set.r > 1 ? 's' : ''}</span>`;
       }
 
-      // Calculate weight from percentage if available
+      // Calculate weight from percentage (PR-based exercises)
       if (set.pct !== undefined && set.ref) {
         const kg = calcWeight(set.pct, set.ref);
         if (kg !== null) {
@@ -1562,6 +1582,14 @@ function renderContent() {
           info += `<span class="weight">${kg} kg</span>`;
           info += `<span class="pct">(${actualPct}%)</span>`;
         }
+      } else if (!set.ref) {
+        // Accessory exercise: editable custom weight input (per group, shared across sets in same group)
+        const gi = set.groupIndex;
+        const cw = getCustomWeight(ex.name, gi);
+        const emptyClass = (cw === null) ? ' empty' : '';
+        const val = (cw === null) ? '' : cw;
+        const exNameEsc = ex.name.replace(/"/g, '&quot;');
+        info += `<input type="number" step="0.5" inputmode="decimal" class="weight-input${emptyClass}" placeholder="—" value="${val}" data-exname="${exNameEsc}" data-group="${gi}" onclick="event.stopPropagation()" onchange="onWeightInputChange(this)"><span class="weight-unit">kg</span>`;
       }
 
       if (set.rpe !== undefined) {
@@ -1784,6 +1812,7 @@ function saveState() {
     maxSquat: state.maxSquat,
     maxBench: state.maxBench,
     maxDeadlift: state.maxDeadlift,
+    customWeights: state.customWeights,
     timerDuration: state.timerDuration
   };
   localStorage.setItem('muscu_program', JSON.stringify(data));
@@ -1801,6 +1830,7 @@ function loadState() {
       state.maxSquat = data.maxSquat || 110;
       state.maxBench = data.maxBench || 97;
       state.maxDeadlift = data.maxDeadlift || 120;
+      state.customWeights = data.customWeights || {};
       state.timerDuration = data.timerDuration || 120;
       state.timerRemaining = state.timerDuration;
     }
@@ -1809,6 +1839,47 @@ function loadState() {
     state.week = 0;
     state.day = 0;
   }
+}
+
+// Get/set the custom weight for an exercise group (by exercise name).
+// Exercise name is a stable key across cycles/weeks, so the "last weight used"
+// auto-pre-fill works even if the same exo appears on different days.
+function getCustomWeight(exName, groupIdx) {
+  const arr = state.customWeights[exName];
+  if (!arr) return null;
+  const w = arr[groupIdx];
+  return (typeof w === 'number' && !isNaN(w)) ? w : null;
+}
+
+function setCustomWeight(exName, groupIdx, weight) {
+  if (!state.customWeights[exName]) state.customWeights[exName] = [];
+  if (weight === null || weight === '' || isNaN(weight)) {
+    state.customWeights[exName][groupIdx] = null;
+  } else {
+    state.customWeights[exName][groupIdx] = Number(weight);
+  }
+  saveState();
+}
+
+// Called from inline input onchange in renderContent.
+// Updates the weight without a full re-render (preserves input focus/cursor),
+// then re-logs the session so the history entry reflects the new weight.
+function onWeightInputChange(inputEl) {
+  const exName = inputEl.dataset.exname;
+  const groupIdx = parseInt(inputEl.dataset.group, 10);
+  const raw = inputEl.value.trim();
+  const num = raw === '' ? null : parseFloat(raw);
+  setCustomWeight(exName, groupIdx, num);
+  inputEl.classList.toggle('empty', num === null);
+  // Update any other inputs showing the same exercise group (same card, different set rows)
+  document.querySelectorAll(`input.weight-input[data-exname="${exName.replace(/"/g, '\\"')}"][data-group="${groupIdx}"]`).forEach(el => {
+    if (el !== inputEl) {
+      el.value = raw;
+      el.classList.toggle('empty', num === null);
+    }
+  });
+  // Re-log session so history reflects the weight change (only if at least one set done today)
+  logSession(state.week, state.day);
 }
 
 // ============================================================
@@ -1830,6 +1901,45 @@ function saveHistory(history) {
   fbPut('history', history);
 }
 
+// Merge two history objects without data loss.
+// - maxHistory: dedupe by date, keep entry with highest sum of lifts (latest update)
+// - sessions: dedupe by (cycle,week,day,date), keep entry with most setsDone
+function mergeHistory(a, b) {
+  a = a || { sessions: [], maxHistory: [] };
+  b = b || { sessions: [], maxHistory: [] };
+
+  const maxByDate = new Map();
+  [...(a.maxHistory || []), ...(b.maxHistory || [])].forEach(m => {
+    if (!m || !m.date) return;
+    const existing = maxByDate.get(m.date);
+    if (!existing) { maxByDate.set(m.date, m); return; }
+    const sNew = (m.squat||0) + (m.bench||0) + (m.deadlift||0);
+    const sOld = (existing.squat||0) + (existing.bench||0) + (existing.deadlift||0);
+    if (sNew >= sOld) maxByDate.set(m.date, m);
+  });
+  const maxHistory = Array.from(maxByDate.values())
+    .sort((x, y) => (x.date || '').localeCompare(y.date || ''));
+
+  const sessByKey = new Map();
+  const keyOf = s => `${s.cycle||1}|${s.week}|${s.day}|${s.date}`;
+  [...(a.sessions || []), ...(b.sessions || [])].forEach(s => {
+    if (!s || s.date === undefined) return;
+    const k = keyOf(s);
+    const existing = sessByKey.get(k);
+    if (!existing) { sessByKey.set(k, s); return; }
+    // Prefer version with more completed sets; tie => prefer one with exercises array
+    if ((s.setsDone || 0) > (existing.setsDone || 0)) {
+      sessByKey.set(k, s);
+    } else if ((s.setsDone || 0) === (existing.setsDone || 0) && (s.exercises?.length || 0) > (existing.exercises?.length || 0)) {
+      sessByKey.set(k, s);
+    }
+  });
+  const sessions = Array.from(sessByKey.values())
+    .sort((x, y) => (x.date || '').localeCompare(y.date || ''));
+
+  return { sessions, maxHistory };
+}
+
 function logSession(week, day) {
   const dayData = PROGRAM[week].days[day];
   if (dayData.rest) return;
@@ -1848,12 +1958,19 @@ function logSession(week, day) {
     sets.forEach((set, si) => {
       const done = isSetDone(week, day, ei, si);
       if (done) exDone++;
+      const reps = set.r === "AMRAP" ? "AMRAP" : set.r;
       let desc = `${set.r === "AMRAP" ? "AMRAP" : set.r + "r"}`;
+      let weight = null;
       if (set.pct && ex.ref) {
-        desc += ` ${calcWeight(set.pct, ex.ref)}kg`;
+        weight = calcWeight(set.pct, ex.ref);
+        if (weight !== null) desc += ` ${weight}kg`;
+      } else if (!ex.ref) {
+        // Accessory: pull user-entered custom weight
+        weight = getCustomWeight(ex.name, set.groupIndex);
+        if (weight !== null) desc += ` ${weight}kg`;
       }
       if (set.rpe) desc += ` RPE${set.rpe}`;
-      details.push({ desc, done });
+      details.push({ desc, done, reps, weight });
     });
     exercises.push({ name: ex.name, sets: details, done: exDone, total: sets.length });
   });
@@ -2061,10 +2178,12 @@ function renderHistory() {
 
     s.exercises.forEach(ex => {
       const exPct = ex.total > 0 ? Math.round((ex.done / ex.total) * 100) : 0;
+      // Highlight the weight portion of each set desc for readability
+      const formatDesc = (desc) => desc.replace(/(\d+(?:\.\d+)?kg)/g, '<b style="color:var(--blue)">$1</b>');
       html += `<div class="session-exercise">
         <div class="session-exercise-name">${ex.name} (${ex.done}/${ex.total})</div>
         <div class="session-sets">${ex.sets.map(st =>
-          `<span style="color:${st.done ? 'var(--green)' : 'var(--red)'}">&#${st.done ? '10003' : '10007'}; ${st.desc}</span>`
+          `<span style="color:${st.done ? 'var(--green)' : 'var(--red)'}">&#${st.done ? '10003' : '10007'}; ${formatDesc(st.desc)}</span>`
         ).join(' &nbsp; ')}</div>
       </div>`;
     });
@@ -2110,11 +2229,12 @@ document.getElementById('settingsModal').addEventListener('click', (e) => {
 loadState();
 render();
 updateTimerDisplay();
-logMaxChange(); // Track initial maxes
 
-// Sync from Firebase (async — overwrites local if cloud data exists)
+// Sync from Firebase BEFORE any history writes to avoid wiping cloud data.
+// History is merged, never overwritten.
 (async () => {
   const [fbState, fbHistory] = await Promise.all([fbGet('state'), fbGet('history')]);
+
   if (fbState) {
     state.cycle = fbState.cycle || 1;
     state.week = fbState.week || 0;
@@ -2123,17 +2243,33 @@ logMaxChange(); // Track initial maxes
     state.maxSquat = fbState.maxSquat || 110;
     state.maxBench = fbState.maxBench || 97;
     state.maxDeadlift = fbState.maxDeadlift || 120;
+    state.customWeights = fbState.customWeights || state.customWeights || {};
     state.timerDuration = fbState.timerDuration || 120;
     state.timerRemaining = state.timerDuration;
     if (!isBlocUnlocked(state.week)) { state.week = 0; state.day = 0; }
-    localStorage.setItem('muscu_program', JSON.stringify(fbState));
+    localStorage.setItem('muscu_program', JSON.stringify({
+      cycle: state.cycle, week: state.week, day: state.day,
+      completions: state.completions, maxSquat: state.maxSquat,
+      maxBench: state.maxBench, maxDeadlift: state.maxDeadlift,
+      customWeights: state.customWeights, timerDuration: state.timerDuration
+    }));
     render();
     updateTimerDisplay();
   }
-  if (fbHistory) {
-    localStorage.setItem('muscu_history', JSON.stringify(fbHistory));
-    if (currentPage === 'history') renderHistory();
+
+  // Merge local + remote history (never overwrite)
+  const localHistory = loadHistory();
+  const merged = mergeHistory(localHistory, fbHistory);
+  localStorage.setItem('muscu_history', JSON.stringify(merged));
+  // Push merged back so both sides converge
+  if (fbHistory || localHistory.sessions.length || localHistory.maxHistory.length) {
+    fbPut('history', merged);
   }
+
+  // Now it's safe to log initial maxes (won't wipe anything)
+  logMaxChange();
+
+  if (currentPage === 'history') renderHistory();
 })();
 
 // PWA Service Worker
