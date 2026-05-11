@@ -260,6 +260,18 @@ body {
 .acc-input.weight-input.empty { color: var(--text2); }
 .acc-unit { color: var(--text2); font-size: 11px; margin-left: 1px; margin-right: 6px; }
 .acc-x { color: var(--text2); font-size: 12px; margin: 0 4px; }
+.acc-range {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 
 /* TIMER */
 .timer-bar {
@@ -1428,6 +1440,26 @@ function calcWeight(pct, ref) {
   return Math.round((max * pct / 100) / 2.5) * 2.5;
 }
 
+// Accessory rep ranges for double progression display
+const ACC_RANGES = {
+  "Curl Biceps Rotation": "8-12",
+  "RDL Haltères": "8-12",
+  "Chest Supported Row": "8-12",
+  "Élévations latérales poulie": "8-12",
+  "Curl biceps poulie": "8-12",
+  "Leg Extension Machine": "8-12",
+  "Leg Curl": "8-12",
+  "Presse à cuisses": "6-10",
+  "Curl barre EZ": "6-10",
+  "Développé Militaire Haltères": "6-10",
+  "Curl marteau pupitre": "5-8",
+  "Rowing Bucheron": "5-8",
+  "Lat Pull Down": "5-8",
+  "Triceps Pushdown": "6-8",
+  "Ab crunch poulie": "10-15",
+  "Élévations latérales haltères": "10-15"
+};
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -1621,6 +1653,12 @@ function renderContent() {
 
       if (set.rpe !== undefined) {
         info += `<span class="rpe">RPE ${set.rpe}</span>`;
+      }
+
+      // Accessory range label (right-aligned)
+      const range = (!set.ref && !ex.ref) ? ACC_RANGES[ex.name] : null;
+      if (range) {
+        info += `<span class="acc-range">${range}</span>`;
       }
 
       html += `<div class="${rowClass}">`;
