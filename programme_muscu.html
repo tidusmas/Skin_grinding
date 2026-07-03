@@ -273,6 +273,20 @@ body {
   flex-shrink: 0;
 }
 
+/* ACCESSORY RUNNING TOTAL */
+.acc-total {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  padding: 8px 0 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.acc-total-count { font-size: 14px; font-weight: 700; color: var(--text2); }
+.acc-total-cond { font-size: 11px; color: var(--text2); }
+.acc-total.met .acc-total-count { color: var(--green); }
+.acc-total.met .acc-total-cond { color: var(--green); opacity: .85; }
+
 /* TIMER */
 .timer-bar {
   position: fixed;
@@ -1432,7 +1446,8 @@ let state = {
   maxSquat: 110,
   maxBench: 97,
   maxDeadlift: 120,
-  customWeights: {}, // { [exerciseName]: [weightGroup0, weightGroup1, ...] }
+  customWeights: {}, // { [exerciseName]: [weightGroup0, weightGroup1, ...] } — weight, per set-group
+  customReps: {},    // { [exerciseName]: [repsSet0, repsSet1, ...] } — reps, independent per set
   timerDuration: 120,
   timerRemaining: 120,
   timerRunning: false,
@@ -1639,11 +1654,11 @@ function renderContent() {
         const exNameEsc = ex.name.replace(/"/g, '&quot;');
         const programReps = set.r === "AMRAP" ? "MAX" : set.r;
 
-        // Reps input
-        const cr = getCustomReps(ex.name, gi);
+        // Reps input (independent per set — keyed by absolute set index si)
+        const cr = getCustomReps(ex.name, si);
         const repsVal = (cr !== null) ? cr : '';
         const repsEmpty = (cr === null) ? ' empty' : '';
-        info += `<input type="number" step="1" inputmode="numeric" class="acc-input reps-input${repsEmpty}" placeholder="${programReps}" value="${repsVal}" data-exname="${exNameEsc}" data-group="${gi}" onclick="event.stopPropagation()" onchange="onRepsInputChange(this)">`;
+        info += `<input type="number" step="1" inputmode="numeric" class="acc-input reps-input${repsEmpty}" placeholder="${programReps}" value="${repsVal}" data-exname="${exNameEsc}" data-set="${si}" onclick="event.stopPropagation()" onchange="onRepsInputChange(this)">`;
         info += `<span class="acc-unit">reps</span>`;
 
         info += `<span class="acc-x">&times;</span>`;
@@ -1679,6 +1694,24 @@ function renderContent() {
       html += `<div class="set-info">${info}</div>`;
       html += `</div>`;
     });
+
+    // Accessory: running rep-total + progression conditions
+    if (!ex.ref) {
+      const rangeStr = ACC_RANGES[ex.name] || '6-10';
+      const upper = parseInt(rangeStr.split('-')[1], 10) || 10;
+      const minPerSet = upper - 1;
+      const target = sets.length * upper;
+      let achieved = 0, allMet = sets.length > 0;
+      sets.forEach((_, si) => {
+        const r = getCustomReps(ex.name, si);
+        if (r !== null) achieved += r;
+        if (r === null || r < minPerSet) allMet = false;
+      });
+      html += `<div class="acc-total${allMet ? ' met' : ''}">`;
+      html += `<span class="acc-total-count">${allMet ? '&#10003; ' : ''}Total : ${achieved}/${target}</span>`;
+      html += `<span class="acc-total-cond">Monter le poids si : min ${minPerSet}/${upper} toutes séries &middot; RPE 8 max &middot; No pain &middot; No grind</span>`;
+      html += `</div>`;
+    }
 
     html += `</div></div>`;
   });
@@ -1891,6 +1924,7 @@ function saveState() {
     maxBench: state.maxBench,
     maxDeadlift: state.maxDeadlift,
     customWeights: state.customWeights,
+    customReps: state.customReps,
     timerDuration: state.timerDuration
   };
   localStorage.setItem('muscu_program', JSON.stringify(data));
@@ -1909,6 +1943,7 @@ function loadState() {
       state.maxBench = data.maxBench || 97;
       state.maxDeadlift = data.maxDeadlift || 120;
       state.customWeights = migrateCustomWeights(data.customWeights || {});
+      state.customReps = data.customReps || {};
       state.timerDuration = data.timerDuration || 120;
       state.timerRemaining = state.timerDuration;
     }
@@ -1919,10 +1954,10 @@ function loadState() {
   }
 }
 
-// Custom accessory data: { [exerciseName]: [ {w: weight, r: reps}, ... ] }
-// - Keyed by exercise name (stable across cycles/days → auto-pre-fill).
-// - Indexed by groupIndex (supports pyramids with different groups).
-// - Backward compat: old format was [number] (weight only), migrated on load.
+// Custom accessory data (keyed by exercise name, stable across cycles/days → auto-pre-fill):
+// - state.customWeights[exName][groupIndex] = { w } : weight, shared per set-group.
+// - state.customReps[exName][setIndex]      = reps  : INDEPENDENT per individual set.
+// - Backward compat: old customWeights format was [number] (weight only), migrated on load.
 
 function _ensureEntry(exName, groupIdx) {
   if (!state.customWeights[exName]) state.customWeights[exName] = [];
@@ -1945,15 +1980,11 @@ function getCustomWeight(exName, groupIdx) {
   return null;
 }
 
-function getCustomReps(exName, groupIdx) {
-  const arr = state.customWeights[exName];
+function getCustomReps(exName, setIdx) {
+  const arr = state.customReps[exName];
   if (!arr) return null;
-  const entry = arr[groupIdx];
-  if (entry && typeof entry === 'object') {
-    const r = entry.r;
-    return (typeof r === 'number' && !isNaN(r)) ? r : null;
-  }
-  return null;
+  const r = arr[setIdx];
+  return (typeof r === 'number' && !isNaN(r)) ? r : null;
 }
 
 function setCustomWeight(exName, groupIdx, weight) {
@@ -1962,9 +1993,9 @@ function setCustomWeight(exName, groupIdx, weight) {
   saveState();
 }
 
-function setCustomReps(exName, groupIdx, reps) {
-  const entry = _ensureEntry(exName, groupIdx);
-  entry.r = (reps === null || reps === '' || isNaN(reps)) ? null : Number(reps);
+function setCustomReps(exName, setIdx, reps) {
+  if (!state.customReps[exName]) state.customReps[exName] = [];
+  state.customReps[exName][setIdx] = (reps === null || reps === '' || isNaN(reps)) ? null : Number(reps);
   saveState();
 }
 
@@ -2004,12 +2035,12 @@ function onWeightInputChange(inputEl) {
 
 function onRepsInputChange(inputEl) {
   const exName = inputEl.dataset.exname;
-  const groupIdx = parseInt(inputEl.dataset.group, 10);
+  const setIdx = parseInt(inputEl.dataset.set, 10);
   const raw = inputEl.value.trim();
   const num = raw === '' ? null : parseInt(raw, 10);
-  setCustomReps(exName, groupIdx, num);
-  _syncSiblings('input.reps-input', exName, groupIdx, raw, num === null);
+  setCustomReps(exName, setIdx, num);      // independent per set — no sibling sync
   logSession(state.week, state.day);
+  render();                                // refresh the running total + signal
 }
 
 // ============================================================
@@ -2099,7 +2130,7 @@ function logSession(week, day) {
         if (weight !== null) desc += ` ${weight}kg`;
       } else if (!ex.ref) {
         // Accessory: use custom reps (or program default) + custom weight
-        const customR = getCustomReps(ex.name, set.groupIndex);
+        const customR = getCustomReps(ex.name, si);
         reps = customR !== null ? customR : reps;
         desc = `${reps === "AMRAP" ? "AMRAP" : reps + "r"}`;
         weight = getCustomWeight(ex.name, set.groupIndex);
@@ -2382,6 +2413,7 @@ updateTimerDisplay();
     state.maxBench = fbState.maxBench || 97;
     state.maxDeadlift = fbState.maxDeadlift || 120;
     state.customWeights = migrateCustomWeights(fbState.customWeights || state.customWeights || {});
+    state.customReps = fbState.customReps || state.customReps || {};
     state.timerDuration = fbState.timerDuration || 120;
     state.timerRemaining = state.timerDuration;
     if (!isBlocUnlocked(state.week)) { state.week = 0; state.day = 0; }
@@ -2389,7 +2421,7 @@ updateTimerDisplay();
       cycle: state.cycle, week: state.week, day: state.day,
       completions: state.completions, maxSquat: state.maxSquat,
       maxBench: state.maxBench, maxDeadlift: state.maxDeadlift,
-      customWeights: state.customWeights, timerDuration: state.timerDuration
+      customWeights: state.customWeights, customReps: state.customReps, timerDuration: state.timerDuration
     }));
     render();
     updateTimerDisplay();
