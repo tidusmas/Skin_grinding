@@ -1394,7 +1394,11 @@ const RAW_PROGRAM = [
 // ============================================================
 function buildWaves(raw) {
   const LETTERS = ['A','B','C','D','E','F','G'];
-  const retag = (list) => list.map((ex, i) => ({ ...ex, tag: LETTERS[i] || '' }));
+  // Accessoires (sans ref) : on n'affiche pas de cible RPE -> on la retire.
+  // Les exos de force (avec ref/pct) conservent leur RPE.
+  const stripRpe = (ex) => ex.ref ? ex
+    : { ...ex, sets: ex.sets.map(({ rpe, ...rest }) => rest) };
+  const retag = (list) => list.map((ex, i) => ({ ...stripRpe(ex), tag: LETTERS[i] || '' }));
   return raw.map((bloc, wi) => {
     // On retire les jours de repos, puis on reprend l'ordre :
     // Day1, Day2, Day3, Day4, Day6, Day7 (l'ancien Day5 = repos, supprimé).
