@@ -1701,12 +1701,14 @@ function renderContent() {
       const upper = parseInt(rangeStr.split('-')[1], 10) || 10;
       const minPerSet = upper - 1;
       const target = sets.length * upper;
-      let achieved = 0, allMet = sets.length > 0;
+      let achieved = 0, allFilled = sets.length > 0;
       sets.forEach((_, si) => {
         const r = getCustomReps(ex.name, si);
-        if (r !== null) achieved += r;
-        if (r === null || r < minPerSet) allMet = false;
+        if (r !== null) achieved += r; else allFilled = false;
       });
+      // Vert seulement quand toutes les séries sont remplies ET le total
+      // est au plus 1 rep sous le max (ex. 29/30).
+      const allMet = allFilled && achieved >= target - 1;
       html += `<div class="acc-total${allMet ? ' met' : ''}">`;
       html += `<span class="acc-total-count">${allMet ? '&#10003; ' : ''}Total : ${achieved}/${target}</span>`;
       html += `<span class="acc-total-cond">Monter le poids si : min ${minPerSet}/${upper} toutes séries &middot; RPE 8 max &middot; No pain &middot; No grind</span>`;
