@@ -1658,7 +1658,7 @@ function renderContent() {
         const cr = getCustomReps(ex.name, si);
         const repsVal = (cr !== null) ? cr : '';
         const repsEmpty = (cr === null) ? ' empty' : '';
-        info += `<input type="number" step="1" inputmode="numeric" class="acc-input reps-input${repsEmpty}" placeholder="${programReps}" value="${repsVal}" data-exname="${exNameEsc}" data-set="${si}" onclick="event.stopPropagation()" onchange="onRepsInputChange(this)">`;
+        info += `<input type="number" step="1" inputmode="numeric" class="acc-input reps-input${repsEmpty}" placeholder="${programReps}" value="${repsVal}" data-exname="${exNameEsc}" data-set="${si}" data-ei="${ei}" onclick="event.stopPropagation()" onchange="onRepsInputChange(this)">`;
         info += `<span class="acc-unit">reps</span>`;
 
         info += `<span class="acc-x">&times;</span>`;
@@ -1701,14 +1701,17 @@ function renderContent() {
       const upper = parseInt(rangeStr.split('-')[1], 10) || 10;
       const minPerSet = upper - 1;
       const target = sets.length * upper;
-      let achieved = 0, allFilled = sets.length > 0;
+      // On ne compte QUE les séries cochées (validées).
+      let achieved = 0, allReady = sets.length > 0;
       sets.forEach((_, si) => {
         const r = getCustomReps(ex.name, si);
-        if (r !== null) achieved += r; else allFilled = false;
+        const done = isSetDone(state.week, state.day, ei, si);
+        if (done && r !== null) achieved += r;
+        if (!done || r === null) allReady = false;
       });
-      // Vert seulement quand toutes les séries sont remplies ET le total
-      // est au plus 1 rep sous le max (ex. 29/30).
-      const allMet = allFilled && achieved >= target - 1;
+      // Vert seulement quand toutes les séries sont cochées + remplies ET
+      // le total est au plus 1 rep sous le max (ex. 29/30).
+      const allMet = allReady && achieved >= target - 1;
       html += `<div class="acc-total${allMet ? ' met' : ''}">`;
       html += `<span class="acc-total-count">${allMet ? '&#10003; ' : ''}Total : ${achieved}/${target}</span>`;
       html += `<span class="acc-total-cond">Monter le poids si : min ${minPerSet}/${upper} toutes séries &middot; RPE 8 max &middot; No pain &middot; No grind</span>`;
@@ -2038,11 +2041,16 @@ function onWeightInputChange(inputEl) {
 function onRepsInputChange(inputEl) {
   const exName = inputEl.dataset.exname;
   const setIdx = parseInt(inputEl.dataset.set, 10);
+  const exIdx = parseInt(inputEl.dataset.ei, 10);
   const raw = inputEl.value.trim();
   const num = raw === '' ? null : parseInt(raw, 10);
   setCustomReps(exName, setIdx, num);      // independent per set — no sibling sync
+  // Saisir des reps coche la série (= validée) ; vider la case la décoche.
+  const key = setKey(state.week, state.day, exIdx, setIdx);
+  if (num !== null) state.completions[key] = true; else delete state.completions[key];
+  saveState();
   logSession(state.week, state.day);
-  render();                                // refresh the running total + signal
+  render();                                // refresh checkbox + running total + signal
 }
 
 // ============================================================
