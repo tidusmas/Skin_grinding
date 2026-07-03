@@ -771,7 +771,7 @@ async function fbGet(path) {
 // Sets with only `rpe` are accessory (no weight shown)
 // s=numSets, r=reps|"AMRAP", pct=% of max, rpe=RPE target
 // ============================================================
-const PROGRAM = [
+const RAW_PROGRAM = [
   // ==================== WEEK 1 ====================
   {
     name: "Bloc 1",
@@ -785,7 +785,7 @@ const PROGRAM = [
             { s:2, r:5, pct:80, rpe:7 },
             { s:1, r:5, pct:74 }
           ]},
-          { name: "2CT Pause (bench)", tag: "B", ref: "bench", sets: [
+          { name: "2CT Pause Bench", tag: "B", ref: "bench", sets: [
             { s:1, r:3, pct:70 },
             { s:1, r:3, pct:76, rpe:5 },
             { s:1, r:3, pct:80, rpe:7 },
@@ -811,7 +811,7 @@ const PROGRAM = [
             { s:1, r:5, pct:74, rpe:5 },
             { s:2, r:5, pct:80, rpe:7 }
           ]},
-          { name: "2CT Pause (deadlift)", tag: "C", ref: "deadlift", sets: [
+          { name: "2CT Pause Deadlift", tag: "C", ref: "deadlift", sets: [
             { s:2, r:3, pct:65 }
           ]},
           { name: "Lat Pull Down", tag: "D", sets: [
@@ -832,7 +832,7 @@ const PROGRAM = [
           { name: "Élévations latérales poulie", tag: "B", sets: [
             { s:3, r:12, rpe:7 }
           ]},
-          { name: "Triceps Pushdown", tag: "C", sets: [
+          { name: "Overhead Extensions Triceps", tag: "C", sets: [
             { s:3, r:12, rpe:8 }
           ]},
           { name: "Curl marteau pupitre", tag: "D", sets: [
@@ -862,9 +862,7 @@ const PROGRAM = [
             { s:2, r:6, pct:63 }
           ]}
         ]
-      },
-      { name: "Repos", rest: true, exercises: [] },
-      {
+      },      {
         name: "Force Composés",
         exercises: [
           { name: "Squat", tag: "A", ref: "squat", sets: [
@@ -909,7 +907,7 @@ const PROGRAM = [
           { name: "Élévations latérales haltères", tag: "B", sets: [
             { s:3, r:15, rpe:7 }
           ]},
-          { name: "Triceps Pushdown", tag: "C", sets: [
+          { name: "Overhead Extensions Triceps", tag: "C", sets: [
             { s:2, r:8, rpe:8 }
           ]},
           { name: "Curl barre EZ", tag: "D", sets: [
@@ -939,7 +937,7 @@ const PROGRAM = [
             { s:1, r:5, pct:83, rpe:8 },
             { s:2, r:5, pct:80 }
           ]},
-          { name: "2CT Pause (bench)", tag: "B", ref: "bench", sets: [
+          { name: "2CT Pause Bench", tag: "B", ref: "bench", sets: [
             { s:1, r:3, pct:72 },
             { s:1, r:3, pct:79, rpe:6 },
             { s:1, r:3, pct:83, rpe:8 },
@@ -966,7 +964,7 @@ const PROGRAM = [
             { s:1, r:5, pct:83, rpe:8 },
             { s:1, r:5, pct:80 }
           ]},
-          { name: "2CT Pause (deadlift)", tag: "C", ref: "deadlift", sets: [
+          { name: "2CT Pause Deadlift", tag: "C", ref: "deadlift", sets: [
             { s:2, r:3, pct:70 }
           ]},
           { name: "Lat Pull Down", tag: "D", sets: [
@@ -987,7 +985,7 @@ const PROGRAM = [
           { name: "Élévations latérales poulie", tag: "B", sets: [
             { s:3, r:12, rpe:7 }
           ]},
-          { name: "Triceps Pushdown", tag: "C", sets: [
+          { name: "Overhead Extensions Triceps", tag: "C", sets: [
             { s:3, r:12, rpe:8 }
           ]},
           { name: "Curl marteau pupitre", tag: "D", sets: [
@@ -1017,9 +1015,7 @@ const PROGRAM = [
             { s:2, r:6, pct:63 }
           ]}
         ]
-      },
-      { name: "Repos", rest: true, exercises: [] },
-      {
+      },      {
         name: "Force Composés",
         exercises: [
           { name: "Squat", tag: "A", ref: "squat", sets: [
@@ -1067,7 +1063,7 @@ const PROGRAM = [
           { name: "Élévations latérales haltères", tag: "B", sets: [
             { s:3, r:15, rpe:7 }
           ]},
-          { name: "Triceps Pushdown", tag: "C", sets: [
+          { name: "Overhead Extensions Triceps", tag: "C", sets: [
             { s:2, r:8, rpe:8 }
           ]},
           { name: "Curl barre EZ", tag: "D", sets: [
@@ -1097,7 +1093,7 @@ const PROGRAM = [
             { s:2, r:4, pct:85, rpe:8 },
             { s:1, r:4, pct:80 }
           ]},
-          { name: "2CT Pause (bench)", tag: "B", ref: "bench", sets: [
+          { name: "2CT Pause Bench", tag: "B", ref: "bench", sets: [
             { s:1, r:3, pct:72 },
             { s:1, r:3, pct:79, rpe:6 },
             { s:1, r:3, pct:83, rpe:8 },
@@ -1126,7 +1122,7 @@ const PROGRAM = [
             { s:1, r:4, pct:80, rpe:7 },
             { s:1, r:4, pct:70 }
           ]},
-          { name: "2CT Pause (deadlift)", tag: "C", ref: "deadlift", sets: [
+          { name: "2CT Pause Deadlift", tag: "C", ref: "deadlift", sets: [
             { s:2, r:3, pct:75 }
           ]},
           { name: "Lat Pull Down", tag: "D", sets: [
@@ -1147,7 +1143,7 @@ const PROGRAM = [
           { name: "Élévations latérales poulie", tag: "B", sets: [
             { s:3, r:12, rpe:7 }
           ]},
-          { name: "Triceps Pushdown", tag: "C", sets: [
+          { name: "Overhead Extensions Triceps", tag: "C", sets: [
             { s:3, r:12, rpe:8 }
           ]},
           { name: "Curl marteau pupitre", tag: "D", sets: [
@@ -1177,9 +1173,7 @@ const PROGRAM = [
             { s:2, r:6, pct:63 }
           ]}
         ]
-      },
-      { name: "Repos", rest: true, exercises: [] },
-      {
+      },      {
         name: "Force Composés",
         exercises: [
           { name: "Squat", tag: "A", ref: "squat", sets: [
@@ -1227,7 +1221,7 @@ const PROGRAM = [
           { name: "Élévations latérales haltères", tag: "B", sets: [
             { s:3, r:15, rpe:7 }
           ]},
-          { name: "Triceps Pushdown", tag: "C", sets: [
+          { name: "Overhead Extensions Triceps", tag: "C", sets: [
             { s:2, r:8, rpe:8 }
           ]},
           { name: "Curl barre EZ", tag: "D", sets: [
@@ -1257,7 +1251,7 @@ const PROGRAM = [
             { s:2, r:4, pct:80, rpe:7 },
             { s:1, r:4, pct:74 }
           ]},
-          { name: "2CT Pause (bench)", tag: "B", ref: "bench", sets: [
+          { name: "2CT Pause Bench", tag: "B", ref: "bench", sets: [
             { s:1, r:3, pct:72 },
             { s:1, r:3, pct:79, rpe:6 },
             { s:1, r:3, pct:83, rpe:8 },
@@ -1283,7 +1277,7 @@ const PROGRAM = [
             { s:1, r:4, pct:74, rpe:5 },
             { s:2, r:4, pct:80, rpe:7 }
           ]},
-          { name: "2CT Pause (deadlift)", tag: "C", ref: "deadlift", sets: [
+          { name: "2CT Pause Deadlift", tag: "C", ref: "deadlift", sets: [
             { s:2, r:3, pct:65 }
           ]},
           { name: "Lat Pull Down", tag: "D", sets: [
@@ -1303,7 +1297,7 @@ const PROGRAM = [
           { name: "Élévations latérales poulie", tag: "B", sets: [
             { s:2, r:12, rpe:6 }
           ]},
-          { name: "Triceps Pushdown", tag: "C", sets: [
+          { name: "Overhead Extensions Triceps", tag: "C", sets: [
             { s:2, r:12, rpe:6 }
           ]},
           { name: "Curl biceps poulie", tag: "D", sets: [
@@ -1327,9 +1321,7 @@ const PROGRAM = [
             { s:2, r:6, pct:63 }
           ]}
         ]
-      },
-      { name: "Repos", rest: true, exercises: [] },
-      {
+      },      {
         name: "Test 1RM / Peak",
         exercises: [
           { name: "Squat", tag: "A", ref: "squat", sets: [
@@ -1375,7 +1367,7 @@ const PROGRAM = [
           { name: "Élévations latérales haltères", tag: "B", sets: [
             { s:3, r:15, rpe:7 }
           ]},
-          { name: "Triceps Pushdown", tag: "C", sets: [
+          { name: "Overhead Extensions Triceps", tag: "C", sets: [
             { s:2, r:8, rpe:8 }
           ]},
           { name: "Curl barre EZ", tag: "D", sets: [
@@ -1393,6 +1385,37 @@ const PROGRAM = [
     ]
   }
 ];
+
+// ============================================================
+// STRUCTURE TRANSFORM — regroupe les 4 blocs × 7 jours (avec repos)
+// en 4 Waves × 10 Sessions (file linéaire, sans jour de repos).
+// Les données (sets/reps/pct/rpe) sont réutilisées telles quelles :
+// on ne fait que redécouper et re-tagger. Rien n'est recalculé.
+// ============================================================
+function buildWaves(raw) {
+  const LETTERS = ['A','B','C','D','E','F','G'];
+  const retag = (list) => list.map((ex, i) => ({ ...ex, tag: LETTERS[i] || '' }));
+  return raw.map((bloc, wi) => {
+    // On retire les jours de repos, puis on reprend l'ordre :
+    // Day1, Day2, Day3, Day4, Day6, Day7 (l'ancien Day5 = repos, supprimé).
+    const [day1, day2, day3, day4, day6, day7] = bloc.days.filter(d => !d.rest);
+    const sessions = [
+      { name: day1.name,      exercises: retag(day1.exercises) },              // S1
+      { name: day2.name,      exercises: retag(day2.exercises.slice(0, 3)) },  // S2
+      { name: 'Dos',          exercises: retag(day2.exercises.slice(3)) },     // S3
+      { name: day3.name,      exercises: retag(day3.exercises.slice(0, 3)) },  // S4
+      { name: 'Bras + Abdos', exercises: retag(day3.exercises.slice(3)) },     // S5
+      { name: day4.name,      exercises: retag(day4.exercises) },              // S6
+      { name: day6.name,      exercises: retag(day6.exercises.slice(0, 4)) },  // S7
+      { name: 'Jambes',       exercises: retag(day6.exercises.slice(4)) },     // S8
+      { name: day7.name,      exercises: retag(day7.exercises.slice(0, 3)) },  // S9
+      { name: 'Dos + Bras',   exercises: retag(day7.exercises.slice(3)) }      // S10
+    ];
+    return { name: `Wave ${wi + 1}`, days: sessions };
+  });
+}
+
+const PROGRAM = buildWaves(RAW_PROGRAM);
 
 // ============================================================
 // STATE
@@ -1442,7 +1465,7 @@ const ACC_RANGES = {
   "Curl marteau pupitre": "5-8",
   "Rowing Bucheron": "5-8",
   "Lat Pull Down": "5-8",
-  "Triceps Pushdown": "6-8",
+  "Overhead Extensions Triceps": "6-8",
   "Ab crunch poulie": "10-15",
   "Élévations latérales haltères": "10-15"
 };
@@ -1537,11 +1560,10 @@ function renderNav() {
   html += '</div><div class="nav-section">';
   PROGRAM[state.week].days.forEach((d, di) => {
     const active = di === state.day ? 'active' : '';
-    const rest = d.rest ? 'rest' : '';
     const prog = getDayProgress(state.week, di);
-    const label = d.rest ? 'Repos' : `T${di+1}`;
-    const check = (!d.rest && prog.pct === 100) ? ' &#10003;' : '';
-    html += `<div class="nav-tab ${active} ${rest}" onclick="selectDay(${di})">${label}${check}</div>`;
+    const label = `S${di+1}`;
+    const check = (prog.pct === 100) ? ' &#10003;' : '';
+    html += `<div class="nav-tab ${active}" onclick="selectDay(${di})">${label}${check}</div>`;
   });
   html += '</div>';
   nav.innerHTML = html;
@@ -1565,7 +1587,7 @@ function renderContent() {
   let html = `
     <div class="day-header">
       <h2>${dayData.name}</h2>
-      <p>${PROGRAM[state.week].name} — T${state.day + 1}</p>
+      <p>${PROGRAM[state.week].name} — Session ${state.day + 1}/10</p>
       <div class="day-progress">
         <div class="progress-bar"><div class="progress-fill" style="width:${prog.pct}%"></div></div>
         <span class="progress-text">${prog.done}/${prog.total}</span>
@@ -2322,12 +2344,12 @@ document.addEventListener('keydown', (e) => {
   }
   if (e.key === 'r' || e.key === 'R') resetTimer();
   if (e.key === 'ArrowRight') {
-    if (state.day < 6) selectDay(state.day + 1);
+    if (state.day < 9) selectDay(state.day + 1);
     else if (state.week < 3 && isBlocUnlocked(state.week + 1)) { state.week++; selectDay(0); }
   }
   if (e.key === 'ArrowLeft') {
     if (state.day > 0) selectDay(state.day - 1);
-    else if (state.week > 0) { state.week--; selectDay(6); }
+    else if (state.week > 0) { state.week--; selectDay(9); }
   }
 });
 
