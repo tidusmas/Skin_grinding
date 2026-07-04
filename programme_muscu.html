@@ -724,6 +724,17 @@ body {
   </div>
 </div>
 
+<div class="modal-overlay" id="validateModal">
+  <div class="modal">
+    <h3>Séance terminée &#128170;</h3>
+    <p id="validateModalText" style="color:var(--text2);margin-bottom:4px"></p>
+    <div class="modal-actions">
+      <button onclick="closeValidateModal()">Pas encore</button>
+      <button class="save" onclick="confirmValidateSession()">Valider la séance</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============================================================
 // PASSWORD PROTECTION
@@ -1511,6 +1522,7 @@ function isSetDone(week, day, exIdx, setIdx) {
 }
 
 function toggleSetDone(week, day, exIdx, setIdx) {
+  const wasComplete = getDayProgress(week, day).pct === 100;
   const key = setKey(week, day, exIdx, setIdx);
   const wasChecked = !!state.completions[key];
   if (wasChecked) {
@@ -1527,7 +1539,7 @@ function toggleSetDone(week, day, exIdx, setIdx) {
   }
   saveState();
   render();
-  logSession(week, day);
+  afterSessionChange(week, day, wasComplete);
 }
 
 function getDayProgress(week, day) {
@@ -2033,15 +2045,17 @@ function onWeightInputChange(inputEl) {
   const groupIdx = parseInt(inputEl.dataset.group, 10);
   const raw = inputEl.value.trim();
   const num = raw === '' ? null : parseFloat(raw);
+  const wasComplete = getDayProgress(state.week, state.day).pct === 100;
   setCustomWeight(exName, groupIdx, num);
   _syncSiblings('input.weight-input', exName, groupIdx, raw, num === null);
-  logSession(state.week, state.day);
+  afterSessionChange(state.week, state.day, wasComplete);
 }
 
 function onRepsInputChange(inputEl) {
   const exName = inputEl.dataset.exname;
   const setIdx = parseInt(inputEl.dataset.set, 10);
   const exIdx = parseInt(inputEl.dataset.ei, 10);
+  const wasComplete = getDayProgress(state.week, state.day).pct === 100;
   const raw = inputEl.value.trim();
   const num = raw === '' ? null : parseInt(raw, 10);
   setCustomReps(exName, setIdx, num);      // independent per set — no sibling sync
@@ -2049,8 +2063,8 @@ function onRepsInputChange(inputEl) {
   const key = setKey(state.week, state.day, exIdx, setIdx);
   if (num !== null) state.completions[key] = true; else delete state.completions[key];
   saveState();
-  logSession(state.week, state.day);
   render();                                // refresh checkbox + running total + signal
+  afterSessionChange(state.week, state.day, wasComplete);
 }
 
 // ============================================================
@@ -2109,6 +2123,65 @@ function mergeHistory(a, b) {
     .sort((x, y) => (x.date || '').localeCompare(y.date || ''));
 
   return { sessions, maxHistory };
+}
+
+// ============================================================
+// SESSION VALIDATION
+// History is written ONLY when the user validates the whole session,
+// never on individual set/reps/weight changes.
+// ============================================================
+function isSessionLogged(week, day) {
+  const history = loadHistory();
+  const today = new Date().toISOString().split('T')[0];
+  return history.sessions.some(s =>
+    s.date === today && s.week === week && s.day === day && s.cycle === state.cycle);
+}
+
+function removeSessionLog(week, day) {
+  const history = loadHistory();
+  const today = new Date().toISOString().split('T')[0];
+  const idx = history.sessions.findIndex(s =>
+    s.date === today && s.week === week && s.day === day && s.cycle === state.cycle);
+  if (idx >= 0) {
+    history.sessions.splice(idx, 1);
+    saveHistory(history);
+    if (currentPage === 'history') renderHistory();
+  }
+}
+
+// Called after any set/reps/weight change to keep history coherent:
+// - session just became complete & not yet logged -> prompt validation popup
+// - session already logged & still complete        -> keep it in sync
+// - session already logged & now incomplete        -> remove it from history
+function afterSessionChange(week, day, wasComplete) {
+  if (PROGRAM[week].days[day].rest) return;
+  const nowComplete = getDayProgress(week, day).pct === 100;
+  const logged = isSessionLogged(week, day);
+  if (nowComplete && !wasComplete && !logged) {
+    showValidateModal(week, day);
+  } else if (logged && nowComplete) {
+    logSession(week, day);
+  } else if (logged && !nowComplete) {
+    removeSessionLog(week, day);
+  }
+}
+
+let _validateTarget = null;
+function showValidateModal(week, day) {
+  _validateTarget = { week, day };
+  const dd = PROGRAM[week].days[day];
+  document.getElementById('validateModalText').textContent =
+    `Toutes les séries de « ${dd.name} » sont cochées. Enregistrer cette séance dans l'historique ?`;
+  document.getElementById('validateModal').classList.add('show');
+}
+function closeValidateModal() {
+  document.getElementById('validateModal').classList.remove('show');
+  _validateTarget = null;
+}
+function confirmValidateSession() {
+  if (_validateTarget) logSession(_validateTarget.week, _validateTarget.day);
+  closeValidateModal();
+  if (currentPage === 'history') renderHistory();
 }
 
 function logSession(week, day) {
@@ -2400,6 +2473,10 @@ document.addEventListener('keydown', (e) => {
 
 document.getElementById('settingsModal').addEventListener('click', (e) => {
   if (e.target.classList.contains('modal-overlay')) closeSettings();
+});
+
+document.getElementById('validateModal').addEventListener('click', (e) => {
+  if (e.target.classList.contains('modal-overlay')) closeValidateModal();
 });
 
 // ============================================================
