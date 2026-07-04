@@ -110,7 +110,8 @@ body {
 .nav-tab:hover { color: var(--text); background: var(--bg3); }
 .nav-tab.active { color: var(--green); border-bottom-color: var(--green); }
 .nav-tab.rest { color: var(--text2); opacity: .5; font-style: italic; }
-.nav-tab.locked { opacity: 0.3; cursor: not-allowed; pointer-events: none; color: var(--text2); }
+/* "locked" = pas encore débloquée : grisée mais cliquable (révision libre) */
+.nav-tab.locked { opacity: 0.5; color: var(--text2); }
 
 /* CONTENT */
 .content {
@@ -1759,7 +1760,8 @@ function render() {
 // NAVIGATION
 // ============================================================
 function selectWeek(w) {
-  if (!isBlocUnlocked(w)) return;
+  // Toutes les Waves sont navigables librement (révision par le coach / soi-même),
+  // même celles pas encore débloquées.
   state.week = w;
   state.day = 0;
   saveState();
@@ -1965,10 +1967,6 @@ function loadState() {
       state.timerRemaining = state.timerDuration;
     }
   } catch(e) {}
-  if (!isBlocUnlocked(state.week)) {
-    state.week = 0;
-    state.day = 0;
-  }
 }
 
 // Custom accessory data (keyed by exercise name, stable across cycles/days → auto-pre-fill):
@@ -2463,7 +2461,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'r' || e.key === 'R') resetTimer();
   if (e.key === 'ArrowRight') {
     if (state.day < 9) selectDay(state.day + 1);
-    else if (state.week < 3 && isBlocUnlocked(state.week + 1)) { state.week++; selectDay(0); }
+    else if (state.week < 3) { state.week++; selectDay(0); }
   }
   if (e.key === 'ArrowLeft') {
     if (state.day > 0) selectDay(state.day - 1);
@@ -2503,7 +2501,6 @@ updateTimerDisplay();
     state.customReps = fbState.customReps || state.customReps || {};
     state.timerDuration = fbState.timerDuration || 120;
     state.timerRemaining = state.timerDuration;
-    if (!isBlocUnlocked(state.week)) { state.week = 0; state.day = 0; }
     localStorage.setItem('muscu_program', JSON.stringify({
       cycle: state.cycle, week: state.week, day: state.day,
       completions: state.completions, maxSquat: state.maxSquat,
