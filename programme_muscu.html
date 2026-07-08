@@ -288,6 +288,22 @@ body {
 .acc-total.met .acc-total-count { color: var(--green); }
 .acc-total.met .acc-total-cond { color: var(--green); opacity: .85; }
 
+/* ACCESSORY NOTE (free text, above the sets) */
+.acc-note-row { padding: 10px 0 4px; }
+.acc-note-input {
+  width: 100%;
+  padding: 6px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+}
+.acc-note-input::placeholder { color: var(--text2); }
+.acc-note-input:focus { outline: none; border-color: var(--blue); }
+.acc-note-input.empty { border-style: dashed; }
+
 /* TIMER */
 .timer-bar {
   position: fixed;
@@ -1460,6 +1476,7 @@ let state = {
   maxDeadlift: 120,
   customWeights: {}, // { [exerciseName]: [weightGroup0, weightGroup1, ...] } — weight, per set-group
   customReps: {},    // { [exerciseName]: [repsSet0, repsSet1, ...] } — reps, independent per set
+  customNotes: {},   // { [exerciseName]: "note libre" } — note par accessoire
   timerDuration: 120,
   timerRemaining: 120,
   timerRunning: false,
@@ -1638,6 +1655,13 @@ function renderContent() {
     html += `<div class="exercise-check">${allDone ? '&#10003;' : ''}</div>`;
     html += `</div>`;
     html += `<div class="sets-container">`;
+
+    // Accessory free-text note (réglage siège, cues…) — entre le titre et les séries
+    if (!ex.ref) {
+      const note = getCustomNote(ex.name);
+      const exNameEsc = ex.name.replace(/"/g, '&quot;');
+      html += `<div class="acc-note-row"><input type="text" class="acc-note-input${note ? '' : ' empty'}" placeholder="&#128221; Note (ex. r&eacute;glage si&egrave;ge, prise, cran&hellip;)" value="${escAttr(note)}" data-exname="${exNameEsc}" onclick="event.stopPropagation()" onchange="onNoteInputChange(this)"></div>`;
+    }
 
     sets.forEach((set, si) => {
       const done = isSetDone(state.week, state.day, ei, si);
@@ -1944,6 +1968,7 @@ function saveState() {
     maxDeadlift: state.maxDeadlift,
     customWeights: state.customWeights,
     customReps: state.customReps,
+    customNotes: state.customNotes,
     timerDuration: state.timerDuration
   };
   localStorage.setItem('muscu_program', JSON.stringify(data));
@@ -1963,6 +1988,7 @@ function loadState() {
       state.maxDeadlift = data.maxDeadlift || 120;
       state.customWeights = migrateCustomWeights(data.customWeights || {});
       state.customReps = data.customReps || {};
+      state.customNotes = data.customNotes || {};
       state.timerDuration = data.timerDuration || 120;
       state.timerRemaining = state.timerDuration;
     }
@@ -2012,6 +2038,28 @@ function setCustomReps(exName, setIdx, reps) {
   if (!state.customReps[exName]) state.customReps[exName] = [];
   state.customReps[exName][setIdx] = (reps === null || reps === '' || isNaN(reps)) ? null : Number(reps);
   saveState();
+}
+
+// Escape a string for safe use inside an HTML attribute value.
+function escAttr(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+// Per-exercise free-text note (keyed by exercise name, persists across cycles/days).
+function getCustomNote(exName) {
+  const n = state.customNotes[exName];
+  return (typeof n === 'string') ? n : '';
+}
+function setCustomNote(exName, text) {
+  const t = (text == null) ? '' : String(text);
+  if (t.trim() === '') delete state.customNotes[exName];
+  else state.customNotes[exName] = t;
+  saveState();
+}
+function onNoteInputChange(inputEl) {
+  setCustomNote(inputEl.dataset.exname, inputEl.value);
+  inputEl.classList.toggle('empty', inputEl.value.trim() === '');
 }
 
 // Migrate old format [number] → [{w, r}] in place
@@ -2499,13 +2547,14 @@ updateTimerDisplay();
     state.maxDeadlift = fbState.maxDeadlift || 120;
     state.customWeights = migrateCustomWeights(fbState.customWeights || state.customWeights || {});
     state.customReps = fbState.customReps || state.customReps || {};
+    state.customNotes = fbState.customNotes || state.customNotes || {};
     state.timerDuration = fbState.timerDuration || 120;
     state.timerRemaining = state.timerDuration;
     localStorage.setItem('muscu_program', JSON.stringify({
       cycle: state.cycle, week: state.week, day: state.day,
       completions: state.completions, maxSquat: state.maxSquat,
       maxBench: state.maxBench, maxDeadlift: state.maxDeadlift,
-      customWeights: state.customWeights, customReps: state.customReps, timerDuration: state.timerDuration
+      customWeights: state.customWeights, customReps: state.customReps, customNotes: state.customNotes, timerDuration: state.timerDuration
     }));
     render();
     updateTimerDisplay();
