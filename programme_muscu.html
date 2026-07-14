@@ -304,6 +304,45 @@ body {
 .acc-note-input:focus { outline: none; border-color: var(--blue); }
 .acc-note-input.empty { border-style: dashed; }
 
+/* SESSION VALIDATION FOOTER */
+.session-validate {
+  margin-top: 24px;
+  padding: 16px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.btn-valider {
+  padding: 12px 28px;
+  background: var(--green-dim);
+  border: 1px solid var(--green);
+  color: var(--green);
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn-valider:hover { background: var(--green); color: #000; }
+.session-validate-ok { color: var(--green); font-weight: 600; font-size: 14px; }
+.btn-devalider {
+  padding: 8px 16px;
+  background: #5c1a1a;
+  border: 1px solid var(--red);
+  color: var(--red);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn-devalider:hover { background: var(--red); color: #fff; }
+
 /* TIMER */
 .timer-bar {
   position: fixed;
@@ -743,7 +782,7 @@ body {
 
 <div class="modal-overlay" id="validateModal">
   <div class="modal">
-    <h3>Séance terminée &#128170;</h3>
+    <h3 id="validateModalTitle">Valider la séance</h3>
     <p id="validateModalText" style="color:var(--text2);margin-bottom:4px"></p>
     <div class="modal-actions">
       <button onclick="closeValidateModal()">Pas encore</button>
@@ -1758,6 +1797,22 @@ function renderContent() {
     html += `</div></div>`;
   });
 
+  // Session validation footer — valider une séance partielle OU complète vers l'historique
+  {
+    const sp = getDayProgress(state.week, state.day);
+    const logged = isSessionLogged(state.week, state.day);
+    if (logged || sp.done > 0) {
+      html += `<div class="session-validate">`;
+      if (logged) {
+        html += `<span class="session-validate-ok">&#10003; Séance enregistrée dans l'historique (${sp.done}/${sp.total})</span>`;
+        html += `<button class="btn-devalider" onclick="devalidateSession(${state.week},${state.day})">Dévalider</button>`;
+      } else {
+        html += `<button class="btn-valider" onclick="showValidateModal(${state.week},${state.day})">Valider la séance (${sp.done}/${sp.total})</button>`;
+      }
+      html += `</div>`;
+    }
+  }
+
   // Cycle advancement banner
   if (isBlocComplete(3)) {
     html += `
@@ -2195,20 +2250,22 @@ function removeSessionLog(week, day) {
   }
 }
 
-// Called after any set/reps/weight change to keep history coherent:
-// - session just became complete & not yet logged -> prompt validation popup
-// - session already logged & still complete        -> keep it in sync
-// - session already logged & now incomplete        -> remove it from history
+// Called after any set/reps/weight change to keep history coherent.
+// Validation is an explicit user action (auto-popup at 100% OR the
+// "Valider la séance" button, which also works on partial sessions).
+// We never auto-log; we only:
+//  - auto-prompt the FIRST time an un-logged session reaches 100% (shortcut),
+//  - keep an already-validated session in sync (partial or full),
+//  - drop a validated session only if it is fully emptied (0 done).
 function afterSessionChange(week, day, wasComplete) {
   if (PROGRAM[week].days[day].rest) return;
-  const nowComplete = getDayProgress(week, day).pct === 100;
+  const prog = getDayProgress(week, day);
   const logged = isSessionLogged(week, day);
-  if (nowComplete && !wasComplete && !logged) {
+  if (logged) {
+    if (prog.done === 0) removeSessionLog(week, day);
+    else logSession(week, day);
+  } else if (prog.pct === 100 && !wasComplete) {
     showValidateModal(week, day);
-  } else if (logged && nowComplete) {
-    logSession(week, day);
-  } else if (logged && !nowComplete) {
-    removeSessionLog(week, day);
   }
 }
 
@@ -2216,8 +2273,13 @@ let _validateTarget = null;
 function showValidateModal(week, day) {
   _validateTarget = { week, day };
   const dd = PROGRAM[week].days[day];
-  document.getElementById('validateModalText').textContent =
-    `Toutes les séries de « ${dd.name} » sont cochées. Enregistrer cette séance dans l'historique ?`;
+  const prog = getDayProgress(week, day);
+  const partial = prog.pct < 100;
+  document.getElementById('validateModalTitle').textContent =
+    partial ? 'Valider la séance (incomplète)' : 'Séance terminée';
+  document.getElementById('validateModalText').textContent = partial
+    ? `Enregistrer « ${dd.name} » dans l'historique avec ${prog.done}/${prog.total} séries faites ? Les exercices non cochés seront notés comme non réalisés.`
+    : `Toutes les séries de « ${dd.name} » sont cochées. Enregistrer cette séance dans l'historique ?`;
   document.getElementById('validateModal').classList.add('show');
 }
 function closeValidateModal() {
@@ -2227,7 +2289,13 @@ function closeValidateModal() {
 function confirmValidateSession() {
   if (_validateTarget) logSession(_validateTarget.week, _validateTarget.day);
   closeValidateModal();
+  render();
   if (currentPage === 'history') renderHistory();
+}
+function devalidateSession(week, day) {
+  if (!confirm('Retirer cette séance de l\'historique ?')) return;
+  removeSessionLog(week, day);
+  render();
 }
 
 function logSession(week, day) {
