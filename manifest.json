@@ -1,7 +1,9 @@
 {
   "name": "Programme Muscu",
   "short_name": "Muscu",
-  "start_url": "/programme_muscu.html",
+  "id": "./programme_muscu.html",
+  "start_url": "./programme_muscu.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0f1117",
   "theme_color": "#0f1117",
