@@ -71,6 +71,7 @@ globalThis.testApi = {
   getSessionExercises,
   sessionOccurrenceKey,
   exerciseCompletionKey,
+  getExerciseTimerDuration,
   setKey,
   setCustomWeight,
   setCustomReps,
@@ -124,6 +125,13 @@ assert.ok(added);
 
 const addedIndex = exercises.indexOf(added);
 const addedKey = api.exerciseCompletionKey(added, addedIndex);
+assert.equal(api.getExerciseTimerDuration(0, 0, addedKey), 120);
+const sbdIndex = exercises.findIndex(ex => ex.ref);
+assert.ok(sbdIndex >= 0);
+assert.equal(
+  api.getExerciseTimerDuration(0, 0, api.exerciseCompletionKey(exercises[sbdIndex], sbdIndex)),
+  180
+);
 api.state.completions[api.setKey(0, 0, addedKey, 0)] = true;
 api.state.completions[api.setKey(0, 0, addedKey, 1)] = true;
 api.logSession(0, 0);

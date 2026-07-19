@@ -2083,6 +2083,13 @@ function isSetDone(week, day, exKey, setIdx) {
   return !!state.completions[setKey(week, day, exKey, setIdx)];
 }
 
+function getExerciseTimerDuration(week, day, exKey) {
+  const exercise = getSessionExercises(week, day).find((candidate, index) =>
+    exerciseCompletionKey(candidate, index) === String(exKey)
+  );
+  return exercise?.ref ? 180 : 120;
+}
+
 function toggleSetDone(week, day, exKey, setIdx) {
   const wasComplete = getDayProgress(week, day).pct === 100;
   const key = setKey(week, day, exKey, setIdx);
@@ -2091,8 +2098,7 @@ function toggleSetDone(week, day, exKey, setIdx) {
     delete state.completions[key];
   } else {
     state.completions[key] = true;
-    // Auto-start 4min timer when checking a set
-    setTimer(240);
+    setTimer(getExerciseTimerDuration(week, day, exKey));
     if (state.timerRunning) {
       clearInterval(state.timerInterval);
       state.timerRunning = false;
@@ -2471,6 +2477,29 @@ function resetDay() {
 // ============================================================
 // TIMER
 // ============================================================
+let timerAudioContext = null;
+
+function unlockTimerAudio() {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    if (!timerAudioContext) timerAudioContext = new AudioContextClass();
+    if (timerAudioContext.state === 'suspended') timerAudioContext.resume();
+
+    // iOS requires audio to be initialized during a user interaction.
+    const oscillator = timerAudioContext.createOscillator();
+    const gain = timerAudioContext.createGain();
+    oscillator.connect(gain);
+    gain.connect(timerAudioContext.destination);
+    gain.gain.value = 0;
+    oscillator.start();
+    oscillator.stop(timerAudioContext.currentTime + 0.01);
+    return timerAudioContext;
+  } catch(e) {
+    return null;
+  }
+}
+
 function setTimer(seconds) {
   state.timerDuration = seconds;
   state.timerRemaining = seconds;
@@ -2495,6 +2524,7 @@ function toggleTimer() {
     if (state.timerRemaining <= 0) {
       state.timerRemaining = state.timerDuration;
     }
+    unlockTimerAudio();
     state.timerRunning = true;
     document.getElementById('timerBtn').textContent = 'Pause';
     state.timerInterval = setInterval(() => {
@@ -2535,17 +2565,19 @@ function updateTimerDisplay() {
 
 function playAlarm() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    [0, 200, 400].forEach(delay => {
+    const ctx = unlockTimerAudio();
+    if (!ctx) return;
+    [0, 250, 500].forEach(delay => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.frequency.value = 880;
       osc.type = 'sine';
-      gain.gain.value = 0.3;
+      gain.gain.setValueAtTime(0.45, ctx.currentTime + delay/1000);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + delay/1000 + 0.2);
       osc.start(ctx.currentTime + delay/1000);
-      osc.stop(ctx.currentTime + delay/1000 + 0.15);
+      osc.stop(ctx.currentTime + delay/1000 + 0.2);
     });
   } catch(e) {}
 }
