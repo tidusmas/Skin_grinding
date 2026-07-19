@@ -354,6 +354,52 @@ body {
 .accessory-picker-name { display: block; font-size: 14px; font-weight: 600; }
 .accessory-picker-meta { display: block; margin-top: 3px; color: var(--text2); font-size: 12px; }
 
+/* ACCOUNT */
+.account-separator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  color: var(--text2);
+  font-size: 12px;
+}
+.account-separator::before, .account-separator::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--border);
+}
+.login-box button.account-login-btn {
+  background: var(--bg3);
+  border: 1px solid var(--blue);
+  color: var(--blue);
+}
+.account-fields { display: grid; gap: 10px; margin-top: 16px; }
+.account-fields label { color: var(--text2); font-size: 12px; }
+.account-fields input {
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+.account-fields input:focus { outline: none; border-color: var(--blue); }
+.account-message { min-height: 18px; margin-top: 10px; color: var(--text2); font-size: 12px; }
+.account-message.error { color: var(--red); }
+.account-message.success { color: var(--green); }
+.account-link-btn {
+  border: 0;
+  background: transparent;
+  color: var(--blue);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+.account-status { color: var(--green); font-size: 12px; }
+
 /* SESSION VALIDATION FOOTER */
 .session-validate {
   margin-top: 24px;
@@ -767,6 +813,8 @@ body {
     <p>Mot de passe requis</p>
     <input type="password" id="loginPassword" placeholder="Mot de passe" autocomplete="off">
     <button onclick="attemptLogin()">Entrer</button>
+    <div class="account-separator">ou</div>
+    <button class="account-login-btn" onclick="openAccountModal()">Compte personnel</button>
     <div class="login-error" id="loginError">Mot de passe incorrect</div>
   </div>
 </div>
@@ -818,6 +866,7 @@ body {
     </div>
     <div class="modal-actions">
       <div style="display:flex;gap:8px">
+        <button onclick="openAccountModal()">Compte</button>
         <button onclick="exportLocalData()">Exporter données</button>
         <button class="danger" onclick="resetAllProgress()">Reset prog.</button>
         <button class="danger" onclick="resetHistory()">Reset histo.</button>
@@ -853,6 +902,32 @@ body {
   </div>
 </div>
 
+<div class="modal-overlay" id="accountModal">
+  <div class="modal">
+    <h3>Compte personnel</h3>
+    <div class="account-status" id="accountStatus"></div>
+    <div class="account-fields" id="accountFields">
+      <label>Adresse e-mail
+        <input type="email" id="accountEmail" autocomplete="email">
+      </label>
+      <label>Mot de passe
+        <input type="password" id="accountPassword" autocomplete="current-password" minlength="6">
+      </label>
+    </div>
+    <div class="account-message" id="accountMessage"></div>
+    <button class="account-link-btn" id="forgotPasswordBtn" onclick="resetAccountPassword()">Mot de passe oublié</button>
+    <div class="modal-actions">
+      <button onclick="closeAccountModal()">Fermer</button>
+      <button id="accountLogoutBtn" class="danger" style="display:none" onclick="logoutAccount()">Déconnexion</button>
+      <button id="accountRegisterBtn" onclick="registerAccount()">Créer un compte</button>
+      <button id="accountLoginBtn" class="save" onclick="loginAccount()">Connexion</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-database-compat.js"></script>
 <script>
 // ============================================================
 // PASSWORD PROTECTION
@@ -905,6 +980,281 @@ async function fbGet(path) {
     if (!res.ok) return null;
     return await res.json();
   } catch(e) { return null; }
+}
+
+// ============================================================
+// PERSONAL ACCOUNT + MULTI-DEVICE SYNC
+// ============================================================
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAa_mArHrX4Qs9rtX7pWHh_Ctyp-8qIQ38",
+  authDomain: "skin-grinding.firebaseapp.com",
+  databaseURL: "https://skin-grinding-default-rtdb.firebaseio.com",
+  projectId: "skin-grinding",
+  storageBucket: "skin-grinding.firebasestorage.app",
+  messagingSenderId: "94530619554",
+  appId: "1:94530619554:web:4d54f18fa30a1f7f442ffb"
+};
+
+let accountAuth = null;
+let accountDatabase = null;
+let accountUser = null;
+let accountApplyingRemote = false;
+let accountProgramTimer = null;
+let accountListeners = [];
+let resolveAccountAuthReady = null;
+const accountAuthReady = new Promise(resolve => { resolveAccountAuthReady = resolve; });
+
+function accountSessionKey(session) {
+  return `${session.date}_c${session.cycle || 1}_w${session.week}_s${session.day}`;
+}
+
+function historyToCloudMap(history) {
+  const sessions = {};
+  const maxHistory = {};
+  (history.sessions || []).forEach(session => {
+    sessions[accountSessionKey(session)] = session;
+  });
+  (history.maxHistory || []).forEach(entry => {
+    if (entry?.date) maxHistory[entry.date] = entry;
+  });
+  return { sessions, maxHistory };
+}
+
+function cloudMapToHistory(data) {
+  return {
+    sessions: Object.values(data?.sessions || {}),
+    maxHistory: Object.values(data?.maxHistory || {})
+  };
+}
+
+function getLocalProgramData() {
+  try {
+    return JSON.parse(localStorage.getItem("muscu_program")) || null;
+  } catch(e) {
+    return null;
+  }
+}
+
+function setAccountMessage(message, type = "") {
+  const el = document.getElementById("accountMessage");
+  if (!el) return;
+  el.textContent = message;
+  el.className = `account-message${type ? " " + type : ""}`;
+}
+
+function accountErrorMessage(error) {
+  const code = error?.code || "";
+  if (code.includes("invalid-credential")) return "E-mail ou mot de passe incorrect.";
+  if (code.includes("email-already-in-use")) return "Un compte existe déjà avec cet e-mail.";
+  if (code.includes("weak-password")) return "Le mot de passe doit contenir au moins 6 caractères.";
+  if (code.includes("invalid-email")) return "Adresse e-mail invalide.";
+  if (code.includes("too-many-requests")) return "Trop de tentatives. Réessaie plus tard.";
+  if (code.includes("network-request-failed")) return "Connexion réseau indisponible.";
+  return "Une erreur est survenue. Réessaie.";
+}
+
+function updateAccountModal() {
+  const connected = !!accountUser;
+  document.getElementById("accountStatus").textContent =
+    connected ? `Connecté : ${accountUser.email}` : "";
+  document.getElementById("accountFields").style.display = connected ? "none" : "grid";
+  document.getElementById("forgotPasswordBtn").style.display = connected ? "none" : "";
+  document.getElementById("accountRegisterBtn").style.display = connected ? "none" : "";
+  document.getElementById("accountLoginBtn").style.display = connected ? "none" : "";
+  document.getElementById("accountLogoutBtn").style.display = connected ? "" : "none";
+  if (connected) setAccountMessage("Synchronisation active.", "success");
+}
+
+function openAccountModal() {
+  updateAccountModal();
+  document.getElementById("accountModal").classList.add("show");
+}
+
+function closeAccountModal() {
+  document.getElementById("accountModal").classList.remove("show");
+  setAccountMessage("");
+}
+
+async function loginAccount() {
+  const email = document.getElementById("accountEmail").value.trim();
+  const password = document.getElementById("accountPassword").value;
+  setAccountMessage("Connexion...");
+  try {
+    await accountAuth.signInWithEmailAndPassword(email, password);
+    closeAccountModal();
+  } catch(error) {
+    setAccountMessage(accountErrorMessage(error), "error");
+  }
+}
+
+async function registerAccount() {
+  const email = document.getElementById("accountEmail").value.trim();
+  const password = document.getElementById("accountPassword").value;
+  setAccountMessage("Création du compte...");
+  try {
+    await accountAuth.createUserWithEmailAndPassword(email, password);
+    closeAccountModal();
+  } catch(error) {
+    setAccountMessage(accountErrorMessage(error), "error");
+  }
+}
+
+async function resetAccountPassword() {
+  const email = document.getElementById("accountEmail").value.trim();
+  if (!email) {
+    setAccountMessage("Saisis d'abord ton adresse e-mail.", "error");
+    return;
+  }
+  try {
+    await accountAuth.sendPasswordResetEmail(email);
+    setAccountMessage("E-mail de réinitialisation envoyé.", "success");
+  } catch(error) {
+    setAccountMessage(accountErrorMessage(error), "error");
+  }
+}
+
+async function logoutAccount() {
+  await accountAuth.signOut();
+  updateAccountModal();
+}
+
+function applyCloudProgram(program) {
+  if (!program || typeof program !== "object") return;
+  accountApplyingRemote = true;
+  localStorage.setItem("muscu_program", JSON.stringify(program));
+  loadState();
+  accountApplyingRemote = false;
+  render();
+}
+
+function applyCloudHistory(remoteHistory) {
+  const merged = mergeHistory(loadHistory(), remoteHistory);
+  localStorage.setItem("muscu_history", JSON.stringify(merged));
+  if (currentPage === "history") renderHistory();
+}
+
+async function migrateLocalDataToAccount(user) {
+  const localProgram = getLocalProgramData() || {};
+  const localHistory = loadHistory();
+  const cloudHistory = historyToCloudMap(localHistory);
+  const accountRef = accountDatabase.ref(`accounts/${user.uid}`);
+  await accountRef.set({
+    profile: {
+      email: user.email,
+      createdAt: firebase.database.ServerValue.TIMESTAMP
+    },
+    program: { ...localProgram, updatedAt: Date.now() },
+    sessions: cloudHistory.sessions,
+    maxHistory: cloudHistory.maxHistory,
+    meta: {
+      schemaVersion: 1,
+      migratedAt: firebase.database.ServerValue.TIMESTAMP
+    }
+  });
+}
+
+async function initializeAccountData(user) {
+  const accountRef = accountDatabase.ref(`accounts/${user.uid}`);
+  const snapshot = await accountRef.once("value");
+  const cloud = snapshot.val();
+
+  if (!cloud?.meta?.migratedAt) {
+    await migrateLocalDataToAccount(user);
+  } else {
+    const localProgram = getLocalProgramData();
+    const remoteProgram = cloud.program || null;
+    if (remoteProgram && (!localProgram || (remoteProgram.updatedAt || 0) > (localProgram.updatedAt || 0))) {
+      applyCloudProgram(remoteProgram);
+    } else if (localProgram) {
+      await accountRef.child("program").set(localProgram);
+    }
+    const mergedHistory = mergeHistory(loadHistory(), cloudMapToHistory(cloud));
+    localStorage.setItem("muscu_history", JSON.stringify(mergedHistory));
+    await syncAccountHistory(mergedHistory);
+  }
+
+  accountListeners.forEach(ref => ref.off());
+  accountListeners = [];
+
+  const programRef = accountRef.child("program");
+  programRef.on("value", snap => {
+    const remote = snap.val();
+    const local = getLocalProgramData();
+    if (remote && (remote.updatedAt || 0) > (local?.updatedAt || 0)) {
+      applyCloudProgram(remote);
+    }
+  });
+  accountListeners.push(programRef);
+
+  const historyRef = accountRef;
+  historyRef.on("value", snap => {
+    const data = snap.val();
+    if (data) applyCloudHistory(cloudMapToHistory(data));
+  });
+  accountListeners.push(historyRef);
+}
+
+function scheduleAccountProgramSync(data) {
+  if (!accountUser || !accountDatabase || accountApplyingRemote) return;
+  clearTimeout(accountProgramTimer);
+  accountProgramTimer = setTimeout(() => {
+    accountDatabase.ref(`accounts/${accountUser.uid}/program`).set(data);
+  }, 400);
+}
+
+async function syncAccountHistory(history) {
+  if (!accountUser || !accountDatabase) return;
+  const maps = historyToCloudMap(history);
+  const updates = {};
+  Object.entries(maps.sessions).forEach(([key, value]) => {
+    updates[`sessions/${key}`] = value;
+  });
+  Object.entries(maps.maxHistory).forEach(([key, value]) => {
+    updates[`maxHistory/${key}`] = value;
+  });
+  updates["profile/lastSyncAt"] = firebase.database.ServerValue.TIMESTAMP;
+  await accountDatabase.ref(`accounts/${accountUser.uid}`).update(updates);
+}
+
+function deleteAccountSession(session) {
+  if (!accountUser || !accountDatabase || !session) return;
+  accountDatabase.ref(`accounts/${accountUser.uid}/sessions/${accountSessionKey(session)}`).remove();
+}
+
+function clearAccountHistory() {
+  if (!accountUser || !accountDatabase) return;
+  accountDatabase.ref(`accounts/${accountUser.uid}`).update({
+    sessions: null,
+    maxHistory: null
+  });
+}
+
+function initAccountSystem() {
+  if (!window.firebase) {
+    resolveAccountAuthReady?.();
+    resolveAccountAuthReady = null;
+    return;
+  }
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+  accountAuth = firebase.auth();
+  accountDatabase = firebase.database();
+  accountAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+  accountAuth.onAuthStateChanged(async user => {
+    accountUser = user;
+    resolveAccountAuthReady?.();
+    resolveAccountAuthReady = null;
+    updateAccountModal();
+    if (!user) return;
+    localStorage.setItem("muscu_auth", "1");
+    document.getElementById("loginOverlay").style.display = "none";
+    setAccountMessage("Synchronisation...", "");
+    try {
+      await initializeAccountData(user);
+      setAccountMessage("Synchronisation active.", "success");
+    } catch(error) {
+      setAccountMessage("Synchronisation impossible. Les données locales sont conservées.", "error");
+    }
+  });
 }
 
 // ============================================================
@@ -1579,6 +1929,7 @@ let state = {
   customReps: {},    // { [exerciseName]: [repsSet0, repsSet1, ...] } — reps, independent per set
   customNotes: {},   // { [exerciseName]: "note libre" } — note par accessoire
   extraAccessories: {}, // { "c{cycle}w{wave}s{session}": [accessoryId, ...] }
+  updatedAt: 0,
   timerDuration: 120,
   timerRemaining: 120,
   timerRunning: false,
@@ -2231,12 +2582,21 @@ function resetAllProgress() {
 function resetHistory() {
   if (confirm('Supprimer tout l\'historique (maxes et sessions) ? Cette action est irréversible.')) {
     localStorage.removeItem('muscu_history');
+    clearAccountHistory();
     closeSettings();
     renderHistory();
   }
 }
 
-function logout() {
+async function logout() {
+  if (accountAuth?.currentUser) {
+    try {
+      await accountAuth.signOut();
+    } catch(error) {
+      setAccountMessage("Déconnexion du compte impossible. Réessaie.", "error");
+      return;
+    }
+  }
   localStorage.removeItem('muscu_auth');
   document.getElementById('loginOverlay').style.display = 'flex';
   closeSettings();
@@ -2292,6 +2652,7 @@ async function exportLocalData() {
 // PERSISTENCE
 // ============================================================
 function saveState() {
+  if (!accountApplyingRemote) state.updatedAt = Date.now();
   const data = {
     cycle: state.cycle,
     week: state.week,
@@ -2304,10 +2665,12 @@ function saveState() {
     customReps: state.customReps,
     customNotes: state.customNotes,
     extraAccessories: state.extraAccessories,
+    updatedAt: state.updatedAt,
     timerDuration: state.timerDuration
   };
   localStorage.setItem('muscu_program', JSON.stringify(data));
   fbPut('state', data);
+  scheduleAccountProgramSync(data);
 }
 
 function loadState() {
@@ -2325,6 +2688,7 @@ function loadState() {
       state.customReps = migrateAccessoryKeys(data.customReps || {});
       state.customNotes = migrateAccessoryKeys(data.customNotes || {});
       state.extraAccessories = migrateExtraAccessories(data.extraAccessories || {});
+      state.updatedAt = data.updatedAt || 0;
       state.timerDuration = data.timerDuration || 120;
       state.timerRemaining = state.timerDuration;
     }
@@ -2497,6 +2861,7 @@ function loadHistory() {
 function saveHistory(history) {
   localStorage.setItem('muscu_history', JSON.stringify(history));
   fbPut('history', history);
+  syncAccountHistory(history);
 }
 
 // Merge two history objects without data loss.
@@ -2556,8 +2921,10 @@ function removeSessionLog(week, day) {
   const idx = history.sessions.findIndex(s =>
     s.date === today && s.week === week && s.day === day && s.cycle === state.cycle);
   if (idx >= 0) {
+    const removed = history.sessions[idx];
     history.sessions.splice(idx, 1);
     saveHistory(history);
+    deleteAccountSession(removed);
     if (currentPage === 'history') renderHistory();
   }
 }
@@ -2917,16 +3284,23 @@ document.getElementById('accessoryPickerModal').addEventListener('click', (e) =>
   if (e.target.classList.contains('modal-overlay')) closeAccessoryPicker();
 });
 
+document.getElementById('accountModal').addEventListener('click', (e) => {
+  if (e.target.classList.contains('modal-overlay')) closeAccountModal();
+});
+
 // ============================================================
 // INIT
 // ============================================================
 loadState();
 render();
 updateTimerDisplay();
+initAccountSystem();
 
 // Sync from Firebase BEFORE any history writes to avoid wiping cloud data.
 // History is merged, never overwritten.
 (async () => {
+  await accountAuthReady;
+  if (accountUser) return;
   const [fbState, fbHistory] = await Promise.all([fbGet('state'), fbGet('history')]);
 
   if (fbState) {
@@ -2941,6 +3315,7 @@ updateTimerDisplay();
     state.customReps = migrateAccessoryKeys(fbState.customReps || state.customReps || {});
     state.customNotes = migrateAccessoryKeys(fbState.customNotes || state.customNotes || {});
     state.extraAccessories = migrateExtraAccessories(fbState.extraAccessories || state.extraAccessories || {});
+    state.updatedAt = fbState.updatedAt || state.updatedAt || 0;
     state.timerDuration = fbState.timerDuration || 120;
     state.timerRemaining = state.timerDuration;
     localStorage.setItem('muscu_program', JSON.stringify({
@@ -2949,6 +3324,7 @@ updateTimerDisplay();
       maxBench: state.maxBench, maxDeadlift: state.maxDeadlift,
       customWeights: state.customWeights, customReps: state.customReps,
       customNotes: state.customNotes, extraAccessories: state.extraAccessories,
+      updatedAt: state.updatedAt,
       timerDuration: state.timerDuration
     }));
     render();

@@ -58,6 +58,9 @@ vm.runInContext(`${script}
 globalThis.testApi = {
   state,
   PROGRAM,
+  accountSessionKey,
+  historyToCloudMap,
+  cloudMapToHistory,
   ACCESSORY_CATALOG,
   ACCESSORY_BY_ID,
   migrateAccessoryKeys,
@@ -137,6 +140,15 @@ assert.equal(backup.schemaVersion, 1);
 assert.equal(backup.application, "skin-grinding");
 assert.equal(backup.data.history.sessions.length, 1);
 assert.equal(backup.data.history.sessions[0].exercises.find(ex => ex.id === "lat-pull-down").source, "added");
+
+const cloudHistory = api.historyToCloudMap(backup.data.history);
+const roundTripHistory = api.cloudMapToHistory(cloudHistory);
+assert.equal(Object.keys(cloudHistory.sessions).length, 1);
+assert.equal(roundTripHistory.sessions.length, 1);
+assert.equal(
+  api.accountSessionKey(roundTripHistory.sessions[0]),
+  Object.keys(cloudHistory.sessions)[0]
+);
 
 api.state.week = 1;
 exercises = api.getSessionExercises(1, 0);
