@@ -818,6 +818,7 @@ body {
     </div>
     <div class="modal-actions">
       <div style="display:flex;gap:8px">
+        <button onclick="exportLocalData()">Exporter données</button>
         <button class="danger" onclick="resetAllProgress()">Reset prog.</button>
         <button class="danger" onclick="resetHistory()">Reset histo.</button>
         <button class="danger" onclick="logout()">Déconnexion</button>
@@ -2224,6 +2225,52 @@ function logout() {
   localStorage.removeItem('muscu_auth');
   document.getElementById('loginOverlay').style.display = 'flex';
   closeSettings();
+}
+
+function buildLocalBackup() {
+  let program = null;
+  let history = { sessions: [], maxHistory: [] };
+  try { program = JSON.parse(localStorage.getItem('muscu_program')); } catch(e) {}
+  try { history = JSON.parse(localStorage.getItem('muscu_history')) || history; } catch(e) {}
+  return {
+    schemaVersion: 1,
+    application: 'skin-grinding',
+    exportedAt: new Date().toISOString(),
+    data: { program, history }
+  };
+}
+
+async function exportLocalData() {
+  const backup = buildLocalBackup();
+  const json = JSON.stringify(backup, null, 2);
+  const date = backup.exportedAt.slice(0, 10);
+  const filename = `skin-grinding-backup-${date}.json`;
+  const blob = new Blob([json], { type: 'application/json' });
+  const file = new File([blob], filename, { type: 'application/json' });
+
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: 'Sauvegarde Skin Grinding'
+      });
+    } else {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+    const sessionCount = backup.data.history.sessions?.length || 0;
+    alert(`Sauvegarde créée : ${sessionCount} séance${sessionCount > 1 ? 's' : ''}.`);
+  } catch (error) {
+    if (error?.name !== 'AbortError') {
+      alert('Impossible de créer la sauvegarde. Réessaie depuis Safari.');
+    }
+  }
 }
 
 // ============================================================

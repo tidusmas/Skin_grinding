@@ -72,6 +72,7 @@ globalThis.testApi = {
   getCustomWeight,
   getCustomReps,
   getLatestExercisePerformance,
+  buildLocalBackup,
   logSession,
   loadHistory
 };`, context);
@@ -118,6 +119,12 @@ assert.equal(loggedExtra.source, "added");
 assert.deepEqual(loggedExtra.sets.filter(set => set.done).map(set => set.reps), [8, 8]);
 assert.equal(loggedExtra.sets[0].weight, 35);
 assert.match(api.getLatestExercisePerformance("Lat Pull Down"), /35 kg · 8 \/ 8 reps/);
+
+const backup = api.buildLocalBackup();
+assert.equal(backup.schemaVersion, 1);
+assert.equal(backup.application, "skin-grinding");
+assert.equal(backup.data.history.sessions.length, 1);
+assert.equal(backup.data.history.sessions[0].exercises.find(ex => ex.id === "lat-pull-down").source, "added");
 
 api.state.week = 1;
 exercises = api.getSessionExercises(1, 0);
