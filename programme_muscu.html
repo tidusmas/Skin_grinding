@@ -477,19 +477,6 @@ body {
 .timer-btn:hover { background: var(--border); }
 .timer-btn.primary { background: var(--green-dim); border-color: var(--green); color: var(--green); }
 .timer-btn.primary:hover { background: var(--green); color: #000; }
-.timer-presets { display: flex; gap: 6px; }
-.timer-preset {
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: none;
-  color: var(--text2);
-  font-size: 12px;
-  cursor: pointer;
-  transition: all .15s;
-}
-.timer-preset:hover, .timer-preset.active { border-color: var(--green); color: var(--green); }
-
 /* SETTINGS MODAL */
 .modal-overlay {
   position: fixed;
@@ -852,12 +839,6 @@ body {
 <div class="history-container" id="historyPage" style="display:none"></div>
 
 <div class="timer-bar">
-  <div class="timer-presets">
-    <button class="timer-preset" onclick="setTimer(60)">1:00</button>
-    <button class="timer-preset active" onclick="setTimer(120)">2:00</button>
-    <button class="timer-preset" onclick="setTimer(180)">3:00</button>
-    <button class="timer-preset" onclick="setTimer(300)">5:00</button>
-  </div>
   <div class="timer-display" id="timerDisplay">2:00</div>
   <button class="timer-btn primary" id="timerBtn" onclick="toggleTimer()">Start</button>
   <button class="timer-btn" onclick="resetTimer()">Reset</button>
