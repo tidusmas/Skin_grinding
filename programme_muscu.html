@@ -304,6 +304,56 @@ body {
 .acc-note-input:focus { outline: none; border-color: var(--blue); }
 .acc-note-input.empty { border-style: dashed; }
 
+/* TEMPORARY ACCESSORIES */
+.exercise-card.extra-accessory { border-color: var(--blue); }
+.exercise-card.extra-accessory .exercise-tag { background: var(--blue); }
+.remove-extra-btn {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  color: var(--text2);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.remove-extra-btn:hover { color: var(--red); }
+.add-accessory-btn {
+  width: 100%;
+  min-height: 46px;
+  margin: 4px 0 16px;
+  border: 1px dashed var(--blue);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--blue);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.add-accessory-btn:hover { background: var(--bg2); }
+.accessory-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: min(58vh, 520px);
+  overflow-y: auto;
+  margin-top: 14px;
+}
+.accessory-picker-item {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg3);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.accessory-picker-item:hover { border-color: var(--blue); }
+.accessory-picker-item:disabled { opacity: .45; cursor: default; }
+.accessory-picker-name { display: block; font-size: 14px; font-weight: 600; }
+.accessory-picker-meta { display: block; margin-top: 3px; color: var(--text2); font-size: 12px; }
+
 /* SESSION VALIDATION FOOTER */
 .session-validate {
   margin-top: 24px;
@@ -787,6 +837,17 @@ body {
     <div class="modal-actions">
       <button onclick="closeValidateModal()">Pas encore</button>
       <button class="save" onclick="confirmValidateSession()">Valider la séance</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="accessoryPickerModal">
+  <div class="modal">
+    <h3>Ajouter un accessoire</h3>
+    <p style="color:var(--text2);font-size:13px">Ajouté uniquement à cette séance.</p>
+    <div class="accessory-picker-list" id="accessoryPickerList"></div>
+    <div class="modal-actions">
+      <button onclick="closeAccessoryPicker()">Fermer</button>
     </div>
   </div>
 </div>
@@ -1516,6 +1577,7 @@ let state = {
   customWeights: {}, // { [exerciseName]: [weightGroup0, weightGroup1, ...] } — weight, per set-group
   customReps: {},    // { [exerciseName]: [repsSet0, repsSet1, ...] } — reps, independent per set
   customNotes: {},   // { [exerciseName]: "note libre" } — note par accessoire
+  extraAccessories: {}, // { "c{cycle}w{wave}s{session}": [accessoryId, ...] }
   timerDuration: 120,
   timerRemaining: 120,
   timerRunning: false,
@@ -1557,6 +1619,50 @@ const ACC_RANGES = {
   "Élévations latérales haltères": "6-10"
 };
 
+// Stable identifiers keep saved data valid if an exercise is renamed later.
+const ACCESSORY_IDS = {
+  "Curl Biceps Rotation": "curl-biceps-rotation",
+  "Chest Supported Row": "chest-supported-row",
+  "Élévations latérales poulie": "elevations-laterales-poulie",
+  "Curl biceps poulie": "curl-biceps-poulie",
+  "Leg Extension Machine": "leg-extension-machine",
+  "Leg Curl": "leg-curl",
+  "Presse à cuisses": "presse-cuisses",
+  "Curl barre EZ": "curl-barre-ez",
+  "Développé Militaire Haltères": "developpe-militaire-halteres",
+  "Curl marteau pupitre": "curl-marteau-pupitre",
+  "Rowing Bucheron": "rowing-bucheron",
+  "Lat Pull Down": "lat-pull-down",
+  "Overhead Extensions Triceps": "triceps-pushdown",
+  "Ab crunch poulie": "ab-crunch-poulie",
+  "Élévations latérales haltères": "elevations-laterales-halteres"
+};
+
+function buildAccessoryCatalog() {
+  const byId = new Map();
+  PROGRAM.forEach(wave => wave.days.forEach(day => {
+    (day.exercises || []).forEach(ex => {
+      if (ex.ref) return;
+      const id = ACCESSORY_IDS[ex.name];
+      if (!id) return;
+      const candidate = {
+        id,
+        name: ex.name,
+        range: ACC_RANGES[ex.name] || "6-10",
+        sets: ex.sets.map(group => ({ ...group }))
+      };
+      const current = byId.get(id);
+      if (!current || expandSets(candidate).length > expandSets(current).length) {
+        byId.set(id, candidate);
+      }
+    });
+  }));
+  return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name, "fr"));
+}
+
+const ACCESSORY_CATALOG = buildAccessoryCatalog();
+const ACCESSORY_BY_ID = Object.fromEntries(ACCESSORY_CATALOG.map(ex => [ex.id, ex]));
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -1570,17 +1676,42 @@ function expandSets(exercise) {
   return expanded;
 }
 
-function setKey(week, day, exIdx, setIdx) {
-  return `w${week}d${day}e${exIdx}s${setIdx}`;
+function sessionOccurrenceKey(cycle = state.cycle, week = state.week, day = state.day) {
+  return `c${cycle}w${week}s${day}`;
 }
 
-function isSetDone(week, day, exIdx, setIdx) {
-  return !!state.completions[setKey(week, day, exIdx, setIdx)];
+function getExtraAccessoryIds(week = state.week, day = state.day) {
+  return state.extraAccessories[sessionOccurrenceKey(state.cycle, week, day)] || [];
 }
 
-function toggleSetDone(week, day, exIdx, setIdx) {
+function getSessionExercises(week = state.week, day = state.day) {
+  const base = PROGRAM[week].days[day].exercises || [];
+  const extras = getExtraAccessoryIds(week, day)
+    .map(id => ACCESSORY_BY_ID[id])
+    .filter(Boolean)
+    .map(ex => ({
+      ...ex,
+      sets: ex.sets.map(group => ({ ...group })),
+      isExtra: true
+    }));
+  return [...base, ...extras];
+}
+
+function exerciseCompletionKey(exercise, exIdx) {
+  return exercise.isExtra ? `x-${exercise.id}` : String(exIdx);
+}
+
+function setKey(week, day, exKey, setIdx) {
+  return `w${week}d${day}e${exKey}s${setIdx}`;
+}
+
+function isSetDone(week, day, exKey, setIdx) {
+  return !!state.completions[setKey(week, day, exKey, setIdx)];
+}
+
+function toggleSetDone(week, day, exKey, setIdx) {
   const wasComplete = getDayProgress(week, day).pct === 100;
-  const key = setKey(week, day, exIdx, setIdx);
+  const key = setKey(week, day, exKey, setIdx);
   const wasChecked = !!state.completions[key];
   if (wasChecked) {
     delete state.completions[key];
@@ -1603,11 +1734,12 @@ function getDayProgress(week, day) {
   const dayData = PROGRAM[week].days[day];
   if (dayData.rest) return { done: 0, total: 0, pct: 100 };
   let total = 0, done = 0;
-  dayData.exercises.forEach((ex, ei) => {
+  getSessionExercises(week, day).forEach((ex, ei) => {
+    const exKey = exerciseCompletionKey(ex, ei);
     const sets = expandSets(ex);
     total += sets.length;
     sets.forEach((_, si) => {
-      if (isSetDone(week, day, ei, si)) done++;
+      if (isSetDone(week, day, exKey, si)) done++;
     });
   });
   return { done, total, pct: total > 0 ? Math.round((done/total)*100) : 0 };
@@ -1625,6 +1757,82 @@ function isBlocComplete(blocIndex) {
 function isBlocUnlocked(blocIndex) {
   if (blocIndex === 0) return true;
   return isBlocComplete(blocIndex - 1);
+}
+
+function getLatestExercisePerformance(exerciseName) {
+  const exerciseId = ACCESSORY_IDS[exerciseName];
+  const sessions = loadHistory().sessions || [];
+  for (let i = sessions.length - 1; i >= 0; i--) {
+    const exercise = (sessions[i].exercises || []).find(ex =>
+      (exerciseId && ex.id === exerciseId) || ex.name === exerciseName);
+    if (!exercise) continue;
+    const completed = (exercise.sets || []).filter(set => set.done);
+    if (!completed.length) continue;
+    const reps = completed.map(set => set.reps === "AMRAP" ? "MAX" : set.reps).join(" / ");
+    const weights = [...new Set(completed.map(set => set.weight).filter(weight => weight !== null && weight !== undefined))];
+    const weightText = weights.length ? `${weights.join(" / ")} kg · ` : "";
+    return `${weightText}${reps} reps · ${sessions[i].date}`;
+  }
+  return "Aucune performance enregistrée";
+}
+
+function openAccessoryPicker() {
+  const currentExercises = getSessionExercises().map(ex => ex.id || ACCESSORY_IDS[ex.name]).filter(Boolean);
+  const list = document.getElementById("accessoryPickerList");
+  list.innerHTML = ACCESSORY_CATALOG.map(ex => {
+    const alreadyPresent = currentExercises.includes(ex.id);
+    const summary = alreadyPresent ? "Déjà présent dans cette séance" : getLatestExercisePerformance(ex.name);
+    return `<button class="accessory-picker-item" ${alreadyPresent ? "disabled" : ""} onclick="addExtraAccessory('${ex.id}')">`
+      + `<span class="accessory-picker-name">${ex.name}</span>`
+      + `<span class="accessory-picker-meta">${ex.range} · ${summary}</span>`
+      + `</button>`;
+  }).join("");
+  document.getElementById("accessoryPickerModal").classList.add("show");
+}
+
+function closeAccessoryPicker() {
+  document.getElementById("accessoryPickerModal").classList.remove("show");
+}
+
+function addExtraAccessory(accessoryId) {
+  if (!ACCESSORY_BY_ID[accessoryId]) return;
+  const key = sessionOccurrenceKey();
+  const ids = state.extraAccessories[key] || [];
+  if (!ids.includes(accessoryId)) ids.push(accessoryId);
+  state.extraAccessories[key] = ids;
+  saveState();
+  closeAccessoryPicker();
+  render();
+}
+
+function removeExtraAccessory(accessoryId) {
+  const exercise = ACCESSORY_BY_ID[accessoryId];
+  if (!exercise) return;
+  const today = new Date().toISOString().split('T')[0];
+  const loggedSession = loadHistory().sessions.find(session =>
+    session.date === today && session.week === state.week && session.day === state.day
+      && session.cycle === state.cycle);
+  const isSavedInHistory = (loggedSession?.exercises || []).some(ex =>
+    ex.source === "added" && (ex.id === accessoryId || ex.name === exercise.name));
+  if (isSavedInHistory) {
+    alert("Cette séance est déjà enregistrée. Dévalide-la avant de retirer un accessoire.");
+    return;
+  }
+  const exKey = `x-${accessoryId}`;
+  const hasCompletedSet = expandSets(exercise).some((_, si) =>
+    isSetDone(state.week, state.day, exKey, si));
+  if (hasCompletedSet && !confirm(`Retirer ${exercise.name} de cette séance ? Ses séries non validées ne seront pas enregistrées dans l'historique.`)) {
+    return;
+  }
+  const occurrence = sessionOccurrenceKey();
+  state.extraAccessories[occurrence] = (state.extraAccessories[occurrence] || [])
+    .filter(id => id !== accessoryId);
+  if (!state.extraAccessories[occurrence].length) delete state.extraAccessories[occurrence];
+  expandSets(exercise).forEach((_, si) => {
+    delete state.completions[setKey(state.week, state.day, exKey, si)];
+  });
+  saveState();
+  render();
 }
 
 // ============================================================
@@ -1682,15 +1890,20 @@ function renderContent() {
       </div>
     </div>`;
 
-  dayData.exercises.forEach((ex, ei) => {
+  const sessionExercises = getSessionExercises(state.week, state.day);
+  sessionExercises.forEach((ex, ei) => {
+    const exKey = exerciseCompletionKey(ex, ei);
     const sets = expandSets(ex);
-    const allDone = sets.every((_, si) => isSetDone(state.week, state.day, ei, si));
+    const allDone = sets.every((_, si) => isSetDone(state.week, state.day, exKey, si));
     const cardClass = allDone ? 'exercise-card completed' : 'exercise-card';
 
-    html += `<div class="${cardClass}">`;
+    html += `<div class="${cardClass}${ex.isExtra ? ' extra-accessory' : ''}">`;
     html += `<div class="exercise-header">`;
-    html += `<div class="exercise-tag">${ex.tag}</div>`;
+    html += `<div class="exercise-tag">${ex.isExtra ? '+' : ex.tag}</div>`;
     html += `<div class="exercise-name">${ex.name}</div>`;
+    if (ex.isExtra) {
+      html += `<button class="remove-extra-btn" onclick="event.stopPropagation();removeExtraAccessory('${ex.id}')" title="Retirer de cette séance" aria-label="Retirer ${escAttr(ex.name)}">&times;</button>`;
+    }
     html += `<div class="exercise-check">${allDone ? '&#10003;' : ''}</div>`;
     html += `</div>`;
     html += `<div class="sets-container">`;
@@ -1703,7 +1916,7 @@ function renderContent() {
     }
 
     sets.forEach((set, si) => {
-      const done = isSetDone(state.week, state.day, ei, si);
+      const done = isSetDone(state.week, state.day, exKey, si);
       const rowClass = done ? 'set-row done' : 'set-row';
       const checkClass = done ? 'set-checkbox checked' : 'set-checkbox';
 
@@ -1734,7 +1947,7 @@ function renderContent() {
         const cr = getCustomReps(ex.name, si);
         const repsVal = (cr !== null) ? cr : '';
         const repsEmpty = (cr === null) ? ' empty' : '';
-        info += `<input type="number" step="1" inputmode="numeric" class="acc-input reps-input${repsEmpty}" placeholder="${programReps}" value="${repsVal}" data-exname="${exNameEsc}" data-set="${si}" data-ei="${ei}" onclick="event.stopPropagation()" onchange="onRepsInputChange(this)">`;
+        info += `<input type="number" step="1" inputmode="numeric" class="acc-input reps-input${repsEmpty}" placeholder="${programReps}" value="${repsVal}" data-exname="${exNameEsc}" data-set="${si}" data-ekey="${exKey}" onclick="event.stopPropagation()" onchange="onRepsInputChange(this)">`;
         info += `<span class="acc-unit">reps</span>`;
 
         info += `<span class="acc-x">&times;</span>`;
@@ -1766,7 +1979,7 @@ function renderContent() {
       }
 
       html += `<div class="${rowClass}">`;
-      html += `<div class="${checkClass}" onclick="toggleSetDone(${state.week},${state.day},${ei},${si})">&#10003;</div>`;
+      html += `<div class="${checkClass}" onclick="toggleSetDone(${state.week},${state.day},'${exKey}',${si})">&#10003;</div>`;
       html += `<div class="set-info">${info}</div>`;
       html += `</div>`;
     });
@@ -1781,7 +1994,7 @@ function renderContent() {
       let achieved = 0, allReady = sets.length > 0;
       sets.forEach((_, si) => {
         const r = getCustomReps(ex.name, si);
-        const done = isSetDone(state.week, state.day, ei, si);
+        const done = isSetDone(state.week, state.day, exKey, si);
         if (done && r !== null) achieved += r;
         if (!done || r === null) allReady = false;
       });
@@ -1796,6 +2009,9 @@ function renderContent() {
 
     html += `</div></div>`;
   });
+
+  html += `<button class="add-accessory-btn" onclick="openAccessoryPicker()">`
+    + `<span aria-hidden="true">+</span> Ajouter un accessoire</button>`;
 
   // Session validation footer — valider une séance partielle OU complète vers l'historique
   {
@@ -1866,10 +2082,11 @@ function advanceCycle() {
 function resetDay() {
   const dayData = PROGRAM[state.week].days[state.day];
   if (dayData.rest) return;
-  dayData.exercises.forEach((ex, ei) => {
+  getSessionExercises(state.week, state.day).forEach((ex, ei) => {
+    const exKey = exerciseCompletionKey(ex, ei);
     const sets = expandSets(ex);
     sets.forEach((_, si) => {
-      delete state.completions[setKey(state.week, state.day, ei, si)];
+      delete state.completions[setKey(state.week, state.day, exKey, si)];
     });
   });
   saveState();
@@ -2024,6 +2241,7 @@ function saveState() {
     customWeights: state.customWeights,
     customReps: state.customReps,
     customNotes: state.customNotes,
+    extraAccessories: state.extraAccessories,
     timerDuration: state.timerDuration
   };
   localStorage.setItem('muscu_program', JSON.stringify(data));
@@ -2041,9 +2259,10 @@ function loadState() {
       state.maxSquat = data.maxSquat || 110;
       state.maxBench = data.maxBench || 97;
       state.maxDeadlift = data.maxDeadlift || 120;
-      state.customWeights = migrateCustomWeights(data.customWeights || {});
-      state.customReps = data.customReps || {};
-      state.customNotes = data.customNotes || {};
+      state.customWeights = migrateAccessoryKeys(migrateCustomWeights(data.customWeights || {}));
+      state.customReps = migrateAccessoryKeys(data.customReps || {});
+      state.customNotes = migrateAccessoryKeys(data.customNotes || {});
+      state.extraAccessories = data.extraAccessories || {};
       state.timerDuration = data.timerDuration || 120;
       state.timerRemaining = state.timerDuration;
     }
@@ -2055,17 +2274,34 @@ function loadState() {
 // - state.customReps[exName][setIndex]      = reps  : INDEPENDENT per individual set.
 // - Backward compat: old customWeights format was [number] (weight only), migrated on load.
 
+function accessoryDataKey(exNameOrId) {
+  return ACCESSORY_IDS[exNameOrId] || exNameOrId;
+}
+
+function migrateAccessoryKeys(data) {
+  if (!data || typeof data !== 'object') return {};
+  Object.keys(data).forEach(oldKey => {
+    const stableKey = accessoryDataKey(oldKey);
+    if (stableKey !== oldKey) {
+      if (data[stableKey] === undefined) data[stableKey] = data[oldKey];
+      delete data[oldKey];
+    }
+  });
+  return data;
+}
+
 function _ensureEntry(exName, groupIdx) {
-  if (!state.customWeights[exName]) state.customWeights[exName] = [];
-  const entry = state.customWeights[exName][groupIdx];
+  const key = accessoryDataKey(exName);
+  if (!state.customWeights[key]) state.customWeights[key] = [];
+  const entry = state.customWeights[key][groupIdx];
   if (!entry || typeof entry !== 'object') {
-    state.customWeights[exName][groupIdx] = { w: null, r: null };
+    state.customWeights[key][groupIdx] = { w: null, r: null };
   }
-  return state.customWeights[exName][groupIdx];
+  return state.customWeights[key][groupIdx];
 }
 
 function getCustomWeight(exName, groupIdx) {
-  const arr = state.customWeights[exName];
+  const arr = state.customWeights[accessoryDataKey(exName)];
   if (!arr) return null;
   const entry = arr[groupIdx];
   if (typeof entry === 'number') return entry; // legacy format
@@ -2077,7 +2313,7 @@ function getCustomWeight(exName, groupIdx) {
 }
 
 function getCustomReps(exName, setIdx) {
-  const arr = state.customReps[exName];
+  const arr = state.customReps[accessoryDataKey(exName)];
   if (!arr) return null;
   const r = arr[setIdx];
   return (typeof r === 'number' && !isNaN(r)) ? r : null;
@@ -2090,8 +2326,9 @@ function setCustomWeight(exName, groupIdx, weight) {
 }
 
 function setCustomReps(exName, setIdx, reps) {
-  if (!state.customReps[exName]) state.customReps[exName] = [];
-  state.customReps[exName][setIdx] = (reps === null || reps === '' || isNaN(reps)) ? null : Number(reps);
+  const key = accessoryDataKey(exName);
+  if (!state.customReps[key]) state.customReps[key] = [];
+  state.customReps[key][setIdx] = (reps === null || reps === '' || isNaN(reps)) ? null : Number(reps);
   saveState();
 }
 
@@ -2103,13 +2340,14 @@ function escAttr(s) {
 
 // Per-exercise free-text note (keyed by exercise name, persists across cycles/days).
 function getCustomNote(exName) {
-  const n = state.customNotes[exName];
+  const n = state.customNotes[accessoryDataKey(exName)];
   return (typeof n === 'string') ? n : '';
 }
 function setCustomNote(exName, text) {
+  const key = accessoryDataKey(exName);
   const t = (text == null) ? '' : String(text);
-  if (t.trim() === '') delete state.customNotes[exName];
-  else state.customNotes[exName] = t;
+  if (t.trim() === '') delete state.customNotes[key];
+  else state.customNotes[key] = t;
   saveState();
 }
 function onNoteInputChange(inputEl) {
@@ -2155,13 +2393,13 @@ function onWeightInputChange(inputEl) {
 function onRepsInputChange(inputEl) {
   const exName = inputEl.dataset.exname;
   const setIdx = parseInt(inputEl.dataset.set, 10);
-  const exIdx = parseInt(inputEl.dataset.ei, 10);
+  const exKey = inputEl.dataset.ekey;
   const wasComplete = getDayProgress(state.week, state.day).pct === 100;
   const raw = inputEl.value.trim();
   const num = raw === '' ? null : parseInt(raw, 10);
   setCustomReps(exName, setIdx, num);      // independent per set — no sibling sync
   // Saisir des reps coche la série (= validée) ; vider la case la décoche.
-  const key = setKey(state.week, state.day, exIdx, setIdx);
+  const key = setKey(state.week, state.day, exKey, setIdx);
   if (num !== null) state.completions[key] = true; else delete state.completions[key];
   saveState();
   render();                                // refresh checkbox + running total + signal
@@ -2309,12 +2547,13 @@ function logSession(week, day) {
   const today = new Date().toISOString().split('T')[0];
   // Build exercise details
   const exercises = [];
-  dayData.exercises.forEach((ex, ei) => {
+  getSessionExercises(week, day).forEach((ex, ei) => {
+    const exKey = exerciseCompletionKey(ex, ei);
     const sets = expandSets(ex);
     const details = [];
     let exDone = 0;
     sets.forEach((set, si) => {
-      const done = isSetDone(week, day, ei, si);
+      const done = isSetDone(week, day, exKey, si);
       if (done) exDone++;
       let weight = null;
       let reps = set.r === "AMRAP" ? "AMRAP" : set.r;
@@ -2338,7 +2577,14 @@ function logSession(week, day) {
       if (set.rpe) desc += ` RPE${set.rpe}`;
       details.push({ desc, done, reps, weight });
     });
-    exercises.push({ name: ex.name, sets: details, done: exDone, total: sets.length });
+    exercises.push({
+      id: ex.id || ACCESSORY_IDS[ex.name] || null,
+      name: ex.name,
+      source: ex.isExtra ? "added" : "programmed",
+      sets: details,
+      done: exDone,
+      total: sets.length
+    });
   });
 
   // Check if session for today+week+day already exists, update it
@@ -2547,7 +2793,7 @@ function renderHistory() {
       // Highlight the weight portion of each set desc for readability
       const formatDesc = (desc) => desc.replace(/(\d+(?:\.\d+)?kg)/g, '<b style="color:var(--blue)">$1</b>');
       html += `<div class="session-exercise">
-        <div class="session-exercise-name">${ex.name} (${ex.done}/${ex.total})</div>
+        <div class="session-exercise-name">${ex.name}${ex.source === 'added' ? ' · ajouté' : ''} (${ex.done}/${ex.total})</div>
         <div class="session-sets">${ex.sets.map(st =>
           `<span style="color:${st.done ? 'var(--green)' : 'var(--red)'}">&#${st.done ? '10003' : '10007'}; ${formatDesc(st.desc)}</span>`
         ).join(' &nbsp; ')}</div>
@@ -2593,6 +2839,10 @@ document.getElementById('validateModal').addEventListener('click', (e) => {
   if (e.target.classList.contains('modal-overlay')) closeValidateModal();
 });
 
+document.getElementById('accessoryPickerModal').addEventListener('click', (e) => {
+  if (e.target.classList.contains('modal-overlay')) closeAccessoryPicker();
+});
+
 // ============================================================
 // INIT
 // ============================================================
@@ -2613,16 +2863,19 @@ updateTimerDisplay();
     state.maxSquat = fbState.maxSquat || 110;
     state.maxBench = fbState.maxBench || 97;
     state.maxDeadlift = fbState.maxDeadlift || 120;
-    state.customWeights = migrateCustomWeights(fbState.customWeights || state.customWeights || {});
-    state.customReps = fbState.customReps || state.customReps || {};
-    state.customNotes = fbState.customNotes || state.customNotes || {};
+    state.customWeights = migrateAccessoryKeys(migrateCustomWeights(fbState.customWeights || state.customWeights || {}));
+    state.customReps = migrateAccessoryKeys(fbState.customReps || state.customReps || {});
+    state.customNotes = migrateAccessoryKeys(fbState.customNotes || state.customNotes || {});
+    state.extraAccessories = fbState.extraAccessories || state.extraAccessories || {};
     state.timerDuration = fbState.timerDuration || 120;
     state.timerRemaining = state.timerDuration;
     localStorage.setItem('muscu_program', JSON.stringify({
       cycle: state.cycle, week: state.week, day: state.day,
       completions: state.completions, maxSquat: state.maxSquat,
       maxBench: state.maxBench, maxDeadlift: state.maxDeadlift,
-      customWeights: state.customWeights, customReps: state.customReps, customNotes: state.customNotes, timerDuration: state.timerDuration
+      customWeights: state.customWeights, customReps: state.customReps,
+      customNotes: state.customNotes, extraAccessories: state.extraAccessories,
+      timerDuration: state.timerDuration
     }));
     render();
     updateTimerDisplay();
