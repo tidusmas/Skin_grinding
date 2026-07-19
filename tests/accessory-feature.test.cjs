@@ -61,6 +61,8 @@ globalThis.testApi = {
   ACCESSORY_CATALOG,
   ACCESSORY_BY_ID,
   migrateAccessoryKeys,
+  migrateExtraAccessories,
+  normalizeAccessoryId,
   migrateCustomWeights,
   accessoryDataKey,
   getSessionExercises,
@@ -88,6 +90,16 @@ const migratedWeights = api.migrateAccessoryKeys(api.migrateCustomWeights({
 }));
 assert.equal(migratedWeights["lat-pull-down"][0].w, 35);
 assert.equal(migratedWeights["Lat Pull Down"], undefined);
+
+const migratedTriceps = api.migrateAccessoryKeys({
+  "triceps-pushdown": [{ w: 22.5, r: null }]
+});
+assert.equal(migratedTriceps["overhead-extensions-triceps"][0].w, 22.5);
+assert.equal(api.normalizeAccessoryId("triceps-pushdown"), "overhead-extensions-triceps");
+assert.deepEqual(
+  Array.from(api.migrateExtraAccessories({ c1w0s0: ["triceps-pushdown"] }).c1w0s0),
+  ["overhead-extensions-triceps"]
+);
 
 api.state.customWeights = migratedWeights;
 api.state.customReps = api.migrateAccessoryKeys({ "Lat Pull Down": [8, 8, 7] });

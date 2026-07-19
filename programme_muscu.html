@@ -1634,7 +1634,7 @@ const ACCESSORY_IDS = {
   "Curl marteau pupitre": "curl-marteau-pupitre",
   "Rowing Bucheron": "rowing-bucheron",
   "Lat Pull Down": "lat-pull-down",
-  "Overhead Extensions Triceps": "triceps-pushdown",
+  "Overhead Extensions Triceps": "overhead-extensions-triceps",
   "Ab crunch poulie": "ab-crunch-poulie",
   "Élévations latérales haltères": "elevations-laterales-halteres"
 };
@@ -1663,6 +1663,19 @@ function buildAccessoryCatalog() {
 
 const ACCESSORY_CATALOG = buildAccessoryCatalog();
 const ACCESSORY_BY_ID = Object.fromEntries(ACCESSORY_CATALOG.map(ex => [ex.id, ex]));
+const ACCESSORY_ID_ALIASES = {
+  "triceps-pushdown": "overhead-extensions-triceps"
+};
+
+function normalizeAccessoryId(id) {
+  return ACCESSORY_ID_ALIASES[id] || id;
+}
+
+function equivalentAccessoryIds(id) {
+  const canonical = normalizeAccessoryId(id);
+  return [canonical, ...Object.keys(ACCESSORY_ID_ALIASES)
+    .filter(alias => ACCESSORY_ID_ALIASES[alias] === canonical)];
+}
 
 // ============================================================
 // HELPERS
@@ -1682,7 +1695,8 @@ function sessionOccurrenceKey(cycle = state.cycle, week = state.week, day = stat
 }
 
 function getExtraAccessoryIds(week = state.week, day = state.day) {
-  return state.extraAccessories[sessionOccurrenceKey(state.cycle, week, day)] || [];
+  return (state.extraAccessories[sessionOccurrenceKey(state.cycle, week, day)] || [])
+    .map(normalizeAccessoryId);
 }
 
 function getSessionExercises(week = state.week, day = state.day) {
@@ -1762,10 +1776,11 @@ function isBlocUnlocked(blocIndex) {
 
 function getLatestExercisePerformance(exerciseName) {
   const exerciseId = ACCESSORY_IDS[exerciseName];
+  const validIds = equivalentAccessoryIds(exerciseId);
   const sessions = loadHistory().sessions || [];
   for (let i = sessions.length - 1; i >= 0; i--) {
     const exercise = (sessions[i].exercises || []).find(ex =>
-      (exerciseId && ex.id === exerciseId) || ex.name === exerciseName);
+      (exerciseId && validIds.includes(ex.id)) || ex.name === exerciseName);
     if (!exercise) continue;
     const completed = (exercise.sets || []).filter(set => set.done);
     if (!completed.length) continue;
@@ -2309,7 +2324,7 @@ function loadState() {
       state.customWeights = migrateAccessoryKeys(migrateCustomWeights(data.customWeights || {}));
       state.customReps = migrateAccessoryKeys(data.customReps || {});
       state.customNotes = migrateAccessoryKeys(data.customNotes || {});
-      state.extraAccessories = data.extraAccessories || {};
+      state.extraAccessories = migrateExtraAccessories(data.extraAccessories || {});
       state.timerDuration = data.timerDuration || 120;
       state.timerRemaining = state.timerDuration;
     }
@@ -2322,7 +2337,7 @@ function loadState() {
 // - Backward compat: old customWeights format was [number] (weight only), migrated on load.
 
 function accessoryDataKey(exNameOrId) {
-  return ACCESSORY_IDS[exNameOrId] || exNameOrId;
+  return normalizeAccessoryId(ACCESSORY_IDS[exNameOrId] || exNameOrId);
 }
 
 function migrateAccessoryKeys(data) {
@@ -2333,6 +2348,18 @@ function migrateAccessoryKeys(data) {
       if (data[stableKey] === undefined) data[stableKey] = data[oldKey];
       delete data[oldKey];
     }
+  });
+  return data;
+}
+
+function migrateExtraAccessories(data) {
+  if (!data || typeof data !== 'object') return {};
+  Object.keys(data).forEach(occurrence => {
+    if (!Array.isArray(data[occurrence])) {
+      delete data[occurrence];
+      return;
+    }
+    data[occurrence] = [...new Set(data[occurrence].map(normalizeAccessoryId))];
   });
   return data;
 }
@@ -2913,7 +2940,7 @@ updateTimerDisplay();
     state.customWeights = migrateAccessoryKeys(migrateCustomWeights(fbState.customWeights || state.customWeights || {}));
     state.customReps = migrateAccessoryKeys(fbState.customReps || state.customReps || {});
     state.customNotes = migrateAccessoryKeys(fbState.customNotes || state.customNotes || {});
-    state.extraAccessories = fbState.extraAccessories || state.extraAccessories || {};
+    state.extraAccessories = migrateExtraAccessories(fbState.extraAccessories || state.extraAccessories || {});
     state.timerDuration = fbState.timerDuration || 120;
     state.timerRemaining = state.timerDuration;
     localStorage.setItem('muscu_program', JSON.stringify({
