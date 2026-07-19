@@ -1,12 +1,12 @@
 {
-  "name": "Programme Muscu",
-  "short_name": "Muscu",
+  "name": "Skin Grinding",
+  "short_name": "Skin Grinding",
   "id": "./programme_muscu.html",
   "start_url": "./programme_muscu.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#0f1117",
-  "theme_color": "#0f1117",
+  "background_color": "#090b0c",
+  "theme_color": "#121516",
   "orientation": "portrait",
   "icons": [
     {

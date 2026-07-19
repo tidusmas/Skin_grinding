@@ -72,6 +72,8 @@ globalThis.testApi = {
   sessionOccurrenceKey,
   exerciseCompletionKey,
   getExerciseTimerDuration,
+  localDateKey,
+  mergeHistory,
   setKey,
   setCustomWeight,
   setCustomReps,
@@ -157,6 +159,13 @@ assert.equal(
   api.accountSessionKey(roundTripHistory.sessions[0]),
   Object.keys(cloudHistory.sessions)[0]
 );
+assert.equal(api.localDateKey(new Date(2026, 0, 2, 0, 30)), "2026-01-02");
+
+const mergedUpdatedSession = api.mergeHistory(
+  { sessions: [{ date: "2026-01-02", cycle: 1, week: 0, day: 0, setsDone: 3, updatedAt: 10 }], maxHistory: [] },
+  { sessions: [{ date: "2026-01-02", cycle: 1, week: 0, day: 0, setsDone: 3, updatedAt: 20, marker: "new" }], maxHistory: [] }
+);
+assert.equal(mergedUpdatedSession.sessions[0].marker, "new");
 
 api.state.week = 1;
 exercises = api.getSessionExercises(1, 0);

@@ -8,22 +8,26 @@
 <meta name="theme-color" content="#0f1117">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>Programme Muscu</title>
+<title>Skin Grinding</title>
 <style>
 :root {
-  --bg: #0d1117;
-  --bg2: #161b22;
-  --bg3: #1c2333;
-  --border: #30363d;
-  --text: #e6edf3;
-  --text2: #8b949e;
-  --green: #3fb950;
-  --green-dim: #238636;
-  --blue: #58a6ff;
-  --orange: #d29922;
-  --red: #f85149;
-  --purple: #bc8cff;
-  --radius: 10px;
+  --bg: #090b0c;
+  --bg2: #121516;
+  --bg3: #1a1f20;
+  --surface-raised: #202627;
+  --border: #303738;
+  --border-strong: #465052;
+  --text: #f1f4f2;
+  --text2: #9ba5a2;
+  --green: #51d47b;
+  --green-dim: #173d27;
+  --blue: #68b8e8;
+  --orange: #e6ae5c;
+  --red: #f06b6b;
+  --purple: #b69de8;
+  --radius: 8px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -34,7 +38,10 @@ body {
   color: var(--text);
   min-height: 100vh;
   overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
+button, input, select { font: inherit; }
+button { touch-action: manipulation; }
 
 /* HEADER */
 .header {
@@ -527,6 +534,13 @@ body {
 }
 .settings-actions-main button { min-width: 0; }
 .settings-actions-footer { display: flex; justify-content: flex-end; gap: 8px; }
+.max-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 4px;
+}
+.max-settings-grid small { display: block; margin-top: 5px; color: var(--text2); }
 
 /* SCROLLBAR */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -656,6 +670,12 @@ body {
 .session-exercise { margin-bottom: 8px; }
 .session-exercise-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
 .session-sets { font-size: 12px; color: var(--text2); }
+.session-date {
+  min-width: 78px;
+  color: var(--text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
 
 .empty-history {
   text-align: center;
@@ -727,12 +747,123 @@ body {
   border-radius: 2px;
 }
 
+/* POLISHED APP SHELL */
+.header {
+  padding: calc(12px + var(--safe-top)) 24px 12px;
+  background: rgba(18, 21, 22, .96);
+  backdrop-filter: blur(16px);
+}
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand-mark {
+  width: 8px;
+  height: 32px;
+  border-radius: 2px;
+  background: var(--green);
+  box-shadow: 0 0 18px rgba(81, 212, 123, .22);
+}
+.brand-copy { display: grid; gap: 1px; min-width: 0; }
+.brand-name { font-size: 17px; font-weight: 750; line-height: 1.1; }
+.brand-cycle { color: var(--text2); font-size: 12px; font-weight: 600; }
+.brand-cycle strong { color: var(--green); }
+.btn-icon { border-radius: 6px; }
+.maxes-bar { background: #101314; padding-block: 9px; }
+.nav { scrollbar-width: none; }
+.nav::-webkit-scrollbar { display: none; }
+.nav-tab { min-height: 44px; padding-bottom: 10px; }
+.content { max-width: 760px; }
+.day-header { margin-bottom: 20px; }
+.day-header h2 { font-size: 23px; font-weight: 750; line-height: 1.2; }
+.progress-bar { height: 7px; }
+.exercise-card { margin-bottom: 12px; transition: border-color .15s, background .15s; }
+.exercise-card.completed { border-color: #2f6340; background: #111815; }
+.exercise-header { min-height: 58px; padding: 12px 14px; }
+.exercise-tag {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: var(--green-dim);
+  border: 1px solid #2f7045;
+  color: var(--green);
+}
+.set-row { min-height: 50px; padding: 7px 0; gap: 10px; }
+.set-row.done { opacity: 1; }
+.set-row.done .set-info { opacity: .64; }
+.set-checkbox { width: 28px; height: 28px; }
+.set-checkbox.checked { color: #071009; }
+.set-info {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 5px;
+}
+.acc-input { min-height: 36px; padding-block: 6px; }
+.acc-range { padding: 4px 7px; }
+.add-accessory-btn { border-radius: 7px; background: rgba(104, 184, 232, .04); }
+.timer-bar {
+  gap: 10px;
+  padding: 10px 24px calc(10px + var(--safe-bottom));
+  background: rgba(18, 21, 22, .97);
+  backdrop-filter: blur(16px);
+}
+.timer-copy { display: grid; min-width: 108px; }
+.timer-context {
+  color: var(--text2);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.timer-display { min-width: 0; font-size: 30px; line-height: 1; text-align: left; }
+.timer-btn { min-width: 76px; min-height: 40px; padding: 8px 16px; border-radius: 6px; }
+.timer-btn.primary { background: var(--green); border-color: var(--green); color: #071009; }
+.modal-overlay { padding: 16px; background: rgba(0, 0, 0, .78); }
+.modal {
+  max-width: 100%;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .45);
+}
+.page-toggle { border-radius: 7px; }
+.page-toggle button { min-height: 36px; border-radius: 5px; }
+.page-toggle button.active {
+  background: var(--surface-raised);
+  color: var(--text);
+  box-shadow: inset 0 -2px var(--green);
+}
+.session-log, .maxes-history, .graph-container { border-radius: 8px; }
+
 @media (max-width: 600px) {
-  .header { padding: 12px 16px; }
-  .content { padding: 16px; padding-bottom: 180px; }
-  .nav-tab { padding: 10px 12px; font-size: 13px; }
-  .timer-bar { padding: 10px 16px; flex-wrap: wrap; }
-  .maxes-bar { gap: 12px; font-size: 12px; flex-wrap: wrap; }
+  .header {
+    padding: calc(9px + var(--safe-top)) 12px 9px;
+    align-items: flex-end;
+    gap: 10px;
+  }
+  .brand-mark { height: 29px; }
+  .brand-name { font-size: 15px; }
+  .header-right { gap: 6px; }
+  .page-toggle { margin-left: 0; }
+  .page-toggle button { padding: 5px 9px; font-size: 12px; }
+  .btn-icon { width: 36px; height: 36px; }
+  .header-right .btn-icon:last-child { display: none; }
+  .content { padding: 16px 12px; padding-bottom: 112px; }
+  .history-container { padding: 18px 12px 112px; }
+  .nav { padding-inline: 12px; }
+  .nav-tab { padding: 10px 11px 8px; font-size: 13px; }
+  .timer-bar { padding-inline: 12px; flex-wrap: nowrap; }
+  .timer-copy { margin-right: auto; }
+  .timer-btn { min-width: 72px; }
+  .maxes-bar { gap: 16px; padding-inline: 12px; font-size: 12px; flex-wrap: nowrap; }
+  .max-item { min-width: 0; }
+  .max-label { font-size: 11px; }
+  .max-chart-value { font-size: 18px; }
+  .maxes-chart { gap: 12px; }
+  .session-header { align-items: flex-start; }
+  .session-label { line-height: 1.35; }
+  .session-badge { flex-shrink: 0; }
+  .max-timeline-row { align-items: flex-start; }
+  .max-timeline-values { gap: 7px; flex-wrap: wrap; }
+  .settings-actions-main { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* LOGIN SCREEN */
@@ -804,7 +935,7 @@ body {
 
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
-    <h2><span>&#9679;</span> Programme Muscu</h2>
+    <h2><span>&#9679;</span> Skin Grinding</h2>
     <p>Mot de passe requis</p>
     <input type="password" id="loginPassword" placeholder="Mot de passe" autocomplete="off">
     <button onclick="attemptLogin()">Entrer</button>
@@ -815,14 +946,20 @@ body {
 </div>
 
 <div class="header">
-  <h1><span>&#9679;</span> Programme Muscu — <span id="cycleDisplay" style="color:var(--green)">Cycle 1</span></h1>
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <div class="brand-copy">
+      <span class="brand-name">Skin Grinding</span>
+      <span class="brand-cycle">Programme · <strong id="cycleDisplay">Cycle 1</strong></span>
+    </div>
+  </div>
   <div class="header-right">
     <div class="page-toggle">
       <button class="active" id="btnProgram" onclick="showPage('program')">Programme</button>
       <button id="btnHistory" onclick="showPage('history')">Historique</button>
     </div>
-    <button class="btn-icon" onclick="openSettings()" title="Paramètres">&#9881;</button>
-    <button class="btn-icon" onclick="resetDay()" title="Reset jour">&#8635;</button>
+    <button class="btn-icon" onclick="openSettings()" title="Paramètres" aria-label="Paramètres">&#9881;</button>
+    <button class="btn-icon" id="resetDayBtn" onclick="resetDay()" title="Réinitialiser la séance" aria-label="Réinitialiser la séance">&#8635;</button>
   </div>
 </div>
 
@@ -838,8 +975,11 @@ body {
 
 <div class="history-container" id="historyPage" style="display:none"></div>
 
-<div class="timer-bar">
-  <div class="timer-display" id="timerDisplay">2:00</div>
+<div class="timer-bar" id="timerBar">
+  <div class="timer-copy">
+    <span class="timer-context" id="timerContext">Repos accessoire</span>
+    <div class="timer-display" id="timerDisplay" role="timer" aria-live="polite">2:00</div>
+  </div>
   <button class="timer-btn primary" id="timerBtn" onclick="toggleTimer()">Start</button>
   <button class="timer-btn" onclick="resetTimer()">Reset</button>
 </div>
@@ -848,10 +988,10 @@ body {
   <div class="modal">
     <h3>Paramètres</h3>
     <label>Maxes actuels (kg)</label>
-    <div style="display:flex;gap:8px;margin-top:4px;">
-      <div style="flex:1"><input type="number" id="maxSquat" placeholder="Squat" step="0.5"><small style="color:var(--text2)">Squat</small></div>
-      <div style="flex:1"><input type="number" id="maxBench" placeholder="Bench" step="0.5"><small style="color:var(--text2)">Bench</small></div>
-      <div style="flex:1"><input type="number" id="maxDeadlift" placeholder="DL" step="0.5"><small style="color:var(--text2)">Deadlift</small></div>
+    <div class="max-settings-grid">
+      <div><input type="number" id="maxSquat" placeholder="Squat" step="0.5"><small>Squat</small></div>
+      <div><input type="number" id="maxBench" placeholder="Bench" step="0.5"><small>Bench</small></div>
+      <div><input type="number" id="maxDeadlift" placeholder="DL" step="0.5"><small>Deadlift</small></div>
     </div>
     <div class="modal-actions settings-actions">
       <div class="settings-actions-main">
@@ -2060,6 +2200,13 @@ function setKey(week, day, exKey, setIdx) {
   return `w${week}d${day}e${exKey}s${setIdx}`;
 }
 
+function localDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function isSetDone(week, day, exKey, setIdx) {
   return !!state.completions[setKey(week, day, exKey, setIdx)];
 }
@@ -2079,12 +2226,7 @@ function toggleSetDone(week, day, exKey, setIdx) {
     delete state.completions[key];
   } else {
     state.completions[key] = true;
-    setTimer(getExerciseTimerDuration(week, day, exKey));
-    if (state.timerRunning) {
-      clearInterval(state.timerInterval);
-      state.timerRunning = false;
-    }
-    toggleTimer();
+    startRestTimer(getExerciseTimerDuration(week, day, exKey));
   }
   saveState();
   render();
@@ -2170,7 +2312,7 @@ function addExtraAccessory(accessoryId) {
 function removeExtraAccessory(accessoryId) {
   const exercise = ACCESSORY_BY_ID[accessoryId];
   if (!exercise) return;
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
   const loggedSession = loadHistory().sessions.find(session =>
     session.date === today && session.week === state.week && session.day === state.day
       && session.cycle === state.cycle);
@@ -2489,11 +2631,11 @@ function setTimer(seconds) {
     state.timerRunning = false;
   }
   updateTimerDisplay();
-  document.querySelectorAll('.timer-preset').forEach(btn => {
-    const parts = btn.textContent.split(':');
-    const btnSecs = parseInt(parts[0])*60 + parseInt(parts[1]);
-    btn.classList.toggle('active', btnSecs === seconds);
-  });
+}
+
+function startRestTimer(seconds) {
+  setTimer(seconds);
+  toggleTimer();
 }
 
 function toggleTimer() {
@@ -2533,9 +2675,11 @@ function resetTimer() {
 
 function updateTimerDisplay() {
   const el = document.getElementById('timerDisplay');
+  const context = document.getElementById('timerContext');
   const mins = Math.floor(state.timerRemaining / 60);
   const secs = state.timerRemaining % 60;
   el.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+  if (context) context.textContent = state.timerDuration === 180 ? 'Repos SBD' : 'Repos accessoire';
   el.className = 'timer-display';
   if (state.timerRemaining <= 10 && state.timerRemaining > 0 && state.timerRunning) {
     el.classList.add('warning');
@@ -2784,11 +2928,11 @@ function setCustomWeight(exName, groupIdx, weight) {
   saveState();
 }
 
-function setCustomReps(exName, setIdx, reps) {
+function setCustomReps(exName, setIdx, reps, persist = true) {
   const key = accessoryDataKey(exName);
   if (!state.customReps[key]) state.customReps[key] = [];
   state.customReps[key][setIdx] = (reps === null || reps === '' || isNaN(reps)) ? null : Number(reps);
-  saveState();
+  if (persist) saveState();
 }
 
 // Escape a string for safe use inside an HTML attribute value.
@@ -2856,10 +3000,14 @@ function onRepsInputChange(inputEl) {
   const wasComplete = getDayProgress(state.week, state.day).pct === 100;
   const raw = inputEl.value.trim();
   const num = raw === '' ? null : parseInt(raw, 10);
-  setCustomReps(exName, setIdx, num);      // independent per set — no sibling sync
-  // Saisir des reps coche la série (= validée) ; vider la case la décoche.
   const key = setKey(state.week, state.day, exKey, setIdx);
+  const wasSetDone = !!state.completions[key];
+  setCustomReps(exName, setIdx, num, false); // independent per set — no sibling sync
+  // Saisir des reps coche la série (= validée) ; vider la case la décoche.
   if (num !== null) state.completions[key] = true; else delete state.completions[key];
+  if (num !== null && !wasSetDone) {
+    startRestTimer(getExerciseTimerDuration(state.week, state.day, exKey));
+  }
   saveState();
   render();                                // refresh checkbox + running total + signal
   afterSessionChange(state.week, state.day, wasComplete);
@@ -2886,8 +3034,8 @@ function saveHistory(history) {
 }
 
 // Merge two history objects without data loss.
-// - maxHistory: dedupe by date, keep entry with highest sum of lifts (latest update)
-// - sessions: dedupe by (cycle,week,day,date), keep entry with most setsDone
+// - maxHistory: dedupe by date, keep the latest update
+// - sessions: dedupe by (cycle,week,day,date), keep the latest/richest version
 function mergeHistory(a, b) {
   a = a || { sessions: [], maxHistory: [] };
   b = b || { sessions: [], maxHistory: [] };
@@ -2897,6 +3045,11 @@ function mergeHistory(a, b) {
     if (!m || !m.date) return;
     const existing = maxByDate.get(m.date);
     if (!existing) { maxByDate.set(m.date, m); return; }
+    if ((m.updatedAt || 0) !== (existing.updatedAt || 0)) {
+      if ((m.updatedAt || 0) > (existing.updatedAt || 0)) maxByDate.set(m.date, m);
+      return;
+    }
+    // Legacy entries have no updatedAt: retain the richer/highest snapshot.
     const sNew = (m.squat||0) + (m.bench||0) + (m.deadlift||0);
     const sOld = (existing.squat||0) + (existing.bench||0) + (existing.deadlift||0);
     if (sNew >= sOld) maxByDate.set(m.date, m);
@@ -2911,6 +3064,10 @@ function mergeHistory(a, b) {
     const k = keyOf(s);
     const existing = sessByKey.get(k);
     if (!existing) { sessByKey.set(k, s); return; }
+    if ((s.updatedAt || 0) !== (existing.updatedAt || 0)) {
+      if ((s.updatedAt || 0) > (existing.updatedAt || 0)) sessByKey.set(k, s);
+      return;
+    }
     // Prefer version with more completed sets; tie => prefer one with exercises array
     if ((s.setsDone || 0) > (existing.setsDone || 0)) {
       sessByKey.set(k, s);
@@ -2931,14 +3088,14 @@ function mergeHistory(a, b) {
 // ============================================================
 function isSessionLogged(week, day) {
   const history = loadHistory();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
   return history.sessions.some(s =>
     s.date === today && s.week === week && s.day === day && s.cycle === state.cycle);
 }
 
 function removeSessionLog(week, day) {
   const history = loadHistory();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
   const idx = history.sessions.findIndex(s =>
     s.date === today && s.week === week && s.day === day && s.cycle === state.cycle);
   if (idx >= 0) {
@@ -3006,7 +3163,7 @@ function logSession(week, day) {
   if (prog.done === 0) return; // Don't log empty sessions
 
   const history = loadHistory();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
   // Build exercise details
   const exercises = [];
   getSessionExercises(week, day).forEach((ex, ei) => {
@@ -3064,7 +3221,8 @@ function logSession(week, day) {
     maxes: { squat: state.maxSquat, bench: state.maxBench, deadlift: state.maxDeadlift },
     setsTotal: prog.total,
     setsDone: prog.done,
-    exercises
+    exercises,
+    updatedAt: Date.now()
   };
 
   if (existingIdx >= 0) {
@@ -3083,7 +3241,7 @@ function logSession(week, day) {
 
 function logMaxChange() {
   const history = loadHistory();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
 
   // Only add if different from last entry
   const last = history.maxHistory.length > 0 ? history.maxHistory[history.maxHistory.length - 1] : null;
@@ -3093,7 +3251,13 @@ function logMaxChange() {
 
   // Update if same date, else add new
   const todayIdx = history.maxHistory.findIndex(m => m.date === today);
-  const entry = { date: today, squat: state.maxSquat, bench: state.maxBench, deadlift: state.maxDeadlift };
+  const entry = {
+    date: today,
+    squat: state.maxSquat,
+    bench: state.maxBench,
+    deadlift: state.maxDeadlift,
+    updatedAt: Date.now()
+  };
 
   if (todayIdx >= 0) {
     history.maxHistory[todayIdx] = entry;
@@ -3117,6 +3281,8 @@ function showPage(page) {
   document.getElementById('historyPage').style.display = page === 'history' ? '' : 'none';
   document.getElementById('btnProgram').classList.toggle('active', page === 'program');
   document.getElementById('btnHistory').classList.toggle('active', page === 'history');
+  document.getElementById('timerBar').style.display = page === 'program' ? '' : 'none';
+  document.getElementById('resetDayBtn').style.display = page === 'program' ? '' : 'none';
 
   if (page === 'history') {
     renderHistory();
@@ -3126,6 +3292,11 @@ function showPage(page) {
 // ============================================================
 // HISTORY RENDERING
 // ============================================================
+function formatHistoryDate(dateKey) {
+  const match = String(dateKey || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? `${match[3]}/${match[2]}/${match[1].slice(2)}` : String(dateKey || '');
+}
+
 function renderHistory() {
   const container = document.getElementById('historyPage');
   const history = loadHistory();
@@ -3218,7 +3389,7 @@ function renderHistory() {
   // === VOLUME GRAPH ===
   if (history.sessions.length > 1) {
     const recentSessions = history.sessions.slice(-30);
-    const maxSets = Math.max(...recentSessions.map(s => s.setsTotal));
+    const maxSets = Math.max(1, ...recentSessions.map(s => s.setsTotal || 0));
 
     html += '<div class="graph-container"><h3>Volume par séance (séries complétées)</h3>';
     html += '<div class="graph-bars">';
@@ -3239,18 +3410,19 @@ function renderHistory() {
 
   const sessions = history.sessions.slice().reverse();
   sessions.slice(0, 50).forEach((s, idx) => {
-    const pct = Math.round((s.setsDone / s.setsTotal) * 100);
+    const pct = s.setsTotal > 0 ? Math.round((s.setsDone / s.setsTotal) * 100) : 0;
     const badgeClass = pct === 100 ? 'complete' : 'partial';
     const badgeText = pct === 100 ? '100%' : `${pct}%`;
 
     html += `<div class="session-log">
       <div class="session-header" onclick="toggleSessionDetail(${idx})">
+        <span class="session-date">${formatHistoryDate(s.date)}</span>
         <span class="session-label">${s.cycle ? 'C' + s.cycle + ' ' : ''}${s.weekName} — ${s.dayName}</span>
         <span class="session-badge ${badgeClass}">${badgeText} (${s.setsDone}/${s.setsTotal})</span>
       </div>
       <div class="session-detail" id="session-${idx}">`;
 
-    s.exercises.forEach(ex => {
+    (s.exercises || []).forEach(ex => {
       const exPct = ex.total > 0 ? Math.round((ex.done / ex.total) * 100) : 0;
       // Highlight the weight portion of each set desc for readability
       const formatDesc = (desc) => desc.replace(/(\d+(?:\.\d+)?kg)/g, '<b style="color:var(--blue)">$1</b>');
