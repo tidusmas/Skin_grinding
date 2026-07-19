@@ -532,6 +532,14 @@ body {
 }
 .modal-actions .save { background: var(--green-dim); border-color: var(--green); color: var(--green); }
 .modal-actions .danger { background: #5c1a1a; border-color: var(--red); color: var(--red); }
+.settings-actions { display: grid; gap: 8px; width: 100%; }
+.settings-actions-main {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.settings-actions-main button { min-width: 0; }
+.settings-actions-footer { display: flex; justify-content: flex-end; gap: 8px; }
 
 /* SCROLLBAR */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -864,15 +872,15 @@ body {
       <div style="flex:1"><input type="number" id="maxBench" placeholder="Bench" step="0.5"><small style="color:var(--text2)">Bench</small></div>
       <div style="flex:1"><input type="number" id="maxDeadlift" placeholder="DL" step="0.5"><small style="color:var(--text2)">Deadlift</small></div>
     </div>
-    <div class="modal-actions">
-      <div style="display:flex;gap:8px">
+    <div class="modal-actions settings-actions">
+      <div class="settings-actions-main">
         <button onclick="openAccountModal()">Compte</button>
         <button onclick="exportLocalData()">Exporter données</button>
         <button class="danger" onclick="resetAllProgress()">Reset prog.</button>
         <button class="danger" onclick="resetHistory()">Reset histo.</button>
         <button class="danger" onclick="logout()">Déconnexion</button>
       </div>
-      <div style="display:flex;gap:8px;margin-left:auto">
+      <div class="settings-actions-footer">
         <button onclick="closeSettings()">Annuler</button>
         <button class="save" onclick="saveSettings()">Sauver</button>
       </div>
