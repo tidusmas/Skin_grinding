@@ -923,12 +923,24 @@ button { touch-action: manipulation; }
 .login-box button:hover {
   background: var(--green);
 }
+.login-box button.account-login-btn { margin-top: 10px; }
+.login-box button.welcome-forgot {
+  width: auto;
+  margin-top: 12px;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--blue);
+  font-size: 13px;
+}
+.login-box button.welcome-forgot:hover { background: transparent; color: var(--text); }
 .login-error {
   color: var(--red);
   font-size: 13px;
   margin-top: 12px;
-  display: none;
+  min-height: 18px;
 }
+.login-error.success { color: var(--green); }
 </style>
 </head>
 <body>
@@ -936,12 +948,13 @@ button { touch-action: manipulation; }
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
     <h2><span>&#9679;</span> Skin Grinding</h2>
-    <p>Mot de passe requis</p>
-    <input type="password" id="loginPassword" placeholder="Mot de passe" autocomplete="off">
-    <button onclick="attemptLogin()">Entrer</button>
-    <div class="account-separator">ou</div>
-    <button class="account-login-btn" onclick="openAccountModal()">Compte personnel</button>
-    <div class="login-error" id="loginError">Mot de passe incorrect</div>
+    <p>Connecte-toi à ton compte</p>
+    <input type="email" id="welcomeEmail" placeholder="Adresse e-mail" autocomplete="email">
+    <input type="password" id="welcomePassword" placeholder="Mot de passe" autocomplete="current-password">
+    <button id="welcomeLoginBtn" onclick="loginFromWelcome()">Connexion</button>
+    <button class="account-login-btn" id="welcomeRegisterBtn" onclick="registerFromWelcome()">Créer un compte</button>
+    <button class="account-link-btn welcome-forgot" onclick="resetPasswordFromWelcome()">Mot de passe oublié</button>
+    <div class="login-error" id="welcomeMessage" role="status"></div>
   </div>
 </div>
 
@@ -1035,14 +1048,6 @@ button { touch-action: manipulation; }
   <div class="modal">
     <h3>Compte personnel</h3>
     <div class="account-status" id="accountStatus"></div>
-    <div class="account-fields" id="accountFields">
-      <label>Adresse e-mail
-        <input type="email" id="accountEmail" autocomplete="email">
-      </label>
-      <label>Mot de passe
-        <input type="password" id="accountPassword" autocomplete="current-password" minlength="6">
-      </label>
-    </div>
     <div class="account-fields" id="accountChangeFields" style="display:none">
       <label>Mot de passe actuel
         <input type="password" id="accountCurrentPassword" autocomplete="current-password">
@@ -1055,13 +1060,10 @@ button { touch-action: manipulation; }
       </label>
     </div>
     <div class="account-message" id="accountMessage"></div>
-    <button class="account-link-btn" id="forgotPasswordBtn" onclick="resetAccountPassword()">Mot de passe oublié</button>
     <div class="modal-actions">
       <button onclick="closeAccountModal()">Fermer</button>
       <button id="accountLogoutBtn" class="danger" style="display:none" onclick="logoutAccount()">Déconnexion</button>
       <button id="accountChangePasswordBtn" class="save" style="display:none" onclick="changeAccountPassword()">Changer le mot de passe</button>
-      <button id="accountRegisterBtn" onclick="registerAccount()">Créer un compte</button>
-      <button id="accountLoginBtn" class="save" onclick="loginAccount()">Connexion</button>
     </div>
   </div>
 </div>
@@ -1070,59 +1072,6 @@ button { touch-action: manipulation; }
 <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-database-compat.js"></script>
 <script>
-// ============================================================
-// PASSWORD PROTECTION
-// ============================================================
-const PASSWORD_HASH = '46946c6f5a5426b464311253c31e21893a36e492a1e7196c1baf3c84c38690d8';
-
-async function hashPassword(pwd) {
-  const data = new TextEncoder().encode(pwd);
-  const buf = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function attemptLogin() {
-  const input = document.getElementById('loginPassword').value;
-  const hash = await hashPassword(input);
-  if (hash === PASSWORD_HASH) {
-    localStorage.setItem('muscu_auth', '1');
-    document.getElementById('loginOverlay').style.display = 'none';
-  } else {
-    document.getElementById('loginError').style.display = 'block';
-    document.getElementById('loginPassword').value = '';
-  }
-}
-
-document.getElementById('loginPassword').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') attemptLogin();
-});
-
-// Check auth
-if (localStorage.getItem('muscu_auth') === '1') {
-  document.getElementById('loginOverlay').style.display = 'none';
-}
-
-// ============================================================
-// FIREBASE SYNC
-// ============================================================
-const FIREBASE_DB = 'https://skin-grinding-default-rtdb.firebaseio.com';
-const FB_USER_PATH = PASSWORD_HASH.substring(0, 16); // short hash as path
-
-function fbPut(path, data) {
-  fetch(`${FIREBASE_DB}/users/${FB_USER_PATH}/${path}.json`, {
-    method: 'PUT',
-    body: JSON.stringify(data)
-  }).catch(() => {});
-}
-
-async function fbGet(path) {
-  try {
-    const res = await fetch(`${FIREBASE_DB}/users/${FB_USER_PATH}/${path}.json`);
-    if (!res.ok) return null;
-    return await res.json();
-  } catch(e) { return null; }
-}
-
 // ============================================================
 // PERSONAL ACCOUNT + MULTI-DEVICE SYNC
 // ============================================================
@@ -1142,8 +1091,6 @@ let accountUser = null;
 let accountApplyingRemote = false;
 let accountProgramTimer = null;
 let accountListeners = [];
-let resolveAccountAuthReady = null;
-const accountAuthReady = new Promise(resolve => { resolveAccountAuthReady = resolve; });
 
 function accountSessionKey(session) {
   return `${session.date}_c${session.cycle || 1}_w${session.week}_s${session.day}`;
@@ -1183,6 +1130,12 @@ function setAccountMessage(message, type = "") {
   el.className = `account-message${type ? " " + type : ""}`;
 }
 
+function setWelcomeMessage(message, type = "") {
+  const el = document.getElementById("welcomeMessage");
+  el.textContent = message;
+  el.className = `login-error${type ? " " + type : ""}`;
+}
+
 function accountErrorMessage(error) {
   const code = error?.code || "";
   if (code.includes("invalid-credential")) return "E-mail ou mot de passe incorrect.";
@@ -1200,17 +1153,18 @@ function updateAccountModal() {
   const connected = !!accountUser;
   document.getElementById("accountStatus").textContent =
     connected ? `Connecté : ${accountUser.email}` : "";
-  document.getElementById("accountFields").style.display = connected ? "none" : "grid";
   document.getElementById("accountChangeFields").style.display = connected ? "grid" : "none";
-  document.getElementById("forgotPasswordBtn").style.display = connected ? "none" : "";
-  document.getElementById("accountRegisterBtn").style.display = connected ? "none" : "";
-  document.getElementById("accountLoginBtn").style.display = connected ? "none" : "";
   document.getElementById("accountLogoutBtn").style.display = connected ? "" : "none";
   document.getElementById("accountChangePasswordBtn").style.display = connected ? "" : "none";
   if (connected) setAccountMessage("Synchronisation active.", "success");
 }
 
 function openAccountModal() {
+  if (!accountUser) {
+    closeSettings();
+    document.getElementById("loginOverlay").style.display = "flex";
+    return;
+  }
   updateAccountModal();
   document.getElementById("accountModal").classList.add("show");
 }
@@ -1223,47 +1177,53 @@ function closeAccountModal() {
   });
 }
 
-async function loginAccount() {
-  const email = document.getElementById("accountEmail").value.trim();
-  const password = document.getElementById("accountPassword").value;
-  setAccountMessage("Connexion...");
+async function loginFromWelcome() {
+  const email = document.getElementById("welcomeEmail").value.trim();
+  const password = document.getElementById("welcomePassword").value;
+  if (!email || !password) {
+    setWelcomeMessage("Saisis ton e-mail et ton mot de passe.");
+    return;
+  }
+  setWelcomeMessage("Connexion...");
   try {
     await accountAuth.signInWithEmailAndPassword(email, password);
-    closeAccountModal();
   } catch(error) {
-    setAccountMessage(accountErrorMessage(error), "error");
+    setWelcomeMessage(accountErrorMessage(error));
   }
 }
 
-async function registerAccount() {
-  const email = document.getElementById("accountEmail").value.trim();
-  const password = document.getElementById("accountPassword").value;
-  setAccountMessage("Création du compte...");
+async function registerFromWelcome() {
+  const email = document.getElementById("welcomeEmail").value.trim();
+  const password = document.getElementById("welcomePassword").value;
+  if (!email || !password) {
+    setWelcomeMessage("Saisis un e-mail et un mot de passe.");
+    return;
+  }
+  setWelcomeMessage("Création du compte...");
   try {
     await accountAuth.createUserWithEmailAndPassword(email, password);
-    closeAccountModal();
   } catch(error) {
-    setAccountMessage(accountErrorMessage(error), "error");
+    setWelcomeMessage(accountErrorMessage(error));
   }
 }
 
-async function resetAccountPassword() {
-  const email = document.getElementById("accountEmail").value.trim();
+async function resetPasswordFromWelcome() {
+  const email = document.getElementById("welcomeEmail").value.trim();
   if (!email) {
-    setAccountMessage("Saisis d'abord ton adresse e-mail.", "error");
+    setWelcomeMessage("Saisis d'abord ton adresse e-mail.");
     return;
   }
   try {
     await accountAuth.sendPasswordResetEmail(email);
-    setAccountMessage("E-mail de réinitialisation envoyé.", "success");
+    setWelcomeMessage("E-mail de réinitialisation envoyé.", "success");
   } catch(error) {
-    setAccountMessage(accountErrorMessage(error), "error");
+    setWelcomeMessage(accountErrorMessage(error));
   }
 }
 
 async function logoutAccount() {
+  closeAccountModal();
   await accountAuth.signOut();
-  updateAccountModal();
 }
 
 async function changeAccountPassword() {
@@ -1414,8 +1374,7 @@ function clearAccountHistory() {
 
 function initAccountSystem() {
   if (!window.firebase) {
-    resolveAccountAuthReady?.();
-    resolveAccountAuthReady = null;
+    setWelcomeMessage("Service de connexion indisponible. Vérifie ta connexion.");
     return;
   }
   if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
@@ -1423,13 +1382,17 @@ function initAccountSystem() {
   accountDatabase = firebase.database();
   accountAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
   accountAuth.onAuthStateChanged(async user => {
+    accountListeners.forEach(ref => ref.off());
+    accountListeners = [];
     accountUser = user;
-    resolveAccountAuthReady?.();
-    resolveAccountAuthReady = null;
     updateAccountModal();
-    if (!user) return;
-    localStorage.setItem("muscu_auth", "1");
+    if (!user) {
+      document.getElementById("loginOverlay").style.display = "flex";
+      return;
+    }
     document.getElementById("loginOverlay").style.display = "none";
+    document.getElementById("welcomePassword").value = "";
+    setWelcomeMessage("");
     setAccountMessage("Synchronisation...", "");
     try {
       await initializeAccountData(user);
@@ -2816,7 +2779,6 @@ async function logout() {
       return;
     }
   }
-  localStorage.removeItem('muscu_auth');
   document.getElementById('loginOverlay').style.display = 'flex';
   closeSettings();
 }
@@ -2888,7 +2850,6 @@ function saveState() {
     timerDuration: state.timerDuration
   };
   localStorage.setItem('muscu_program', JSON.stringify(data));
-  fbPut('state', data);
   scheduleAccountProgramSync(data);
 }
 
@@ -3083,7 +3044,6 @@ function loadHistory() {
 
 function saveHistory(history) {
   localStorage.setItem('muscu_history', JSON.stringify(history));
-  fbPut('history', history);
   syncAccountHistory(history);
 }
 
@@ -3538,60 +3498,15 @@ document.getElementById('accountModal').addEventListener('click', (e) => {
 // ============================================================
 // INIT
 // ============================================================
+localStorage.removeItem('muscu_auth');
 loadState();
 render();
 updateTimerDisplay();
 initAccountSystem();
 
-// Sync from Firebase BEFORE any history writes to avoid wiping cloud data.
-// History is merged, never overwritten.
-(async () => {
-  await accountAuthReady;
-  if (accountUser) return;
-  const [fbState, fbHistory] = await Promise.all([fbGet('state'), fbGet('history')]);
-
-  if (fbState) {
-    state.cycle = fbState.cycle || 1;
-    state.week = fbState.week || 0;
-    state.day = fbState.day || 0;
-    state.completions = fbState.completions || {};
-    state.maxSquat = fbState.maxSquat || 110;
-    state.maxBench = fbState.maxBench || 97;
-    state.maxDeadlift = fbState.maxDeadlift || 120;
-    state.customWeights = migrateAccessoryKeys(migrateCustomWeights(fbState.customWeights || state.customWeights || {}));
-    state.customReps = migrateAccessoryKeys(fbState.customReps || state.customReps || {});
-    state.customNotes = migrateAccessoryKeys(fbState.customNotes || state.customNotes || {});
-    state.extraAccessories = migrateExtraAccessories(fbState.extraAccessories || state.extraAccessories || {});
-    state.updatedAt = fbState.updatedAt || state.updatedAt || 0;
-    state.timerDuration = fbState.timerDuration || 120;
-    state.timerRemaining = state.timerDuration;
-    localStorage.setItem('muscu_program', JSON.stringify({
-      cycle: state.cycle, week: state.week, day: state.day,
-      completions: state.completions, maxSquat: state.maxSquat,
-      maxBench: state.maxBench, maxDeadlift: state.maxDeadlift,
-      customWeights: state.customWeights, customReps: state.customReps,
-      customNotes: state.customNotes, extraAccessories: state.extraAccessories,
-      updatedAt: state.updatedAt,
-      timerDuration: state.timerDuration
-    }));
-    render();
-    updateTimerDisplay();
-  }
-
-  // Merge local + remote history (never overwrite)
-  const localHistory = loadHistory();
-  const merged = mergeHistory(localHistory, fbHistory);
-  localStorage.setItem('muscu_history', JSON.stringify(merged));
-  // Push merged back so both sides converge
-  if (fbHistory || localHistory.sessions.length || localHistory.maxHistory.length) {
-    fbPut('history', merged);
-  }
-
-  // Now it's safe to log initial maxes (won't wipe anything)
-  logMaxChange();
-
-  if (currentPage === 'history') renderHistory();
-})();
+document.getElementById('welcomePassword').addEventListener('keydown', event => {
+  if (event.key === 'Enter') loginFromWelcome();
+});
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {

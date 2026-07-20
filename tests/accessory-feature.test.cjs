@@ -8,7 +8,11 @@ const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "programme_muscu.html"), "utf8");
 const script = html.match(/<script>([\s\S]*)<\/script>/)[1].split("// INIT")[0];
 
-const storage = new Map([["muscu_auth", "1"]]);
+assert.doesNotMatch(html, /PASSWORD_HASH|attemptLogin|id="loginPassword"/);
+assert.match(html, /id="welcomeEmail"/);
+assert.match(html, /id="welcomePassword"/);
+
+const storage = new Map();
 const classList = { add() {}, remove() {}, toggle() {}, contains() { return false; } };
 const element = () => ({
   value: "",
