@@ -1043,11 +1043,23 @@ button { touch-action: manipulation; }
         <input type="password" id="accountPassword" autocomplete="current-password" minlength="6">
       </label>
     </div>
+    <div class="account-fields" id="accountChangeFields" style="display:none">
+      <label>Mot de passe actuel
+        <input type="password" id="accountCurrentPassword" autocomplete="current-password">
+      </label>
+      <label>Nouveau mot de passe
+        <input type="password" id="accountNewPassword" autocomplete="new-password" minlength="6">
+      </label>
+      <label>Confirmer le nouveau mot de passe
+        <input type="password" id="accountNewPasswordConfirm" autocomplete="new-password" minlength="6">
+      </label>
+    </div>
     <div class="account-message" id="accountMessage"></div>
     <button class="account-link-btn" id="forgotPasswordBtn" onclick="resetAccountPassword()">Mot de passe oublié</button>
     <div class="modal-actions">
       <button onclick="closeAccountModal()">Fermer</button>
       <button id="accountLogoutBtn" class="danger" style="display:none" onclick="logoutAccount()">Déconnexion</button>
+      <button id="accountChangePasswordBtn" class="save" style="display:none" onclick="changeAccountPassword()">Changer le mot de passe</button>
       <button id="accountRegisterBtn" onclick="registerAccount()">Créer un compte</button>
       <button id="accountLoginBtn" class="save" onclick="loginAccount()">Connexion</button>
     </div>
@@ -1177,6 +1189,8 @@ function accountErrorMessage(error) {
   if (code.includes("email-already-in-use")) return "Un compte existe déjà avec cet e-mail.";
   if (code.includes("weak-password")) return "Le mot de passe doit contenir au moins 6 caractères.";
   if (code.includes("invalid-email")) return "Adresse e-mail invalide.";
+  if (code.includes("wrong-password")) return "Le mot de passe actuel est incorrect.";
+  if (code.includes("requires-recent-login")) return "Reconnecte-toi avant de modifier le mot de passe.";
   if (code.includes("too-many-requests")) return "Trop de tentatives. Réessaie plus tard.";
   if (code.includes("network-request-failed")) return "Connexion réseau indisponible.";
   return "Une erreur est survenue. Réessaie.";
@@ -1187,10 +1201,12 @@ function updateAccountModal() {
   document.getElementById("accountStatus").textContent =
     connected ? `Connecté : ${accountUser.email}` : "";
   document.getElementById("accountFields").style.display = connected ? "none" : "grid";
+  document.getElementById("accountChangeFields").style.display = connected ? "grid" : "none";
   document.getElementById("forgotPasswordBtn").style.display = connected ? "none" : "";
   document.getElementById("accountRegisterBtn").style.display = connected ? "none" : "";
   document.getElementById("accountLoginBtn").style.display = connected ? "none" : "";
   document.getElementById("accountLogoutBtn").style.display = connected ? "" : "none";
+  document.getElementById("accountChangePasswordBtn").style.display = connected ? "" : "none";
   if (connected) setAccountMessage("Synchronisation active.", "success");
 }
 
@@ -1202,6 +1218,9 @@ function openAccountModal() {
 function closeAccountModal() {
   document.getElementById("accountModal").classList.remove("show");
   setAccountMessage("");
+  ["accountCurrentPassword", "accountNewPassword", "accountNewPasswordConfirm"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
 }
 
 async function loginAccount() {
@@ -1245,6 +1264,41 @@ async function resetAccountPassword() {
 async function logoutAccount() {
   await accountAuth.signOut();
   updateAccountModal();
+}
+
+async function changeAccountPassword() {
+  if (!accountUser?.email) {
+    setAccountMessage("Aucun compte connecté.", "error");
+    return;
+  }
+  const currentPassword = document.getElementById("accountCurrentPassword").value;
+  const newPassword = document.getElementById("accountNewPassword").value;
+  const confirmation = document.getElementById("accountNewPasswordConfirm").value;
+  if (!currentPassword || !newPassword || !confirmation) {
+    setAccountMessage("Remplis les trois champs.", "error");
+    return;
+  }
+  if (newPassword.length < 6) {
+    setAccountMessage("Le nouveau mot de passe doit contenir au moins 6 caractères.", "error");
+    return;
+  }
+  if (newPassword !== confirmation) {
+    setAccountMessage("Les nouveaux mots de passe ne correspondent pas.", "error");
+    return;
+  }
+
+  setAccountMessage("Modification du mot de passe...");
+  try {
+    const credential = firebase.auth.EmailAuthProvider.credential(accountUser.email, currentPassword);
+    await accountUser.reauthenticateWithCredential(credential);
+    await accountUser.updatePassword(newPassword);
+    ["accountCurrentPassword", "accountNewPassword", "accountNewPasswordConfirm"].forEach(id => {
+      document.getElementById(id).value = "";
+    });
+    setAccountMessage("Mot de passe modifié.", "success");
+  } catch(error) {
+    setAccountMessage(accountErrorMessage(error), "error");
+  }
 }
 
 function applyCloudProgram(program) {
