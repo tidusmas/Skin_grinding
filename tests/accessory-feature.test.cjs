@@ -7,172 +7,97 @@ const vm = require("node:vm");
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "programme_muscu.html"), "utf8");
 const script = html.match(/<script>([\s\S]*)<\/script>/)[1].split("// INIT")[0];
-
 assert.doesNotMatch(html, /PASSWORD_HASH|attemptLogin|id="loginPassword"/);
-assert.match(html, /id="welcomeEmail"/);
-assert.match(html, /id="welcomePassword"/);
 
 const storage = new Map();
 const classList = { add() {}, remove() {}, toggle() {}, contains() { return false; } };
-const element = () => ({
-  value: "",
-  style: {},
-  classList,
-  addEventListener() {},
-  querySelectorAll() { return []; }
-});
+const element = () => ({ value: "", textContent: "", style: {}, classList, addEventListener() {}, querySelectorAll() { return []; } });
 const elements = new Map();
-const getElement = id => {
-  if (!elements.has(id)) elements.set(id, element());
-  return elements.get(id);
-};
-
 const context = {
-  console,
-  crypto: crypto.webcrypto,
-  TextEncoder,
-  Uint8Array,
-  Map,
-  Set,
-  Date,
-  Math,
-  JSON,
+  console, crypto: crypto.webcrypto, TextEncoder, Uint8Array, Map, Set, Date, Math, JSON,
   localStorage: {
     getItem: key => storage.get(key) ?? null,
     setItem: (key, value) => storage.set(key, String(value)),
     removeItem: key => storage.delete(key)
   },
   document: {
-    getElementById: getElement,
-    querySelectorAll: () => [],
-    addEventListener() {}
+    getElementById: id => { if (!elements.has(id)) elements.set(id, element()); return elements.get(id); },
+    querySelectorAll: () => [], addEventListener() {}
   },
-  navigator: {},
-  fetch: () => Promise.resolve({ ok: true, json: async () => null }),
-  confirm: () => true,
-  setInterval: () => 1,
-  clearInterval() {},
-  setTimeout,
-  clearTimeout
+  navigator: {}, fetch: async () => ({ ok: true, json: async () => null }), confirm: () => true,
+  setInterval: () => 1, clearInterval() {}, setTimeout, clearTimeout
 };
 context.window = context;
-
 vm.createContext(context);
 vm.runInContext(`${script}
 globalThis.testApi = {
-  state,
-  PROGRAM,
-  accountSessionKey,
-  historyToCloudMap,
-  cloudMapToHistory,
-  ACCESSORY_CATALOG,
-  ACCESSORY_BY_ID,
-  migrateAccessoryKeys,
-  migrateExtraAccessories,
-  normalizeAccessoryId,
-  migrateCustomWeights,
-  accessoryDataKey,
-  getSessionExercises,
-  sessionOccurrenceKey,
-  exerciseCompletionKey,
-  getExerciseTimerDuration,
-  localDateKey,
-  mergeHistory,
-  setKey,
-  setCustomWeight,
-  setCustomReps,
-  getCustomWeight,
-  getCustomReps,
-  getLatestExercisePerformance,
-  buildLocalBackup,
-  logSession,
-  loadHistory
+  state, PROGRAM, PROGRAM_VERSION, FREESTYLE_CATALOG, FREESTYLE_BY_ID,
+  getSessionExercises, getExerciseSets, setPreFatigueSetCount,
+  sessionOccurrenceKey, exerciseCompletionKey, getExerciseTimerDuration,
+  getDayProgress, setKey, saveState, loadState, buildLocalBackup,
+  historyToCloudMap, cloudMapToHistory, mergeHistory, accountSessionKey, localDateKey
 };`, context);
-
 const api = context.testApi;
 
-assert.ok(api.ACCESSORY_CATALOG.length > 0);
-assert.ok(api.ACCESSORY_CATALOG.every(ex => !ex.ref && api.ACCESSORY_BY_ID[ex.id]));
-assert.equal(new Set(api.ACCESSORY_CATALOG.map(ex => ex.id)).size, api.ACCESSORY_CATALOG.length);
+assert.equal(api.PROGRAM_VERSION, 2);
+assert.equal(api.PROGRAM.length, 1);
+assert.deepEqual(Array.from(api.PROGRAM[0].days, day => day.name), [
+  "Upper 1", "Lower 1", "Repos", "Upper 2", "Lower 2", "Repos", "Repos"
+]);
+assert.equal(api.PROGRAM[0].days.filter(day => !day.rest).length, 4);
 
-const migratedWeights = api.migrateAccessoryKeys(api.migrateCustomWeights({
-  "Lat Pull Down": [35]
-}));
-assert.equal(migratedWeights["lat-pull-down"][0].w, 35);
-assert.equal(migratedWeights["Lat Pull Down"], undefined);
+const upper1 = api.PROGRAM[0].days[0];
+assert.equal(upper1.exercises.find(ex => ex.name === "Bench Feet Up").range, "10-15");
+assert.equal(upper1.exercises.find(ex => ex.name === "Bench Feet Up").rest, 120);
+const lower1 = api.PROGRAM[0].days[1];
+const lower2 = api.PROGRAM[0].days[4];
+assert.equal(lower1.exercises.find(ex => ex.name === "Adductions Machine").range, "10-15");
+assert.equal(lower2.exercises.find(ex => ex.name === "Adductions Machine").range, "20");
 
-const migratedTriceps = api.migrateAccessoryKeys({
-  "triceps-pushdown": [{ w: 22.5, r: null }]
-});
-assert.equal(migratedTriceps["overhead-extensions-triceps"][0].w, 22.5);
-assert.equal(api.normalizeAccessoryId("triceps-pushdown"), "overhead-extensions-triceps");
-assert.deepEqual(
-  Array.from(api.migrateExtraAccessories({ c1w0s0: ["triceps-pushdown"] }).c1w0s0),
-  ["overhead-extensions-triceps"]
-);
+const warmup = upper1.exercises[0];
+assert.equal(api.getExerciseSets(warmup).length, 1);
+api.setPreFatigueSetCount(warmup.id, 2);
+assert.equal(api.getExerciseSets(warmup).length, 2);
+assert.equal(api.getExerciseTimerDuration(0, 0, api.exerciseCompletionKey(warmup, 0)), 0);
 
-api.state.customWeights = migratedWeights;
-api.state.customReps = api.migrateAccessoryKeys({ "Lat Pull Down": [8, 8, 7] });
-assert.equal(api.getCustomWeight("Lat Pull Down", 0), 35);
-assert.deepEqual(
-  [0, 1, 2].map(index => api.getCustomReps("Lat Pull Down", index)),
-  [8, 8, 7]
-);
-
-api.state.cycle = 2;
+api.state.cycle = 1;
 api.state.week = 0;
-api.state.day = 0;
-api.state.extraAccessories = {
-  [api.sessionOccurrenceKey()]: ["lat-pull-down"]
-};
-let exercises = api.getSessionExercises();
-const added = exercises.find(ex => ex.id === "lat-pull-down" && ex.isExtra);
-assert.ok(added);
+api.state.day = 1;
+api.state.freestyleSelections = {};
+assert.equal(api.getDayProgress(0, 1).total, 17); // 4 warm-ups + 12 main sets + required freestyle choice
+const occurrence = api.sessionOccurrenceKey();
+api.state.freestyleSelections[occurrence] = { id: "leg-press-freestyle", sets: 4 };
+const exercises = api.getSessionExercises(0, 1);
+const freestyle = exercises.find(ex => ex.isFreestyle);
+assert.equal(freestyle.name, "Leg Press");
+assert.equal(api.getExerciseSets(freestyle).length, 4);
+assert.equal(api.getExerciseTimerDuration(0, 1, api.exerciseCompletionKey(freestyle, exercises.indexOf(freestyle))), 120);
 
-const addedIndex = exercises.indexOf(added);
-const addedKey = api.exerciseCompletionKey(added, addedIndex);
-assert.equal(api.getExerciseTimerDuration(0, 0, addedKey), 120);
-const sbdIndex = exercises.findIndex(ex => ex.ref);
-assert.ok(sbdIndex >= 0);
-assert.equal(
-  api.getExerciseTimerDuration(0, 0, api.exerciseCompletionKey(exercises[sbdIndex], sbdIndex)),
-  180
-);
-api.state.completions[api.setKey(0, 0, addedKey, 0)] = true;
-api.state.completions[api.setKey(0, 0, addedKey, 1)] = true;
-api.logSession(0, 0);
+api.state.preFatigueSets = { [warmup.id]: 2 };
+api.saveState();
+const saved = JSON.parse(storage.get("muscu_program"));
+assert.equal(saved.programVersion, 2);
+assert.equal(saved.preFatigueSets[warmup.id], 2);
+assert.equal(saved.freestyleSelections[occurrence].id, "leg-press-freestyle");
 
-const logged = api.loadHistory().sessions[0];
-const loggedExtra = logged.exercises.find(ex => ex.id === "lat-pull-down");
-assert.equal(loggedExtra.source, "added");
-assert.deepEqual(loggedExtra.sets.filter(set => set.done).map(set => set.reps), [8, 8]);
-assert.equal(loggedExtra.sets[0].weight, 35);
-assert.match(api.getLatestExercisePerformance("Lat Pull Down"), /35 kg · 8 \/ 8 reps/);
+storage.set("muscu_history", JSON.stringify({ sessions: [{ date: "2026-08-10" }], maxHistory: [] }));
+storage.set("muscu_program", JSON.stringify({ programVersion: 1, cycle: 9, completions: { old: true }, updatedAt: 1 }));
+api.loadState();
+assert.equal(api.state.programVersion, 2);
+assert.equal(api.state.cycle, 1);
+assert.deepEqual(Object.keys(api.state.completions), []);
+assert.equal(JSON.parse(storage.get("muscu_history")).sessions.length, 1);
 
 const backup = api.buildLocalBackup();
-assert.equal(backup.schemaVersion, 1);
 assert.equal(backup.application, "skin-grinding");
 assert.equal(backup.data.history.sessions.length, 1);
-assert.equal(backup.data.history.sessions[0].exercises.find(ex => ex.id === "lat-pull-down").source, "added");
-
-const cloudHistory = api.historyToCloudMap(backup.data.history);
-const roundTripHistory = api.cloudMapToHistory(cloudHistory);
-assert.equal(Object.keys(cloudHistory.sessions).length, 1);
-assert.equal(roundTripHistory.sessions.length, 1);
-assert.equal(
-  api.accountSessionKey(roundTripHistory.sessions[0]),
-  Object.keys(cloudHistory.sessions)[0]
-);
+const cloud = api.historyToCloudMap(backup.data.history);
+assert.equal(api.cloudMapToHistory(cloud).sessions.length, 1);
 assert.equal(api.localDateKey(new Date(2026, 0, 2, 0, 30)), "2026-01-02");
-
-const mergedUpdatedSession = api.mergeHistory(
-  { sessions: [{ date: "2026-01-02", cycle: 1, week: 0, day: 0, setsDone: 3, updatedAt: 10 }], maxHistory: [] },
-  { sessions: [{ date: "2026-01-02", cycle: 1, week: 0, day: 0, setsDone: 3, updatedAt: 20, marker: "new" }], maxHistory: [] }
+const merged = api.mergeHistory(
+  { sessions: [{ date: "2026-01-02", cycle: 1, week: 0, day: 0, updatedAt: 10 }], maxHistory: [] },
+  { sessions: [{ date: "2026-01-02", cycle: 1, week: 0, day: 0, updatedAt: 20, marker: "new" }], maxHistory: [] }
 );
-assert.equal(mergedUpdatedSession.sessions[0].marker, "new");
+assert.equal(merged.sessions[0].marker, "new");
 
-api.state.week = 1;
-exercises = api.getSessionExercises(1, 0);
-assert.equal(exercises.some(ex => ex.id === "lat-pull-down" && ex.isExtra), false);
-
-console.log("Accessory feature tests passed");
+console.log("Weekly program tests passed");

@@ -941,6 +941,30 @@ button { touch-action: manipulation; }
   min-height: 18px;
 }
 .login-error.success { color: var(--green); }
+.weekly-nav { display:grid; grid-template-columns:repeat(7,minmax(88px,1fr)); overflow-x:auto; scrollbar-width:none; }
+.weekly-nav .nav-tab { min-width:88px; white-space:nowrap; }
+.workout-section-title { display:flex; align-items:center; gap:10px; margin:22px 0 10px; color:var(--text-muted); font-size:12px; font-weight:800; text-transform:uppercase; }
+.workout-section-title::after { content:""; height:1px; flex:1; background:var(--border); }
+.exercise-title { display:flex; align-items:center; gap:10px; min-width:0; }
+.exercise-title h3 { min-width:0; overflow-wrap:anywhere; }
+.exercise-meta { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:7px; }
+.exercise-meta span { padding:3px 7px; border:1px solid var(--border); border-radius:5px; color:var(--text-muted); font-size:11px; font-weight:700; }
+.pre-fatigue-card { border-color:#375b4a; background:#101713; }
+.freestyle-card { border-color:#72572b; background:#17140e; }
+.set-choice { display:grid; grid-template-columns:32px 32px; gap:4px; flex:none; }
+.set-choice button { width:32px; height:30px; border:1px solid var(--border); border-radius:5px; background:var(--surface-2); color:var(--text-muted); font-weight:800; }
+.set-choice button.active { border-color:var(--green); background:var(--green-dim); color:#fff; }
+.freestyle-controls { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.freestyle-controls button { min-width:30px; height:30px; border:1px solid var(--border); border-radius:5px; background:var(--surface-2); color:var(--text); font-weight:800; }
+.freestyle-picker-btn { width:100%; min-height:76px; display:grid; grid-template-columns:38px 1fr; grid-template-rows:auto auto; column-gap:10px; align-items:center; padding:14px; border:1px dashed #72572b; border-radius:8px; background:#17140e; color:var(--text); text-align:left; }
+.freestyle-picker-btn > span { grid-row:1 / 3; display:grid; place-items:center; width:38px; height:38px; border-radius:50%; background:#72572b; font-size:24px; }
+.freestyle-picker-btn small { color:var(--text-muted); }
+@media (max-width:600px) {
+  .weekly-nav { grid-template-columns:repeat(7,96px); }
+  .exercise-card { padding:14px 12px; }
+  .exercise-meta { padding-right:0; }
+  .set-choice { margin-left:auto; }
+}
 </style>
 </head>
 <body>
@@ -976,7 +1000,7 @@ button { touch-action: manipulation; }
   </div>
 </div>
 
-<div class="maxes-bar" id="maxesBar">
+<div class="maxes-bar" id="maxesBar" style="display:none">
   <div class="max-item"><span class="max-label">Squat</span><span class="max-value" id="dispSquat">110 kg</span></div>
   <div class="max-item"><span class="max-label">Bench</span><span class="max-value" id="dispBench">97 kg</span></div>
   <div class="max-item"><span class="max-label">Deadlift</span><span class="max-value" id="dispDeadlift">120 kg</span></div>
@@ -1000,12 +1024,6 @@ button { touch-action: manipulation; }
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
     <h3>Paramètres</h3>
-    <label>Maxes actuels (kg)</label>
-    <div class="max-settings-grid">
-      <div><input type="number" id="maxSquat" placeholder="Squat" step="0.5"><small>Squat</small></div>
-      <div><input type="number" id="maxBench" placeholder="Bench" step="0.5"><small>Bench</small></div>
-      <div><input type="number" id="maxDeadlift" placeholder="DL" step="0.5"><small>Deadlift</small></div>
-    </div>
     <div class="modal-actions settings-actions">
       <div class="settings-actions-main">
         <button onclick="openAccountModal()">Compte</button>
@@ -1015,8 +1033,7 @@ button { touch-action: manipulation; }
         <button class="danger" onclick="logout()">Déconnexion</button>
       </div>
       <div class="settings-actions-footer">
-        <button onclick="closeSettings()">Annuler</button>
-        <button class="save" onclick="saveSettings()">Sauver</button>
+        <button class="save" onclick="closeSettings()">Fermer</button>
       </div>
     </div>
   </div>
@@ -1035,8 +1052,8 @@ button { touch-action: manipulation; }
 
 <div class="modal-overlay" id="accessoryPickerModal">
   <div class="modal">
-    <h3>Ajouter un accessoire</h3>
-    <p style="color:var(--text2);font-size:13px">Ajouté uniquement à cette séance.</p>
+    <h3 id="accessoryPickerTitle">Ajouter un accessoire</h3>
+    <p id="accessoryPickerSubtitle" style="color:var(--text2);font-size:13px">Ajouté uniquement à cette séance.</p>
     <div class="accessory-picker-list" id="accessoryPickerList"></div>
     <div class="modal-actions">
       <button onclick="closeAccessoryPicker()">Fermer</button>
@@ -1263,10 +1280,12 @@ async function changeAccountPassword() {
 
 function applyCloudProgram(program) {
   if (!program || typeof program !== "object") return;
+  const requiresMigration = program.programVersion !== PROGRAM_VERSION;
   accountApplyingRemote = true;
   localStorage.setItem("muscu_program", JSON.stringify(program));
   loadState();
   accountApplyingRemote = false;
+  if (requiresMigration) scheduleAccountProgramSync(getLocalProgramData());
   render();
 }
 
@@ -2058,12 +2077,94 @@ function buildWaves(raw) {
   });
 }
 
-const PROGRAM = buildWaves(RAW_PROGRAM);
+function buildWeeklyProgram() {
+  const warmup = (id, name, reps, tracking = "reps") => ({
+    id, name, preFatigue: true, tempo: "Contrôlé",
+    instructions: "Amplitude · Respiration · Pump",
+    tracking, range: tracking === "time" ? String(reps) : "20-25",
+    sets: [{ s: 2, r: reps }]
+  });
+  const work = (id, name, sets, reps, rpe, tempo = "Explosif") => ({
+    id, name, rpe, tempo, rest: 120,
+    range: reps === 15 ? "10-15" : reps === 10 ? "8-10" : String(reps),
+    instructions: "Monter en charge progressivement jusqu'au RPE",
+    sets: [{ s: sets, r: reps, rpe }]
+  });
+  const upperWarmup = () => [
+    warmup("chest-fly-dumbbell", "Chest Fly Dumbbell", 25),
+    warmup("reverse-fly-dumbbell", "Reverse Fly Dumbbell", 25),
+    warmup("shrugs-barbell", "Shrugs Barbell", 25),
+    warmup("elevations-xiaojun-dumbbell", "Élévations XiaoJun Dumbbell", 25)
+  ];
+
+  return [{
+    name: "Semaine",
+    days: [
+      {
+        name: "Upper 1", shortName: "Upper 1",
+        exercises: [
+          ...upperWarmup(),
+          work("bench-feet-up", "Bench Feet Up", 3, 15, 9),
+          work("tractions-neutres-lestees", "Tractions neutres lestées", 3, 15, 9),
+          work("pushdown-triceps-front", "Pushdown Triceps Front", 3, 15, 9),
+          work("cable-row-close-grip", "Cable Row Close Grip", 3, 15, 9),
+          work("biceps-curl-rotation", "Biceps Curl Rotation", 3, 15, 9),
+          work("chest-press-cable-machine", "Chest Press Cable Machine", 3, 15, 9)
+        ]
+      },
+      {
+        name: "Lower 1", shortName: "Lower 1", freestyle: true,
+        exercises: [
+          warmup("clamshell-plank", "Clamshell Plank", "MAX", "time"),
+          warmup("farmer-walk-unilateral", "Farmer Walk Unilateral", 120, "time"),
+          warmup("pallof-press-v2", "Pallof Press V2", 25),
+          warmup("cyclist-squat-goblet", "Cyclist Squat Goblet", 25),
+          work("adductions-machine", "Adductions Machine", 3, 15, 9),
+          work("abductions-machine", "Abductions Machine", 3, 15, 9),
+          work("leg-extension", "Leg Extension", 3, 15, 9),
+          work("leg-curl-allonge", "Leg Curl Allongé", 3, 15, 9)
+        ]
+      },
+      { name: "Repos", shortName: "Repos", rest: true },
+      {
+        name: "Upper 2", shortName: "Upper 2",
+        exercises: [
+          ...upperWarmup(),
+          work("bench-comp", "Bench Comp", 4, 5, 10),
+          work("tractions-multiple-grips-lestees", "Tractions Multiple Grips lestées", 4, 5, 10),
+          work("pushdown-triceps-rear", "Pushdown Triceps Rear", 3, 15, 9, "Contrôlé"),
+          work("cable-row-wide-grip", "Cable Row Wide Grip", 3, 15, 9, "Contrôlé"),
+          work("biceps-curl-prise-marteau", "Biceps Curl Prise Marteau", 3, 15, 9, "Contrôlé"),
+          work("chest-press-free-weight-machine", "Chest Press Free Weight Machine", 3, 15, 9, "Contrôlé")
+        ]
+      },
+      {
+        name: "Lower 2", shortName: "Lower 2", freestyle: true,
+        exercises: [
+          warmup("romanian-deadlift-barbell", "Romanian Deadlift Barbell", 25),
+          warmup("peterson-step-up", "Peterson Step Up", 25),
+          warmup("oblique-side-bend-hyper-extension", "Oblique Side Bend Hyper Extension", 25),
+          warmup("sissy-squat", "Sissy Squat", 25),
+          work("leg-extension", "Leg Extension", 5, 10, 10),
+          work("leg-curl-allonge", "Leg Curl Allongé", 5, 10, 10),
+          work("adductions-machine", "Adductions Machine", 3, 20, 9),
+          work("abductions-machine", "Abductions Machine", 3, 20, 9)
+        ]
+      },
+      { name: "Repos", shortName: "Repos", rest: true },
+      { name: "Repos", shortName: "Repos", rest: true }
+    ]
+  }];
+}
+
+const PROGRAM_VERSION = 2;
+const PROGRAM = buildWeeklyProgram();
 
 // ============================================================
 // STATE
 // ============================================================
 let state = {
+  programVersion: PROGRAM_VERSION,
   cycle: 1,
   week: 0,
   day: 0,
@@ -2075,6 +2176,8 @@ let state = {
   customReps: {},    // { [exerciseName]: [repsSet0, repsSet1, ...] } — reps, independent per set
   customNotes: {},   // { [exerciseName]: "note libre" } — note par accessoire
   extraAccessories: {}, // { "c{cycle}w{wave}s{session}": [accessoryId, ...] }
+  preFatigueSets: {},
+  freestyleSelections: {},
   updatedAt: 0,
   timerDuration: 120,
   timerRemaining: 120,
@@ -2117,6 +2220,37 @@ const ACC_RANGES = {
   "Élévations latérales haltères": "6-10"
 };
 
+Object.assign(ACC_RANGES, {
+  "Chest Fly Dumbbell": "20-25",
+  "Reverse Fly Dumbbell": "20-25",
+  "Shrugs Barbell": "20-25",
+  "Élévations XiaoJun Dumbbell": "20-25",
+  "Clamshell Plank": "temps max",
+  "Farmer Walk Unilateral": "2 min",
+  "Pallof Press V2": "20-25",
+  "Cyclist Squat Goblet": "20-25",
+  "Romanian Deadlift Barbell": "20-25",
+  "Peterson Step Up": "20-25",
+  "Oblique Side Bend Hyper Extension": "20-25",
+  "Sissy Squat": "20-25",
+  "Bench Feet Up": "10-15",
+  "Tractions neutres lestées": "10-15",
+  "Pushdown Triceps Front": "10-15",
+  "Cable Row Close Grip": "10-15",
+  "Biceps Curl Rotation": "10-15",
+  "Chest Press Cable Machine": "10-15",
+  "Adductions Machine": "10-15",
+  "Abductions Machine": "10-15",
+  "Leg Extension": "8-10",
+  "Leg Curl Allongé": "8-10",
+  "Bench Comp": "5",
+  "Tractions Multiple Grips lestées": "5",
+  "Pushdown Triceps Rear": "10-15",
+  "Cable Row Wide Grip": "10-15",
+  "Biceps Curl Prise Marteau": "10-15",
+  "Chest Press Free Weight Machine": "10-15"
+});
+
 // Stable identifiers keep saved data valid if an exercise is renamed later.
 const ACCESSORY_IDS = {
   "Curl Biceps Rotation": "curl-biceps-rotation",
@@ -2136,17 +2270,21 @@ const ACCESSORY_IDS = {
   "Élévations latérales haltères": "elevations-laterales-halteres"
 };
 
+PROGRAM[0].days.forEach(day => (day.exercises || []).forEach(ex => {
+  if (ex.id) ACCESSORY_IDS[ex.name] = ex.id;
+}));
+
 function buildAccessoryCatalog() {
   const byId = new Map();
   PROGRAM.forEach(wave => wave.days.forEach(day => {
     (day.exercises || []).forEach(ex => {
       if (ex.ref) return;
-      const id = ACCESSORY_IDS[ex.name];
+      const id = ex.id || ACCESSORY_IDS[ex.name];
       if (!id) return;
       const candidate = {
         id,
         name: ex.name,
-        range: ACC_RANGES[ex.name] || "6-10",
+        range: ex.range || ACC_RANGES[ex.name] || "6-10",
         sets: ex.sets.map(group => ({ ...group }))
       };
       const current = byId.get(id);
@@ -2160,6 +2298,26 @@ function buildAccessoryCatalog() {
 
 const ACCESSORY_CATALOG = buildAccessoryCatalog();
 const ACCESSORY_BY_ID = Object.fromEntries(ACCESSORY_CATALOG.map(ex => [ex.id, ex]));
+const FREESTYLE_CATALOG = [
+  ["squat-freestyle", "Squat"],
+  ["leg-press-freestyle", "Leg Press"],
+  ["deadlift-freestyle", "Deadlift"],
+  ["romanian-deadlift-freestyle", "Romanian Deadlift"],
+  ["bulgarian-split-squat", "Bulgarian Split Squat"],
+  ["hack-squat", "Hack Squat"],
+  ["hip-thrust", "Hip Thrust"],
+  ["walking-lunges", "Walking Lunges"],
+  ["pendulum-squat", "Pendulum Squat"],
+  ["belt-squat", "Belt Squat"]
+].map(([id, name]) => ({
+  id, name, range: "libre", isFreestyle: true,
+  tempo: "Libre", rest: 120, sets: [{ s: 3, r: 12 }]
+}));
+const FREESTYLE_BY_ID = Object.fromEntries(FREESTYLE_CATALOG.map(ex => [ex.id, ex]));
+FREESTYLE_CATALOG.forEach(ex => {
+  ACCESSORY_IDS[ex.name] = ex.id;
+  ACC_RANGES[ex.name] = "libre";
+});
 const ACCESSORY_ID_ALIASES = {
   "triceps-pushdown": "overhead-extensions-triceps"
 };
@@ -2187,6 +2345,27 @@ function expandSets(exercise) {
   return expanded;
 }
 
+function getExerciseSets(exercise) {
+  const sets = expandSets(exercise);
+  if (!exercise.preFatigue) return sets;
+  const selected = state.preFatigueSets[exercise.id] || 1;
+  return sets.slice(0, selected);
+}
+
+function setPreFatigueSetCount(exerciseId, count) {
+  state.preFatigueSets[exerciseId] = count === 2 ? 2 : 1;
+  if (count === 1) {
+    PROGRAM[0].days.forEach((day, dayIndex) => {
+      const exerciseIndex = (day.exercises || []).findIndex(ex => ex.id === exerciseId);
+      if (exerciseIndex >= 0) {
+        delete state.completions[setKey(0, dayIndex, String(exerciseIndex), 1)];
+      }
+    });
+  }
+  saveState();
+  render();
+}
+
 function sessionOccurrenceKey(cycle = state.cycle, week = state.week, day = state.day) {
   return `c${cycle}w${week}s${day}`;
 }
@@ -2198,6 +2377,13 @@ function getExtraAccessoryIds(week = state.week, day = state.day) {
 
 function getSessionExercises(week = state.week, day = state.day) {
   const base = PROGRAM[week].days[day].exercises || [];
+  const occurrence = sessionOccurrenceKey(state.cycle, week, day);
+  const freestyleSelection = state.freestyleSelections[occurrence];
+  const freestyleTemplate = freestyleSelection ? FREESTYLE_BY_ID[freestyleSelection.id] : null;
+  const freestyle = freestyleTemplate ? [{
+    ...freestyleTemplate,
+    sets: [{ ...freestyleTemplate.sets[0], s: freestyleSelection.sets || 3 }]
+  }] : [];
   const extras = getExtraAccessoryIds(week, day)
     .map(id => ACCESSORY_BY_ID[id])
     .filter(Boolean)
@@ -2206,10 +2392,11 @@ function getSessionExercises(week = state.week, day = state.day) {
       sets: ex.sets.map(group => ({ ...group })),
       isExtra: true
     }));
-  return [...base, ...extras];
+  return [...base, ...freestyle, ...extras];
 }
 
 function exerciseCompletionKey(exercise, exIdx) {
+  if (exercise.isFreestyle) return `f-${exercise.id}`;
   return exercise.isExtra ? `x-${exercise.id}` : String(exIdx);
 }
 
@@ -2232,7 +2419,8 @@ function getExerciseTimerDuration(week, day, exKey) {
   const exercise = getSessionExercises(week, day).find((candidate, index) =>
     exerciseCompletionKey(candidate, index) === String(exKey)
   );
-  return exercise?.ref ? 180 : 120;
+  if (!exercise || exercise.preFatigue) return 0;
+  return exercise.rest || 120;
 }
 
 function toggleSetDone(week, day, exKey, setIdx) {
@@ -2243,7 +2431,8 @@ function toggleSetDone(week, day, exKey, setIdx) {
     delete state.completions[key];
   } else {
     state.completions[key] = true;
-    startRestTimer(getExerciseTimerDuration(week, day, exKey));
+    const duration = getExerciseTimerDuration(week, day, exKey);
+    if (duration > 0) startRestTimer(duration);
   }
   saveState();
   render();
@@ -2256,12 +2445,15 @@ function getDayProgress(week, day) {
   let total = 0, done = 0;
   getSessionExercises(week, day).forEach((ex, ei) => {
     const exKey = exerciseCompletionKey(ex, ei);
-    const sets = expandSets(ex);
+    const sets = getExerciseSets(ex);
     total += sets.length;
     sets.forEach((_, si) => {
       if (isSetDone(week, day, exKey, si)) done++;
     });
   });
+  if (dayData.freestyle && !state.freestyleSelections[sessionOccurrenceKey(state.cycle, week, day)]) {
+    total += 1;
+  }
   return { done, total, pct: total > 0 ? Math.round((done/total)*100) : 0 };
 }
 
@@ -2298,6 +2490,8 @@ function getLatestExercisePerformance(exerciseName) {
 }
 
 function openAccessoryPicker() {
+  document.getElementById("accessoryPickerTitle").textContent = "Ajouter un accessoire";
+  document.getElementById("accessoryPickerSubtitle").textContent = "Ajouté uniquement à cette séance.";
   const currentExercises = getSessionExercises().map(ex => ex.id || ACCESSORY_IDS[ex.name]).filter(Boolean);
   const list = document.getElementById("accessoryPickerList");
   list.innerHTML = ACCESSORY_CATALOG.map(ex => {
@@ -2309,6 +2503,59 @@ function openAccessoryPicker() {
       + `</button>`;
   }).join("");
   document.getElementById("accessoryPickerModal").classList.add("show");
+}
+
+function openFreestylePicker() {
+  document.getElementById("accessoryPickerTitle").textContent = "Exercice libre jambes";
+  document.getElementById("accessoryPickerSubtitle").textContent = "Choisis selon tes envies et tes besoins du jour.";
+  document.getElementById("accessoryPickerList").innerHTML = FREESTYLE_CATALOG.map(ex => {
+    const summary = getLatestExercisePerformance(ex.name);
+    return `<button class="accessory-picker-item" onclick="selectFreestyleExercise('${ex.id}')">`
+      + `<span class="accessory-picker-name">${ex.name}</span>`
+      + `<span class="accessory-picker-meta">${summary}</span>`
+      + `</button>`;
+  }).join("");
+  document.getElementById("accessoryPickerModal").classList.add("show");
+}
+
+function selectFreestyleExercise(exerciseId) {
+  if (!FREESTYLE_BY_ID[exerciseId]) return;
+  state.freestyleSelections[sessionOccurrenceKey()] = { id: exerciseId, sets: 3 };
+  saveState();
+  closeAccessoryPicker();
+  render();
+}
+
+function changeFreestyleSetCount(delta) {
+  const occurrence = sessionOccurrenceKey();
+  const selection = state.freestyleSelections[occurrence];
+  if (!selection) return;
+  const previous = selection.sets || 3;
+  const next = Math.max(1, Math.min(8, previous + delta));
+  selection.sets = next;
+  if (next < previous) {
+    for (let index = next; index < previous; index++) {
+      delete state.completions[setKey(state.week, state.day, `f-${selection.id}`, index)];
+    }
+  }
+  saveState();
+  render();
+}
+
+function removeFreestyleExercise() {
+  const occurrence = sessionOccurrenceKey();
+  const selection = state.freestyleSelections[occurrence];
+  if (!selection) return;
+  const count = selection.sets || 3;
+  const hasCompletedSet = Array.from({ length: count }, (_, index) => index)
+    .some(index => isSetDone(state.week, state.day, `f-${selection.id}`, index));
+  if (hasCompletedSet && !confirm("Retirer cet exercice libre et ses séries de la séance ?")) return;
+  for (let index = 0; index < count; index++) {
+    delete state.completions[setKey(state.week, state.day, `f-${selection.id}`, index)];
+  }
+  delete state.freestyleSelections[occurrence];
+  saveState();
+  render();
 }
 
 function closeAccessoryPicker() {
@@ -2367,20 +2614,12 @@ function renderMaxesBar() {
 
 function renderNav() {
   const nav = document.getElementById('nav');
-  let html = '<div class="nav-section">';
-  PROGRAM.forEach((w, wi) => {
-    const active = wi === state.week ? 'active' : '';
-    const locked = !isBlocUnlocked(wi) ? 'locked' : '';
-    const check = isBlocComplete(wi) ? ' &#10003;' : '';
-    html += `<div class="nav-tab ${active} ${locked}" onclick="selectWeek(${wi})">${w.name}${check}</div>`;
-  });
-  html += '</div><div class="nav-section">';
+  let html = '<div class="nav-section weekly-nav">';
   PROGRAM[state.week].days.forEach((d, di) => {
     const active = di === state.day ? 'active' : '';
     const prog = getDayProgress(state.week, di);
-    const label = `S${di+1}`;
-    const check = (prog.pct === 100) ? ' &#10003;' : '';
-    html += `<div class="nav-tab ${active}" onclick="selectDay(${di})">${label}${check}</div>`;
+    const check = (!d.rest && prog.pct === 100) ? ' &#10003;' : '';
+    html += `<div class="nav-tab ${active}${d.rest ? ' rest' : ''}" onclick="selectDay(${di})">J${di + 1} · ${d.shortName}${check}</div>`;
   });
   html += '</div>';
   nav.innerHTML = html;
@@ -2404,7 +2643,7 @@ function renderContent() {
   let html = `
     <div class="day-header">
       <h2>${dayData.name}</h2>
-      <p>${PROGRAM[state.week].name} — Session ${state.day + 1}/10</p>
+      <p>Jour ${state.day + 1}/7 · Semaine ${state.cycle}</p>
       <div class="day-progress">
         <div class="progress-bar"><div class="progress-fill" style="width:${prog.pct}%"></div></div>
         <span class="progress-text">${prog.done}/${prog.total}</span>
@@ -2412,16 +2651,32 @@ function renderContent() {
     </div>`;
 
   const sessionExercises = getSessionExercises(state.week, state.day);
+  let currentSection = "";
+  let workIndex = 0;
   sessionExercises.forEach((ex, ei) => {
+    const section = ex.preFatigue ? "Pré-fatigue" : ex.isFreestyle ? "Freestyle jambes" : "Exercices";
+    if (section !== currentSection) {
+      html += `<div class="workout-section-title"><span>${section}</span></div>`;
+      currentSection = section;
+    }
     const exKey = exerciseCompletionKey(ex, ei);
-    const sets = expandSets(ex);
+    const sets = getExerciseSets(ex);
     const allDone = sets.every((_, si) => isSetDone(state.week, state.day, exKey, si));
     const cardClass = allDone ? 'exercise-card completed' : 'exercise-card';
 
-    html += `<div class="${cardClass}${ex.isExtra ? ' extra-accessory' : ''}">`;
+    const tag = ex.preFatigue ? "P" : ex.isFreestyle ? "F" : ex.isExtra ? "+" : String(++workIndex);
+    html += `<div class="${cardClass}${ex.isExtra ? ' extra-accessory' : ''}${ex.preFatigue ? ' pre-fatigue-card' : ''}${ex.isFreestyle ? ' freestyle-card' : ''}">`;
     html += `<div class="exercise-header">`;
-    html += `<div class="exercise-tag">${ex.isExtra ? '+' : ex.tag}</div>`;
-    html += `<div class="exercise-name">${ex.name}</div>`;
+    html += `<div class="exercise-tag">${tag}</div>`;
+    html += `<div class="exercise-title"><div class="exercise-name">${ex.name}</div>`;
+    html += `<div class="exercise-meta">${ex.tempo ? `<span>${ex.tempo}</span>` : ''}${ex.rpe ? `<span>RPE ${ex.rpe}</span>` : ''}${ex.rest ? `<span>${ex.rest / 60} min repos</span>` : ''}</div></div>`;
+    if (ex.preFatigue) {
+      const selectedSets = state.preFatigueSets[ex.id] || 1;
+      html += `<div class="set-choice" onclick="event.stopPropagation()"><button class="${selectedSets === 1 ? 'active' : ''}" onclick="setPreFatigueSetCount('${ex.id}',1)">1</button><button class="${selectedSets === 2 ? 'active' : ''}" onclick="setPreFatigueSetCount('${ex.id}',2)">2</button></div>`;
+    }
+    if (ex.isFreestyle) {
+      html += `<div class="freestyle-controls" onclick="event.stopPropagation()"><button onclick="changeFreestyleSetCount(-1)" aria-label="Retirer une série">−</button><span>${sets.length} séries</span><button onclick="changeFreestyleSetCount(1)" aria-label="Ajouter une série">+</button><button onclick="openFreestylePicker()" aria-label="Changer d'exercice">↻</button><button onclick="removeFreestyleExercise()" aria-label="Retirer l'exercice">×</button></div>`;
+    }
     if (ex.isExtra) {
       html += `<button class="remove-extra-btn" onclick="event.stopPropagation();removeExtraAccessory('${ex.id}')" title="Retirer de cette séance" aria-label="Retirer ${escAttr(ex.name)}">&times;</button>`;
     }
@@ -2462,14 +2717,14 @@ function renderContent() {
         // Accessory exercise: editable reps + editable weight (double progression)
         const gi = set.groupIndex;
         const exNameEsc = ex.name.replace(/"/g, '&quot;');
-        const programReps = set.r === "AMRAP" ? "MAX" : set.r;
+        const programReps = set.r === "AMRAP" || set.r === "MAX" ? "MAX" : set.r;
 
         // Reps input (independent per set — keyed by absolute set index si)
         const cr = getCustomReps(ex.name, si);
         const repsVal = (cr !== null) ? cr : '';
         const repsEmpty = (cr === null) ? ' empty' : '';
         info += `<input type="number" step="1" inputmode="numeric" class="acc-input reps-input${repsEmpty}" placeholder="${programReps}" value="${repsVal}" data-exname="${exNameEsc}" data-set="${si}" data-ekey="${exKey}" onclick="event.stopPropagation()" onchange="onRepsInputChange(this)">`;
-        info += `<span class="acc-unit">reps</span>`;
+        info += `<span class="acc-unit">${ex.tracking === "time" ? "sec" : "reps"}</span>`;
 
         info += `<span class="acc-x">&times;</span>`;
 
@@ -2494,7 +2749,7 @@ function renderContent() {
       }
 
       // Accessory range label (right-aligned)
-      const range = (!set.ref && !ex.ref) ? ACC_RANGES[ex.name] : null;
+      const range = (!set.ref && !ex.ref) ? (ex.range || ACC_RANGES[ex.name]) : null;
       if (range) {
         info += `<span class="acc-range">${range}</span>`;
       }
@@ -2505,13 +2760,11 @@ function renderContent() {
       html += `</div>`;
     });
 
-    // Accessory: running rep-total + progression conditions
-    if (!ex.ref) {
-      const rangeStr = ACC_RANGES[ex.name] || '6-10';
-      const upper = parseInt(rangeStr.split('-')[1], 10) || 10;
-      const minPerSet = upper - 1;
+    if (!ex.preFatigue && !ex.isFreestyle) {
+      const rangeStr = ex.range || ACC_RANGES[ex.name] || '6-10';
+      const rangeParts = rangeStr.split('-').map(value => parseInt(value, 10));
+      const upper = rangeParts[1] || rangeParts[0] || 10;
       const target = sets.length * upper;
-      // On ne compte QUE les séries cochées (validées).
       let achieved = 0, allReady = sets.length > 0;
       sets.forEach((_, si) => {
         const r = getCustomReps(ex.name, si);
@@ -2519,17 +2772,19 @@ function renderContent() {
         if (done && r !== null) achieved += r;
         if (!done || r === null) allReady = false;
       });
-      // Vert seulement quand toutes les séries sont cochées + remplies ET
-      // le total est au plus 1 rep sous le max (ex. 29/30).
-      const allMet = allReady && achieved >= target - 1;
+      const allMet = allReady && achieved >= target;
       html += `<div class="acc-total${allMet ? ' met' : ''}">`;
       html += `<span class="acc-total-count">${allMet ? '&#10003; ' : ''}Total : ${achieved}/${target}</span>`;
-      html += `<span class="acc-total-cond">Monter le poids si : min ${minPerSet}/${upper} toutes séries &middot; RPE 8 max &middot; No pain &middot; No grind</span>`;
+      html += `<span class="acc-total-cond">Cible : ${rangeStr} par série · RPE ${ex.rpe || 'libre'}</span>`;
       html += `</div>`;
     }
 
     html += `</div></div>`;
   });
+
+  if (dayData.freestyle && !state.freestyleSelections[sessionOccurrenceKey()]) {
+    html += `<button class="freestyle-picker-btn" onclick="openFreestylePicker()"><span>+</span><strong>Choisir l'exercice libre jambes</strong><small>Squat, presse, deadlift, fentes et autres classiques</small></button>`;
+  }
 
   html += `<button class="add-accessory-btn" onclick="openAccessoryPicker()">`
     + `<span aria-hidden="true">+</span> Ajouter un accessoire</button>`;
@@ -2551,13 +2806,13 @@ function renderContent() {
   }
 
   // Cycle advancement banner
-  if (isBlocComplete(3)) {
+  if (isBlocComplete(0)) {
     html += `
       <div style="text-align:center;margin-top:32px;padding:24px;background:var(--bg2);border:1px solid var(--green-dim);border-radius:var(--radius);">
-        <h3 style="color:var(--green);margin-bottom:8px;">Cycle ${state.cycle} terminé !</h3>
-        <p style="color:var(--text2);margin-bottom:16px;">Tous les blocs sont complétés.</p>
+        <h3 style="color:var(--green);margin-bottom:8px;">Semaine ${state.cycle} terminée</h3>
+        <p style="color:var(--text2);margin-bottom:16px;">Les quatre entraînements sont complétés.</p>
         <button onclick="advanceCycle()" style="padding:10px 24px;background:var(--green-dim);border:1px solid var(--green);color:var(--green);border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;">
-          Commencer Cycle ${state.cycle + 1}
+          Commencer la semaine ${state.cycle + 1}
         </button>
       </div>`;
   }
@@ -2566,8 +2821,7 @@ function renderContent() {
 }
 
 function render() {
-  document.getElementById('cycleDisplay').textContent = `Cycle ${state.cycle}`;
-  renderMaxesBar();
+  document.getElementById('cycleDisplay').textContent = `Semaine ${state.cycle}`;
   renderNav();
   renderContent();
 }
@@ -2591,11 +2845,12 @@ function selectDay(d) {
 }
 
 function advanceCycle() {
-  if (!isBlocComplete(3)) return;
+  if (!isBlocComplete(0)) return;
   state.cycle++;
   state.completions = {};
   state.week = 0;
   state.day = 0;
+  state.freestyleSelections = {};
   saveState();
   render();
 }
@@ -2605,7 +2860,7 @@ function resetDay() {
   if (dayData.rest) return;
   getSessionExercises(state.week, state.day).forEach((ex, ei) => {
     const exKey = exerciseCompletionKey(ex, ei);
-    const sets = expandSets(ex);
+    const sets = getExerciseSets(ex);
     sets.forEach((_, si) => {
       delete state.completions[setKey(state.week, state.day, exKey, si)];
     });
@@ -2696,7 +2951,7 @@ function updateTimerDisplay() {
   const mins = Math.floor(state.timerRemaining / 60);
   const secs = state.timerRemaining % 60;
   el.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
-  if (context) context.textContent = state.timerDuration === 180 ? 'Repos SBD' : 'Repos accessoire';
+  if (context) context.textContent = 'Repos série';
   el.className = 'timer-display';
   if (state.timerRemaining <= 10 && state.timerRemaining > 0 && state.timerRunning) {
     el.classList.add('warning');
@@ -2729,9 +2984,6 @@ function playAlarm() {
 // ============================================================
 function openSettings() {
   document.getElementById('settingsModal').classList.add('show');
-  document.getElementById('maxSquat').value = state.maxSquat;
-  document.getElementById('maxBench').value = state.maxBench;
-  document.getElementById('maxDeadlift').value = state.maxDeadlift;
 }
 
 function closeSettings() {
@@ -2739,14 +2991,7 @@ function closeSettings() {
 }
 
 function saveSettings() {
-  state.maxSquat = parseFloat(document.getElementById('maxSquat').value) || 100;
-  state.maxBench = parseFloat(document.getElementById('maxBench').value) || 100;
-  state.maxDeadlift = parseFloat(document.getElementById('maxDeadlift').value) || 100;
-  saveState();
-  logMaxChange();
   closeSettings();
-
-  render();
 }
 
 function resetAllProgress() {
@@ -2755,6 +3000,13 @@ function resetAllProgress() {
     state.cycle = 1;
     state.week = 0;
     state.day = 0;
+    state.customWeights = {};
+    state.customReps = {};
+    state.customNotes = {};
+    state.extraAccessories = {};
+    state.preFatigueSets = {};
+    state.freestyleSelections = {};
+    state.programVersion = PROGRAM_VERSION;
     saveState();
     closeSettings();
     render();
@@ -2835,6 +3087,7 @@ async function exportLocalData() {
 function saveState() {
   if (!accountApplyingRemote) state.updatedAt = Date.now();
   const data = {
+    programVersion: PROGRAM_VERSION,
     cycle: state.cycle,
     week: state.week,
     day: state.day,
@@ -2846,6 +3099,8 @@ function saveState() {
     customReps: state.customReps,
     customNotes: state.customNotes,
     extraAccessories: state.extraAccessories,
+    preFatigueSets: state.preFatigueSets,
+    freestyleSelections: state.freestyleSelections,
     updatedAt: state.updatedAt,
     timerDuration: state.timerDuration
   };
@@ -2857,9 +3112,28 @@ function loadState() {
   try {
     const data = JSON.parse(localStorage.getItem('muscu_program'));
     if (data) {
+      if (data.programVersion !== PROGRAM_VERSION) {
+        state.programVersion = PROGRAM_VERSION;
+        state.cycle = 1;
+        state.week = 0;
+        state.day = 0;
+        state.completions = {};
+        state.customWeights = {};
+        state.customReps = {};
+        state.customNotes = {};
+        state.extraAccessories = {};
+        state.preFatigueSets = {};
+        state.freestyleSelections = {};
+        state.updatedAt = Date.now();
+        state.timerDuration = 120;
+        state.timerRemaining = 120;
+        saveState();
+        return;
+      }
+      state.programVersion = PROGRAM_VERSION;
       state.cycle = data.cycle || 1;
-      state.week = data.week || 0;
-      state.day = data.day || 0;
+      state.week = 0;
+      state.day = Math.max(0, Math.min(6, Number(data.day) || 0));
       state.completions = data.completions || {};
       state.maxSquat = data.maxSquat || 110;
       state.maxBench = data.maxBench || 97;
@@ -2868,6 +3142,8 @@ function loadState() {
       state.customReps = migrateAccessoryKeys(data.customReps || {});
       state.customNotes = migrateAccessoryKeys(data.customNotes || {});
       state.extraAccessories = migrateExtraAccessories(data.extraAccessories || {});
+      state.preFatigueSets = data.preFatigueSets || {};
+      state.freestyleSelections = data.freestyleSelections || {};
       state.updatedAt = data.updatedAt || 0;
       state.timerDuration = data.timerDuration || 120;
       state.timerRemaining = state.timerDuration;
@@ -3021,7 +3297,8 @@ function onRepsInputChange(inputEl) {
   // Saisir des reps coche la série (= validée) ; vider la case la décoche.
   if (num !== null) state.completions[key] = true; else delete state.completions[key];
   if (num !== null && !wasSetDone) {
-    startRestTimer(getExerciseTimerDuration(state.week, state.day, exKey));
+    const duration = getExerciseTimerDuration(state.week, state.day, exKey);
+    if (duration > 0) startRestTimer(duration);
   }
   saveState();
   render();                                // refresh checkbox + running total + signal
@@ -3182,7 +3459,7 @@ function logSession(week, day) {
   const exercises = [];
   getSessionExercises(week, day).forEach((ex, ei) => {
     const exKey = exerciseCompletionKey(ex, ei);
-    const sets = expandSets(ex);
+    const sets = getExerciseSets(ex);
     const details = [];
     let exDone = 0;
     sets.forEach((set, si) => {
@@ -3213,7 +3490,7 @@ function logSession(week, day) {
     exercises.push({
       id: ex.id || ACCESSORY_IDS[ex.name] || null,
       name: ex.name,
-      source: ex.isExtra ? "added" : "programmed",
+      source: ex.isFreestyle ? "freestyle" : ex.isExtra ? "added" : "programmed",
       sets: details,
       done: exDone,
       total: sets.length
@@ -3291,7 +3568,7 @@ function showPage(page) {
   currentPage = page;
   document.getElementById('content').style.display = page === 'program' ? '' : 'none';
   document.getElementById('nav').style.display = page === 'program' ? '' : 'none';
-  document.getElementById('maxesBar').style.display = page === 'program' ? '' : 'none';
+  document.getElementById('maxesBar').style.display = 'none';
   document.getElementById('historyPage').style.display = page === 'history' ? '' : 'none';
   document.getElementById('btnProgram').classList.toggle('active', page === 'program');
   document.getElementById('btnHistory').classList.toggle('active', page === 'history');
@@ -3470,12 +3747,10 @@ document.addEventListener('keydown', (e) => {
   }
   if (e.key === 'r' || e.key === 'R') resetTimer();
   if (e.key === 'ArrowRight') {
-    if (state.day < 9) selectDay(state.day + 1);
-    else if (state.week < 3) { state.week++; selectDay(0); }
+    if (state.day < 6) selectDay(state.day + 1);
   }
   if (e.key === 'ArrowLeft') {
     if (state.day > 0) selectDay(state.day - 1);
-    else if (state.week > 0) { state.week--; selectDay(9); }
   }
 });
 
