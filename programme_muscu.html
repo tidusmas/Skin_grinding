@@ -281,20 +281,6 @@ button { touch-action: manipulation; }
   flex-shrink: 0;
 }
 
-/* ACCESSORY RUNNING TOTAL */
-.acc-total {
-  border-top: 1px solid var(--border);
-  margin-top: 4px;
-  padding: 8px 0 2px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.acc-total-count { font-size: 14px; font-weight: 700; color: var(--text2); }
-.acc-total-cond { font-size: 11px; color: var(--text2); }
-.acc-total.met .acc-total-count { color: var(--green); }
-.acc-total.met .acc-total-cond { color: var(--green); opacity: .85; }
-
 /* ACCESSORY NOTE (free text, above the sets) */
 .acc-note-row { padding: 10px 0 4px; }
 .acc-note-input {
@@ -2767,25 +2753,6 @@ function renderContent() {
       html += `<div class="set-info">${info}</div>`;
       html += `</div>`;
     });
-
-    if (!ex.preFatigue && !ex.isFreestyle) {
-      const rangeStr = ex.range || ACC_RANGES[ex.name] || '6-10';
-      const rangeParts = rangeStr.split('-').map(value => parseInt(value, 10));
-      const upper = rangeParts[1] || rangeParts[0] || 10;
-      const target = sets.length * upper;
-      let achieved = 0, allReady = sets.length > 0;
-      sets.forEach((_, si) => {
-        const r = getCustomReps(ex.name, si);
-        const done = isSetDone(state.week, state.day, exKey, si);
-        if (done && r !== null) achieved += r;
-        if (!done || r === null) allReady = false;
-      });
-      const allMet = allReady && achieved >= target;
-      html += `<div class="acc-total${allMet ? ' met' : ''}">`;
-      html += `<span class="acc-total-count">${allMet ? '&#10003; ' : ''}Total : ${achieved}/${target}</span>`;
-      html += `<span class="acc-total-cond">Cible : ${rangeStr} par série · RPE ${ex.rpe || 'libre'}</span>`;
-      html += `</div>`;
-    }
 
     if (!ex.preFatigue) {
       const rating = getExerciseRating(ex.id || accessoryDataKey(ex.name));
