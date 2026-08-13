@@ -35,7 +35,9 @@ globalThis.testApi = {
   getSessionExercises, getExerciseSets, setPreFatigueSetCount,
   sessionOccurrenceKey, exerciseCompletionKey, getExerciseTimerDuration,
   getDayProgress, setKey, saveState, loadState, buildLocalBackup,
-  historyToCloudMap, cloudMapToHistory, mergeHistory, accountSessionKey, localDateKey
+  historyToCloudMap, cloudMapToHistory, mergeHistory, accountSessionKey, localDateKey,
+  setCustomWeight, getCustomWeight, setExerciseRating, getExerciseRating,
+  logSession, loadHistory, WEIGHT_DATA_VERSION
 };`, context);
 const api = context.testApi;
 
@@ -79,6 +81,22 @@ const saved = JSON.parse(storage.get("muscu_program"));
 assert.equal(saved.programVersion, 2);
 assert.equal(saved.preFatigueSets[warmup.id], 2);
 assert.equal(saved.freestyleSelections[occurrence].id, "leg-press-freestyle");
+assert.equal(saved.weightDataVersion, api.WEIGHT_DATA_VERSION);
+
+api.setCustomWeight("Leg Press", 0, 20);
+api.setCustomWeight("Leg Press", 1, 25);
+api.setCustomWeight("Leg Press", 2, 30);
+assert.deepEqual([0, 1, 2].map(i => api.getCustomWeight("Leg Press", i)), [20, 25, 30]);
+api.setExerciseRating(freestyle.id, "hard");
+assert.equal(api.getExerciseRating(freestyle.id), "hard");
+
+storage.set("muscu_program", JSON.stringify({
+  programVersion: 2, weightDataVersion: 1, cycle: 1, day: 0,
+  customWeights: { "bench-feet-up": [{ w: 42.5, r: null }] }, updatedAt: 1
+}));
+api.loadState();
+assert.deepEqual([0, 1, 2].map(i => api.getCustomWeight("Bench Feet Up", i)), [42.5, 42.5, 42.5]);
+assert.equal(JSON.parse(storage.get("muscu_program")).weightDataVersion, api.WEIGHT_DATA_VERSION);
 
 storage.set("muscu_history", JSON.stringify({ sessions: [{ date: "2026-08-10" }], maxHistory: [] }));
 storage.set("muscu_program", JSON.stringify({ programVersion: 1, cycle: 9, completions: { old: true }, updatedAt: 1 }));

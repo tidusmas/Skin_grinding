@@ -1,4 +1,4 @@
-const CACHE_NAME = 'muscu-v11';
+const CACHE_NAME = 'muscu-v12';
 // Relative paths so they resolve under the SW scope (works whether the site
 // is served from the domain root or from a /Skin_grinding/ project path).
 const ASSETS = [

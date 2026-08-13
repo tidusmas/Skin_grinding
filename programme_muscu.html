@@ -959,6 +959,13 @@ button { touch-action: manipulation; }
 .freestyle-picker-btn { width:100%; min-height:76px; display:grid; grid-template-columns:38px 1fr; grid-template-rows:auto auto; column-gap:10px; align-items:center; padding:14px; border:1px dashed #72572b; border-radius:8px; background:#17140e; color:var(--text); text-align:left; }
 .freestyle-picker-btn > span { grid-row:1 / 3; display:grid; place-items:center; width:38px; height:38px; border-radius:50%; background:#72572b; font-size:24px; }
 .freestyle-picker-btn small { color:var(--text-muted); }
+.effort-rating { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+.effort-rating-label { grid-column:1 / -1; color:var(--text-muted); font-size:11px; font-weight:800; text-transform:uppercase; }
+.effort-rating button { min-height:36px; padding:6px 4px; border:1px solid var(--border); border-radius:6px; background:var(--surface-2); color:var(--text-muted); font-size:12px; font-weight:750; }
+.effort-rating button.easy.active { border-color:#3e9b65; background:#163b27; color:#7ce7a3; }
+.effort-rating button.right.active { border-color:#b58a35; background:#3c2d13; color:#f0c66f; }
+.effort-rating button.hard.active { border-color:#bd5555; background:#421c1c; color:#ff9696; }
+.history-effort { display:inline-block; margin-top:7px; padding:3px 7px; border-radius:5px; background:var(--surface-2); color:var(--text-muted); font-size:11px; font-weight:800; }
 @media (max-width:600px) {
   .weekly-nav { grid-template-columns:repeat(7,96px); }
   .exercise-card { padding:14px 12px; }
@@ -1280,7 +1287,7 @@ async function changeAccountPassword() {
 
 function applyCloudProgram(program) {
   if (!program || typeof program !== "object") return;
-  const requiresMigration = program.programVersion !== PROGRAM_VERSION;
+  const requiresMigration = program.programVersion !== PROGRAM_VERSION || program.weightDataVersion !== WEIGHT_DATA_VERSION;
   accountApplyingRemote = true;
   localStorage.setItem("muscu_program", JSON.stringify(program));
   loadState();
@@ -2158,6 +2165,7 @@ function buildWeeklyProgram() {
 }
 
 const PROGRAM_VERSION = 2;
+const WEIGHT_DATA_VERSION = 2;
 const PROGRAM = buildWeeklyProgram();
 
 // ============================================================
@@ -2172,9 +2180,10 @@ let state = {
   maxSquat: 110,
   maxBench: 97,
   maxDeadlift: 120,
-  customWeights: {}, // { [exerciseName]: [weightGroup0, weightGroup1, ...] } — weight, per set-group
+  customWeights: {}, // { [exerciseName]: [{w}, ...] } — weight, independent per set
   customReps: {},    // { [exerciseName]: [repsSet0, repsSet1, ...] } — reps, independent per set
   customNotes: {},   // { [exerciseName]: "note libre" } — note par accessoire
+  exerciseRatings: {}, // { [sessionOccurrence][exerciseId]: "easy|right|hard" }
   extraAccessories: {}, // { "c{cycle}w{wave}s{session}": [accessoryId, ...] }
   preFatigueSets: {},
   freestyleSelections: {},
@@ -2715,7 +2724,6 @@ function renderContent() {
         }
       } else if (!set.ref) {
         // Accessory exercise: editable reps + editable weight (double progression)
-        const gi = set.groupIndex;
         const exNameEsc = ex.name.replace(/"/g, '&quot;');
         const programReps = set.r === "AMRAP" || set.r === "MAX" ? "MAX" : set.r;
 
@@ -2729,10 +2737,10 @@ function renderContent() {
         info += `<span class="acc-x">&times;</span>`;
 
         // Weight input
-        const cw = getCustomWeight(ex.name, gi);
+        const cw = getCustomWeight(ex.name, si);
         const weightVal = (cw !== null) ? cw : '';
         const weightEmpty = (cw === null) ? ' empty' : '';
-        info += `<input type="number" step="0.5" inputmode="decimal" class="acc-input weight-input${weightEmpty}" placeholder="—" value="${weightVal}" data-exname="${exNameEsc}" data-group="${gi}" onclick="event.stopPropagation()" onchange="onWeightInputChange(this)">`;
+        info += `<input type="number" step="0.5" inputmode="decimal" class="acc-input weight-input${weightEmpty}" placeholder="—" value="${weightVal}" data-exname="${exNameEsc}" data-set="${si}" onclick="event.stopPropagation()" onchange="onWeightInputChange(this)">`;
         info += `<span class="acc-unit">kg</span>`;
       } else {
         // Fallback (shouldn't happen): just show reps
@@ -2777,6 +2785,15 @@ function renderContent() {
       html += `<span class="acc-total-count">${allMet ? '&#10003; ' : ''}Total : ${achieved}/${target}</span>`;
       html += `<span class="acc-total-cond">Cible : ${rangeStr} par série · RPE ${ex.rpe || 'libre'}</span>`;
       html += `</div>`;
+    }
+
+    if (!ex.preFatigue) {
+      const rating = getExerciseRating(ex.id || accessoryDataKey(ex.name));
+      const ratingId = escAttr(ex.id || accessoryDataKey(ex.name));
+      html += `<div class="effort-rating"><span class="effort-rating-label">Ressenti du bloc</span>`;
+      html += `<button class="easy${rating === 'easy' ? ' active' : ''}" onclick="setExerciseRating('${ratingId}','easy')">Très facile</button>`;
+      html += `<button class="right${rating === 'right' ? ' active' : ''}" onclick="setExerciseRating('${ratingId}','right')">Adapté</button>`;
+      html += `<button class="hard${rating === 'hard' ? ' active' : ''}" onclick="setExerciseRating('${ratingId}','hard')">Très difficile</button></div>`;
     }
 
     html += `</div></div>`;
@@ -3003,6 +3020,7 @@ function resetAllProgress() {
     state.customWeights = {};
     state.customReps = {};
     state.customNotes = {};
+    state.exerciseRatings = {};
     state.extraAccessories = {};
     state.preFatigueSets = {};
     state.freestyleSelections = {};
@@ -3098,6 +3116,8 @@ function saveState() {
     customWeights: state.customWeights,
     customReps: state.customReps,
     customNotes: state.customNotes,
+    exerciseRatings: state.exerciseRatings,
+    weightDataVersion: WEIGHT_DATA_VERSION,
     extraAccessories: state.extraAccessories,
     preFatigueSets: state.preFatigueSets,
     freestyleSelections: state.freestyleSelections,
@@ -3121,6 +3141,7 @@ function loadState() {
         state.customWeights = {};
         state.customReps = {};
         state.customNotes = {};
+        state.exerciseRatings = {};
         state.extraAccessories = {};
         state.preFatigueSets = {};
         state.freestyleSelections = {};
@@ -3141,12 +3162,19 @@ function loadState() {
       state.customWeights = migrateAccessoryKeys(migrateCustomWeights(data.customWeights || {}));
       state.customReps = migrateAccessoryKeys(data.customReps || {});
       state.customNotes = migrateAccessoryKeys(data.customNotes || {});
+      state.exerciseRatings = data.exerciseRatings || {};
+      const migrateWeights = data.weightDataVersion !== WEIGHT_DATA_VERSION;
+      if (migrateWeights) migrateWeightsToIndependentSets();
       state.extraAccessories = migrateExtraAccessories(data.extraAccessories || {});
       state.preFatigueSets = data.preFatigueSets || {};
       state.freestyleSelections = data.freestyleSelections || {};
       state.updatedAt = data.updatedAt || 0;
       state.timerDuration = data.timerDuration || 120;
       state.timerRemaining = state.timerDuration;
+      if (migrateWeights) {
+        state.updatedAt = Date.now();
+        saveState();
+      }
     }
   } catch(e) {}
 }
@@ -3184,20 +3212,20 @@ function migrateExtraAccessories(data) {
   return data;
 }
 
-function _ensureEntry(exName, groupIdx) {
+function _ensureEntry(exName, setIdx) {
   const key = accessoryDataKey(exName);
   if (!state.customWeights[key]) state.customWeights[key] = [];
-  const entry = state.customWeights[key][groupIdx];
+  const entry = state.customWeights[key][setIdx];
   if (!entry || typeof entry !== 'object') {
-    state.customWeights[key][groupIdx] = { w: null, r: null };
+    state.customWeights[key][setIdx] = { w: null, r: null };
   }
-  return state.customWeights[key][groupIdx];
+  return state.customWeights[key][setIdx];
 }
 
-function getCustomWeight(exName, groupIdx) {
+function getCustomWeight(exName, setIdx) {
   const arr = state.customWeights[accessoryDataKey(exName)];
   if (!arr) return null;
-  const entry = arr[groupIdx];
+  const entry = arr[setIdx];
   if (typeof entry === 'number') return entry; // legacy format
   if (entry && typeof entry === 'object') {
     const w = entry.w;
@@ -3213,10 +3241,23 @@ function getCustomReps(exName, setIdx) {
   return (typeof r === 'number' && !isNaN(r)) ? r : null;
 }
 
-function setCustomWeight(exName, groupIdx, weight) {
-  const entry = _ensureEntry(exName, groupIdx);
+function setCustomWeight(exName, setIdx, weight) {
+  const entry = _ensureEntry(exName, setIdx);
   entry.w = (weight === null || weight === '' || isNaN(weight)) ? null : Number(weight);
   saveState();
+}
+
+function getExerciseRating(exerciseId, cycle = state.cycle, week = state.week, day = state.day) {
+  return state.exerciseRatings[sessionOccurrenceKey(cycle, week, day)]?.[exerciseId] || '';
+}
+
+function setExerciseRating(exerciseId, rating) {
+  if (!['easy', 'right', 'hard'].includes(rating)) return;
+  const occurrence = sessionOccurrenceKey();
+  if (!state.exerciseRatings[occurrence]) state.exerciseRatings[occurrence] = {};
+  state.exerciseRatings[occurrence][exerciseId] = rating;
+  saveState();
+  render();
 }
 
 function setCustomReps(exName, setIdx, reps, persist = true) {
@@ -3265,22 +3306,28 @@ function migrateCustomWeights(cw) {
   return cw;
 }
 
-// Sync siblings: update all inputs matching the same exercise+group+type
-function _syncSiblings(selector, exName, groupIdx, raw, emptyClass) {
-  document.querySelectorAll(`${selector}[data-exname="${exName.replace(/"/g, '\\"')}"][data-group="${groupIdx}"]`).forEach(el => {
-    el.value = raw;
-    el.classList.toggle('empty', emptyClass);
+function migrateWeightsToIndependentSets() {
+  Object.keys(state.customWeights).forEach(key => {
+    const previous = state.customWeights[key];
+    if (!Array.isArray(previous) || previous.length === 0) return;
+    const normalized = previous.map(value => {
+      if (typeof value === 'number') return { w: value, r: null };
+      if (value && typeof value === 'object') return { ...value };
+      return { w: null, r: null };
+    });
+    const last = normalized[normalized.length - 1];
+    state.customWeights[key] = Array.from({ length: Math.max(8, normalized.length) }, (_, index) => ({ ...(normalized[index] || last) }));
   });
 }
 
 function onWeightInputChange(inputEl) {
   const exName = inputEl.dataset.exname;
-  const groupIdx = parseInt(inputEl.dataset.group, 10);
+  const setIdx = parseInt(inputEl.dataset.set, 10);
   const raw = inputEl.value.trim();
   const num = raw === '' ? null : parseFloat(raw);
   const wasComplete = getDayProgress(state.week, state.day).pct === 100;
-  setCustomWeight(exName, groupIdx, num);
-  _syncSiblings('input.weight-input', exName, groupIdx, raw, num === null);
+  setCustomWeight(exName, setIdx, num);
+  inputEl.classList.toggle('empty', num === null);
   afterSessionChange(state.week, state.day, wasComplete);
 }
 
@@ -3479,7 +3526,7 @@ function logSession(week, day) {
         const customR = getCustomReps(ex.name, si);
         reps = customR !== null ? customR : reps;
         desc = `${reps === "AMRAP" ? "AMRAP" : reps + "r"}`;
-        weight = getCustomWeight(ex.name, set.groupIndex);
+        weight = getCustomWeight(ex.name, si);
         if (weight !== null) desc += ` ${weight}kg`;
       } else {
         desc = `${set.r === "AMRAP" ? "AMRAP" : set.r + "r"}`;
@@ -3491,6 +3538,7 @@ function logSession(week, day) {
       id: ex.id || ACCESSORY_IDS[ex.name] || null,
       name: ex.name,
       source: ex.isFreestyle ? "freestyle" : ex.isExtra ? "added" : "programmed",
+      rating: getExerciseRating(ex.id || accessoryDataKey(ex.name), state.cycle, week, day),
       sets: details,
       done: exDone,
       total: sets.length
@@ -3722,6 +3770,7 @@ function renderHistory() {
         <div class="session-sets">${ex.sets.map(st =>
           `<span style="color:${st.done ? 'var(--green)' : 'var(--red)'}">&#${st.done ? '10003' : '10007'}; ${formatDesc(st.desc)}</span>`
         ).join(' &nbsp; ')}</div>
+        ${ex.rating ? `<span class="history-effort">Ressenti : ${{easy:'Très facile',right:'Adapté',hard:'Très difficile'}[ex.rating] || ex.rating}</span>` : ''}
       </div>`;
     });
 
