@@ -37,7 +37,8 @@ globalThis.testApi = {
   getDayProgress, setKey, saveState, loadState, buildLocalBackup,
   historyToCloudMap, cloudMapToHistory, mergeHistory, accountSessionKey, localDateKey,
   setCustomWeight, getCustomWeight, setExerciseRating, getExerciseRating,
-  logSession, loadHistory, WEIGHT_DATA_VERSION
+  logSession, loadHistory, WEIGHT_DATA_VERSION,
+  getRecentExerciseHistory, formatPreviousSets, renderRecentExerciseHistory
 };`, context);
 const api = context.testApi;
 
@@ -97,6 +98,22 @@ storage.set("muscu_program", JSON.stringify({
 api.loadState();
 assert.deepEqual([0, 1, 2].map(i => api.getCustomWeight("Bench Feet Up", i)), [42.5, 42.5, 42.5]);
 assert.equal(JSON.parse(storage.get("muscu_program")).weightDataVersion, api.WEIGHT_DATA_VERSION);
+
+api.state.cycle = 4;
+api.state.week = 0;
+api.state.day = 0;
+const benchExercise = upper1.exercises.find(ex => ex.id === "bench-feet-up");
+const exerciseHistory = { sessions: [
+  { date: "2026-07-01", cycle: 1, week: 0, day: 0, exercises: [{ id: benchExercise.id, rating: "easy", sets: [{ done: true, reps: 15, weight: 20 }] }] },
+  { date: "2026-07-08", cycle: 2, week: 0, day: 0, exercises: [{ id: benchExercise.id, rating: "right", sets: [{ done: true, reps: 10, weight: 25 }] }] },
+  { date: "2026-07-15", cycle: 3, week: 0, day: 0, exercises: [{ id: benchExercise.id, rating: "hard", sets: [{ done: true, reps: 11, weight: 30 }] }] },
+  { date: "2026-07-22", cycle: 4, week: 0, day: 0, exercises: [{ id: benchExercise.id, rating: "easy", sets: [{ done: true, reps: 12, weight: 32.5 }] }] }
+] };
+const recentBench = api.getRecentExerciseHistory(benchExercise, exerciseHistory);
+assert.equal(recentBench.length, 3);
+assert.deepEqual(Array.from(recentBench, item => item.exercise.rating), ["hard", "right", "easy"]);
+assert.equal(api.formatPreviousSets(recentBench[0].exercise.sets), "11×30 kg");
+assert.match(api.renderRecentExerciseHistory(benchExercise, exerciseHistory), /Très difficile/);
 
 storage.set("muscu_history", JSON.stringify({ sessions: [{ date: "2026-08-10" }], maxHistory: [] }));
 storage.set("muscu_program", JSON.stringify({ programVersion: 1, cycle: 9, completions: { old: true }, updatedAt: 1 }));

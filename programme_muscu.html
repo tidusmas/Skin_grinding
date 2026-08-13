@@ -952,11 +952,23 @@ button { touch-action: manipulation; }
 .effort-rating button.right.active { border-color:#b58a35; background:#3c2d13; color:#f0c66f; }
 .effort-rating button.hard.active { border-color:#bd5555; background:#421c1c; color:#ff9696; }
 .history-effort { display:inline-block; margin-top:7px; padding:3px 7px; border-radius:5px; background:var(--surface-2); color:var(--text-muted); font-size:11px; font-weight:800; }
+.recent-exercise-history { margin:8px 0 10px; padding:9px 10px; border:1px solid var(--border); border-radius:6px; background:rgba(255,255,255,.018); }
+.recent-exercise-title { margin-bottom:6px; color:var(--text-muted); font-size:10px; font-weight:800; text-transform:uppercase; }
+.recent-exercise-row { display:grid; grid-template-columns:76px minmax(0,1fr) auto; align-items:center; gap:8px; min-height:28px; border-top:1px solid rgba(255,255,255,.045); font-size:11px; }
+.recent-exercise-row:first-of-type { border-top:0; }
+.recent-exercise-date { color:var(--text-muted); }
+.recent-exercise-sets { min-width:0; color:var(--text); overflow-wrap:anywhere; }
+.recent-exercise-rating { padding:3px 6px; border-radius:4px; font-size:10px; font-weight:800; white-space:nowrap; }
+.recent-exercise-rating.easy { background:#163b27; color:#7ce7a3; }
+.recent-exercise-rating.right { background:#3c2d13; color:#f0c66f; }
+.recent-exercise-rating.hard { background:#421c1c; color:#ff9696; }
 @media (max-width:600px) {
   .weekly-nav { grid-template-columns:repeat(7,96px); }
   .exercise-card { padding:14px 12px; }
   .exercise-meta { padding-right:0; }
   .set-choice { margin-left:auto; }
+  .recent-exercise-row { grid-template-columns:62px minmax(0,1fr); padding:5px 0; }
+  .recent-exercise-rating { grid-column:2; justify-self:start; }
 }
 </style>
 </head>
@@ -2620,6 +2632,49 @@ function renderNav() {
   nav.innerHTML = html;
 }
 
+const RATING_LABELS = { easy: 'Très facile', right: 'Adapté', hard: 'Très difficile' };
+
+function getRecentExerciseHistory(exercise, history, limit = 3) {
+  const exerciseId = exercise.id || accessoryDataKey(exercise.name);
+  const results = [];
+  const sessions = (history?.sessions || []).slice().reverse();
+  for (const session of sessions) {
+    const isCurrentSession = session.cycle === state.cycle && session.week === state.week && session.day === state.day;
+    if (isCurrentSession) continue;
+    const match = (session.exercises || []).find(item =>
+      (item.id && normalizeAccessoryId(item.id) === normalizeAccessoryId(exerciseId)) ||
+      (!item.id && item.name === exercise.name)
+    );
+    if (!match) continue;
+    results.push({ session, exercise: match });
+    if (results.length >= limit) break;
+  }
+  return results;
+}
+
+function formatPreviousSets(sets) {
+  const completed = (sets || []).filter(set => set.done);
+  if (completed.length === 0) return 'Aucune série validée';
+  return completed.map(set => {
+    const reps = set.reps === 'AMRAP' ? 'AMRAP' : `${set.reps ?? '—'}`;
+    return set.weight !== null && set.weight !== undefined ? `${reps}×${set.weight} kg` : reps;
+  }).join(' · ');
+}
+
+function renderRecentExerciseHistory(exercise, history) {
+  const recent = getRecentExerciseHistory(exercise, history);
+  if (recent.length === 0) return '';
+  let html = '<div class="recent-exercise-history"><div class="recent-exercise-title">3 dernières séances</div>';
+  recent.forEach(item => {
+    const rating = item.exercise.rating || '';
+    html += `<div class="recent-exercise-row"><span class="recent-exercise-date">${formatHistoryDate(item.session.date)}</span>`;
+    html += `<span class="recent-exercise-sets">${formatPreviousSets(item.exercise.sets)}</span>`;
+    html += rating ? `<span class="recent-exercise-rating ${rating}">${RATING_LABELS[rating] || rating}</span>` : '<span></span>';
+    html += '</div>';
+  });
+  return html + '</div>';
+}
+
 function renderContent() {
   const content = document.getElementById('content');
   const dayData = PROGRAM[state.week].days[state.day];
@@ -2633,6 +2688,8 @@ function renderContent() {
       </div>`;
     return;
   }
+
+  const history = loadHistory();
 
   const prog = getDayProgress(state.week, state.day);
   let html = `
@@ -2684,6 +2741,10 @@ function renderContent() {
       const note = getCustomNote(ex.name);
       const exNameEsc = ex.name.replace(/"/g, '&quot;');
       html += `<div class="acc-note-row"><input type="text" class="acc-note-input${note ? '' : ' empty'}" placeholder="&#128221; Note (ex. r&eacute;glage si&egrave;ge, prise, cran&hellip;)" value="${escAttr(note)}" data-exname="${exNameEsc}" onclick="event.stopPropagation()" onchange="onNoteInputChange(this)"></div>`;
+    }
+
+    if (!ex.preFatigue) {
+      html += renderRecentExerciseHistory(ex, history);
     }
 
     sets.forEach((set, si) => {
