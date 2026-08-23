@@ -962,6 +962,11 @@ button { touch-action: manipulation; }
 .recent-exercise-rating.easy { background:#163b27; color:#7ce7a3; }
 .recent-exercise-rating.right { background:#3c2d13; color:#f0c66f; }
 .recent-exercise-rating.hard { background:#421c1c; color:#ff9696; }
+.week-complete-banner { display:flex; align-items:center; justify-content:space-between; gap:18px; margin:0 0 20px; padding:15px 16px; border:1px solid var(--green); border-radius:8px; background:#101b14; }
+.week-complete-banner div { display:grid; gap:3px; }
+.week-complete-banner strong { color:var(--green); font-size:15px; }
+.week-complete-banner span { color:var(--text-muted); font-size:12px; }
+.week-complete-banner button { min-height:40px; padding:8px 14px; border:1px solid var(--green); border-radius:6px; background:var(--green-dim); color:var(--green); font-weight:800; white-space:nowrap; }
 @media (max-width:600px) {
   .weekly-nav { grid-template-columns:repeat(7,96px); }
   .exercise-card { padding:14px 12px; }
@@ -969,6 +974,8 @@ button { touch-action: manipulation; }
   .set-choice { margin-left:auto; }
   .recent-exercise-row { grid-template-columns:62px minmax(0,1fr); padding:5px 0; }
   .recent-exercise-rating { grid-column:2; justify-self:start; }
+  .week-complete-banner { align-items:stretch; flex-direction:column; }
+  .week-complete-banner button { width:100%; }
 }
 </style>
 </head>
@@ -1298,6 +1305,7 @@ function applyCloudHistory(remoteHistory) {
   const merged = mergeHistory(loadHistory(), remoteHistory);
   localStorage.setItem("muscu_history", JSON.stringify(merged));
   if (currentPage === "history") renderHistory();
+  else render();
 }
 
 async function migrateLocalDataToAccount(user) {
@@ -2466,9 +2474,10 @@ function getDayProgress(week, day) {
 
 function isBlocComplete(blocIndex) {
   const bloc = PROGRAM[blocIndex];
+  const history = loadHistory();
   for (let di = 0; di < bloc.days.length; di++) {
     if (bloc.days[di].rest) continue;
-    if (getDayProgress(blocIndex, di).pct < 100) return false;
+    if (!isSessionValidated(blocIndex, di, state.cycle, history)) return false;
   }
   return true;
 }
@@ -2624,8 +2633,7 @@ function renderNav() {
   let html = '<div class="nav-section weekly-nav">';
   PROGRAM[state.week].days.forEach((d, di) => {
     const active = di === state.day ? 'active' : '';
-    const prog = getDayProgress(state.week, di);
-    const check = (!d.rest && prog.pct === 100) ? ' &#10003;' : '';
+    const check = (!d.rest && isSessionValidated(state.week, di)) ? ' &#10003;' : '';
     html += `<div class="nav-tab ${active}${d.rest ? ' rest' : ''}" onclick="selectDay(${di})">J${di + 1} · ${d.shortName}${check}</div>`;
   });
   html += '</div>';
@@ -2633,6 +2641,15 @@ function renderNav() {
 }
 
 const RATING_LABELS = { easy: 'Très facile', right: 'Adapté', hard: 'Très difficile' };
+
+function renderWeekAdvanceBanner() {
+  if (!isBlocComplete(0)) return '';
+  return `
+    <div class="week-complete-banner">
+      <div><strong>Semaine ${state.cycle} terminée</strong><span>Les quatre entraînements ont été validés.</span></div>
+      <button onclick="advanceCycle()">Commencer la semaine ${state.cycle + 1}</button>
+    </div>`;
+}
 
 function getRecentExerciseHistory(exercise, history, limit = 3) {
   const exerciseId = exercise.id || accessoryDataKey(exercise.name);
@@ -2685,7 +2702,7 @@ function renderContent() {
         <div class="icon">&#128564;</div>
         <h2>Repos</h2>
         <p>Récupère bien. Mange. Dors. Reviens plus fort.</p>
-      </div>`;
+      </div>${renderWeekAdvanceBanner()}`;
     return;
   }
 
@@ -2700,7 +2717,7 @@ function renderContent() {
         <div class="progress-bar"><div class="progress-fill" style="width:${prog.pct}%"></div></div>
         <span class="progress-text">${prog.done}/${prog.total}</span>
       </div>
-    </div>`;
+    </div>${renderWeekAdvanceBanner()}`;
 
   const sessionExercises = getSessionExercises(state.week, state.day);
   let currentSection = "";
@@ -2848,18 +2865,6 @@ function renderContent() {
       }
       html += `</div>`;
     }
-  }
-
-  // Cycle advancement banner
-  if (isBlocComplete(0)) {
-    html += `
-      <div style="text-align:center;margin-top:32px;padding:24px;background:var(--bg2);border:1px solid var(--green-dim);border-radius:var(--radius);">
-        <h3 style="color:var(--green);margin-bottom:8px;">Semaine ${state.cycle} terminée</h3>
-        <p style="color:var(--text2);margin-bottom:16px;">Les quatre entraînements sont complétés.</p>
-        <button onclick="advanceCycle()" style="padding:10px 24px;background:var(--green-dim);border:1px solid var(--green);color:var(--green);border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;">
-          Commencer la semaine ${state.cycle + 1}
-        </button>
-      </div>`;
   }
 
   content.innerHTML = html;
@@ -3452,23 +3457,24 @@ function mergeHistory(a, b) {
 // History is written ONLY when the user validates the whole session,
 // never on individual set/reps/weight changes.
 // ============================================================
-function isSessionLogged(week, day) {
-  const history = loadHistory();
-  const today = localDateKey();
+function isSessionValidated(week, day, cycle = state.cycle, history = loadHistory()) {
   return history.sessions.some(s =>
-    s.date === today && s.week === week && s.day === day && s.cycle === state.cycle);
+    s.week === week && s.day === day && (s.cycle || 1) === cycle);
+}
+
+function isSessionLogged(week, day) {
+  return isSessionValidated(week, day);
 }
 
 function removeSessionLog(week, day) {
   const history = loadHistory();
-  const today = localDateKey();
-  const idx = history.sessions.findIndex(s =>
-    s.date === today && s.week === week && s.day === day && s.cycle === state.cycle);
-  if (idx >= 0) {
-    const removed = history.sessions[idx];
-    history.sessions.splice(idx, 1);
+  const removed = history.sessions.filter(s =>
+    s.week === week && s.day === day && (s.cycle || 1) === state.cycle);
+  if (removed.length) {
+    history.sessions = history.sessions.filter(s =>
+      !(s.week === week && s.day === day && (s.cycle || 1) === state.cycle));
     saveHistory(history);
-    deleteAccountSession(removed);
+    removed.forEach(deleteAccountSession);
     if (currentPage === 'history') renderHistory();
   }
 }
@@ -3575,11 +3581,12 @@ function logSession(week, day) {
 
   // Check if session for today+week+day already exists, update it
   const existingIdx = history.sessions.findIndex(s =>
-    s.date === today && s.week === week && s.day === day && s.cycle === state.cycle
+    s.week === week && s.day === day && (s.cycle || 1) === state.cycle
   );
+  const sessionDate = existingIdx >= 0 ? history.sessions[existingIdx].date : today;
 
   const session = {
-    date: today,
+    date: sessionDate,
     cycle: state.cycle,
     week,
     day,

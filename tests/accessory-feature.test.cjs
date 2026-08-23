@@ -38,7 +38,8 @@ globalThis.testApi = {
   historyToCloudMap, cloudMapToHistory, mergeHistory, accountSessionKey, localDateKey,
   setCustomWeight, getCustomWeight, setExerciseRating, getExerciseRating,
   logSession, loadHistory, WEIGHT_DATA_VERSION,
-  getRecentExerciseHistory, formatPreviousSets, renderRecentExerciseHistory
+  getRecentExerciseHistory, formatPreviousSets, renderRecentExerciseHistory,
+  isSessionValidated, isSessionLogged, isBlocComplete, advanceCycle, renderWeekAdvanceBanner
 };`, context);
 const api = context.testApi;
 
@@ -114,6 +115,26 @@ assert.equal(recentBench.length, 3);
 assert.deepEqual(Array.from(recentBench, item => item.exercise.rating), ["hard", "right", "easy"]);
 assert.equal(api.formatPreviousSets(recentBench[0].exercise.sets), "11×30 kg");
 assert.match(api.renderRecentExerciseHistory(benchExercise, exerciseHistory), /Très difficile/);
+
+api.state.cycle = 5;
+api.state.week = 0;
+api.state.day = 4;
+api.state.completions = {}; // A validated partial session must still count.
+const validatedDays = [0, 1, 3, 4];
+storage.set("muscu_history", JSON.stringify({
+  sessions: validatedDays.map((day, index) => ({
+    date: `2026-08-${10 + index}`, cycle: 5, week: 0, day,
+    setsDone: 1, setsTotal: 20, exercises: []
+  })),
+  maxHistory: []
+}));
+assert.equal(api.isSessionValidated(0, 0), true);
+assert.equal(api.isSessionLogged(0, 0), true);
+assert.equal(api.isBlocComplete(0), true);
+assert.match(api.renderWeekAdvanceBanner(), /Commencer la semaine 6/);
+api.advanceCycle();
+assert.equal(api.state.cycle, 6);
+assert.equal(api.isBlocComplete(0), false);
 
 storage.set("muscu_history", JSON.stringify({ sessions: [{ date: "2026-08-10" }], maxHistory: [] }));
 storage.set("muscu_program", JSON.stringify({ programVersion: 1, cycle: 9, completions: { old: true }, updatedAt: 1 }));
