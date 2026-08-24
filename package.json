@@ -1,0 +1,11 @@
+{
+  "name": "skin-grinding",
+  "private": true,
+  "version": "2.1.0",
+  "scripts": {
+    "test": "node tests/accessory-feature.test.cjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0f1117">
@@ -42,6 +42,7 @@ body {
 }
 button, input, select { font: inherit; }
 button { touch-action: manipulation; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
 /* HEADER */
 .header {
@@ -58,6 +59,11 @@ button { touch-action: manipulation; }
 .header h1 { font-size: 20px; font-weight: 700; }
 .header h1 span { color: var(--green); }
 .header-right { display: flex; align-items: center; gap: 12px; }
+.sync-status { display:inline-flex; align-items:center; gap:6px; color:var(--text2); font-size:11px; white-space:nowrap; }
+.sync-status::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--text2); }
+.sync-status.saved::before { background:var(--green); }
+.sync-status.saving::before { background:var(--orange); }
+.sync-status.offline::before, .sync-status.error::before { background:var(--red); }
 .btn-icon {
   background: none;
   border: 1px solid var(--border);
@@ -74,21 +80,6 @@ button { touch-action: manipulation; }
 }
 .btn-icon:hover { background: var(--bg3); color: var(--text); border-color: var(--text2); }
 
-/* MAXES DISPLAY */
-.maxes-bar {
-  background: var(--bg3);
-  border-bottom: 1px solid var(--border);
-  padding: 8px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  font-size: 13px;
-}
-.max-item { display: flex; align-items: center; gap: 6px; }
-.max-label { color: var(--text2); }
-.max-value { color: var(--blue); font-weight: 700; }
-
 /* NAV */
 .nav {
   background: var(--bg2);
@@ -104,6 +95,9 @@ button { touch-action: manipulation; }
 }
 .nav-section:first-child { border-right: 1px solid var(--border); margin-right: 8px; padding-right: 8px; }
 .nav-tab {
+  appearance: none;
+  background: transparent;
+  border: 0;
   padding: 12px 16px;
   cursor: pointer;
   color: var(--text2);
@@ -171,6 +165,8 @@ button { touch-action: manipulation; }
   transition: border-color .15s;
 }
 .exercise-card.completed { border-color: var(--green-dim); }
+.exercise-card.skipped { border-color:#765c34; }
+.exercise-card.skipped .sets-container { opacity:.48; }
 .exercise-header {
   display: flex;
   align-items: center;
@@ -193,6 +189,9 @@ button { touch-action: manipulation; }
   flex-shrink: 0;
 }
 .exercise-name { font-weight: 600; font-size: 16px; flex: 1; }
+.exercise-instructions { margin-top:5px; color:var(--text2); font-size:12px; line-height:1.35; }
+.skip-select { min-height:34px; max-width:132px; padding:5px 24px 5px 7px; border:1px solid var(--border); border-radius:6px; background:var(--bg3); color:var(--text2); font-size:11px; }
+.skip-select.active { border-color:var(--orange); color:var(--orange); }
 .exercise-check {
   color: var(--text2);
   font-size: 18px;
@@ -223,6 +222,7 @@ button { touch-action: manipulation; }
   transition: all .15s;
   color: transparent;
   font-size: 14px;
+  background: transparent;
 }
 .set-checkbox:hover { border-color: var(--green); }
 .set-checkbox.checked {
@@ -246,6 +246,7 @@ button { touch-action: manipulation; }
 }
 .acc-input {
   width: 48px;
+  min-height: 34px;
   padding: 4px 5px;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -520,14 +521,6 @@ button { touch-action: manipulation; }
 }
 .settings-actions-main button { min-width: 0; }
 .settings-actions-footer { display: flex; justify-content: flex-end; gap: 8px; }
-.max-settings-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 4px;
-}
-.max-settings-grid small { display: block; margin-top: 5px; color: var(--text2); }
-
 /* SCROLLBAR */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
@@ -564,63 +557,6 @@ button { touch-action: manipulation; }
 .history-container { max-width: 900px; margin: 0 auto; padding: 24px; padding-bottom: 180px; }
 .history-container h2 { font-size: 22px; margin-bottom: 20px; }
 
-.history-filters {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-.history-filters select, .history-filters input {
-  padding: 6px 12px;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text);
-  font-size: 13px;
-}
-
-.maxes-history {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  margin-bottom: 24px;
-}
-.maxes-history h3 { font-size: 15px; margin-bottom: 12px; color: var(--text2); }
-.maxes-chart {
-  display: flex;
-  gap: 24px;
-}
-.max-chart-item { flex: 1; }
-.max-chart-label { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
-.max-chart-value { font-size: 22px; font-weight: 700; color: var(--blue); }
-.max-chart-delta { font-size: 12px; margin-left: 6px; }
-.max-chart-delta.up { color: var(--green); }
-.max-chart-delta.down { color: var(--red); }
-.max-chart-delta.same { color: var(--text2); }
-
-.max-timeline {
-  margin-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.max-timeline-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 13px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border);
-}
-.max-timeline-row:last-child { border-bottom: none; }
-.max-timeline-date { color: var(--text2); min-width: 90px; }
-.max-timeline-values { display: flex; gap: 16px; }
-.max-timeline-val { font-weight: 600; }
-.max-timeline-val.squat { color: var(--green); }
-.max-timeline-val.bench { color: var(--blue); }
-.max-timeline-val.dl { color: var(--orange); }
-
 .session-log {
   background: var(--bg2);
   border: 1px solid var(--border);
@@ -629,6 +565,11 @@ button { touch-action: manipulation; }
   overflow: hidden;
 }
 .session-header {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
   display: flex;
   align-items: center;
   padding: 12px 16px;
@@ -656,6 +597,9 @@ button { touch-action: manipulation; }
 .session-exercise { margin-bottom: 8px; }
 .session-exercise-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
 .session-sets { font-size: 12px; color: var(--text2); }
+.history-set-done { color:var(--green); }
+.history-set-missed { color:var(--text2); opacity:.7; }
+.history-note { margin-top:6px; color:var(--text2); font-size:12px; font-style:italic; }
 .session-date {
   min-width: 78px;
   color: var(--text);
@@ -669,69 +613,16 @@ button { touch-action: manipulation; }
   color: var(--text2);
 }
 .empty-history .icon { font-size: 48px; margin-bottom: 12px; }
-
-/* Graph bars */
-.graph-container {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  margin-bottom: 24px;
-}
-.graph-container h3 { font-size: 15px; margin-bottom: 16px; color: var(--text2); }
-.graph-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  height: 120px;
-  padding-top: 8px;
-}
-.graph-bar-group {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  height: 100%;
-  justify-content: flex-end;
-}
-.graph-bar {
-  width: 100%;
-  max-width: 30px;
-  border-radius: 3px 3px 0 0;
-  min-height: 2px;
-  transition: height .3s;
-}
-.graph-bar.squat { background: var(--green); }
-.graph-bar.bench { background: var(--blue); }
-.graph-bar.dl { background: var(--orange); }
-.graph-bar-label {
-  font-size: 10px;
-  color: var(--text2);
-  margin-top: 4px;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 50px;
-}
-.graph-legend {
-  display: flex;
-  gap: 16px;
-  margin-top: 12px;
-  justify-content: center;
-}
-.graph-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--text2);
-}
-.legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-}
+.empty-history.compact { padding:28px 16px; }
+.history-title-row p { margin-top:-14px; margin-bottom:18px; color:var(--text2); font-size:13px; }
+.history-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-bottom:14px; }
+.history-summary > div { display:grid; gap:3px; padding:12px; border:1px solid var(--border); border-radius:8px; background:var(--bg2); }
+.history-summary strong { font-size:21px; }
+.history-summary span { color:var(--text2); font-size:11px; }
+.history-toolbar { margin-bottom:16px; }
+.history-toolbar input { width:100%; min-height:42px; padding:9px 12px; border:1px solid var(--border); border-radius:7px; background:var(--bg2); color:var(--text); }
+.history-more { width:100%; min-height:44px; margin-top:4px; border:1px solid var(--border); border-radius:7px; background:var(--bg2); color:var(--blue); font-weight:700; }
+.history-archive-note { margin-top:18px; color:var(--text2); font-size:11px; text-align:center; }
 
 /* POLISHED APP SHELL */
 .header {
@@ -752,7 +643,6 @@ button { touch-action: manipulation; }
 .brand-cycle { color: var(--text2); font-size: 12px; font-weight: 600; }
 .brand-cycle strong { color: var(--green); }
 .btn-icon { border-radius: 6px; }
-.maxes-bar { background: #101314; padding-block: 9px; }
 .nav { scrollbar-width: none; }
 .nav::-webkit-scrollbar { display: none; }
 .nav-tab { min-height: 44px; padding-bottom: 10px; }
@@ -817,7 +707,7 @@ button { touch-action: manipulation; }
   color: var(--text);
   box-shadow: inset 0 -2px var(--green);
 }
-.session-log, .maxes-history, .graph-container { border-radius: 8px; }
+.session-log { border-radius: 8px; }
 
 @media (max-width: 600px) {
   .header {
@@ -839,17 +729,12 @@ button { touch-action: manipulation; }
   .timer-bar { padding-inline: 12px; flex-wrap: nowrap; }
   .timer-copy { margin-right: auto; }
   .timer-btn { min-width: 72px; }
-  .maxes-bar { gap: 16px; padding-inline: 12px; font-size: 12px; flex-wrap: nowrap; }
-  .max-item { min-width: 0; }
-  .max-label { font-size: 11px; }
-  .max-chart-value { font-size: 18px; }
-  .maxes-chart { gap: 12px; }
   .session-header { align-items: flex-start; }
   .session-label { line-height: 1.35; }
   .session-badge { flex-shrink: 0; }
-  .max-timeline-row { align-items: flex-start; }
-  .max-timeline-values { gap: 7px; flex-wrap: wrap; }
   .settings-actions-main { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .history-summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .history-toolbar input { min-height:44px; }
 }
 
 /* LOGIN SCREEN */
@@ -912,12 +797,15 @@ button { touch-action: manipulation; }
 .login-box button.account-login-btn { margin-top: 10px; }
 .login-box button.welcome-forgot {
   width: auto;
+  min-height: 44px;
   margin-top: 12px;
   padding: 4px;
   border: 0;
   background: transparent;
   color: var(--blue);
   font-size: 13px;
+  display: inline-flex;
+  align-items: center;
 }
 .login-box button.welcome-forgot:hover { background: transparent; color: var(--text); }
 .login-error {
@@ -927,11 +815,12 @@ button { touch-action: manipulation; }
   min-height: 18px;
 }
 .login-error.success { color: var(--green); }
-.weekly-nav { display:grid; grid-template-columns:repeat(7,minmax(88px,1fr)); overflow-x:auto; scrollbar-width:none; }
+.weekly-nav { display:grid; grid-template-columns:repeat(7,minmax(88px,1fr)); width:100%; overflow-x:auto; scrollbar-width:none; }
+.nav-section.weekly-nav { border-right:0; margin-right:0; padding-right:0; }
 .weekly-nav .nav-tab { min-width:88px; white-space:nowrap; }
 .workout-section-title { display:flex; align-items:center; gap:10px; margin:22px 0 10px; color:var(--text-muted); font-size:12px; font-weight:800; text-transform:uppercase; }
 .workout-section-title::after { content:""; height:1px; flex:1; background:var(--border); }
-.exercise-title { display:flex; align-items:center; gap:10px; min-width:0; }
+.exercise-title { display:grid; gap:3px; min-width:0; flex:1; }
 .exercise-title h3 { min-width:0; overflow-wrap:anywhere; }
 .exercise-meta { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:7px; }
 .exercise-meta span { padding:3px 7px; border:1px solid var(--border); border-radius:5px; color:var(--text-muted); font-size:11px; font-weight:700; }
@@ -952,6 +841,7 @@ button { touch-action: manipulation; }
 .effort-rating button.right.active { border-color:#b58a35; background:#3c2d13; color:#f0c66f; }
 .effort-rating button.hard.active { border-color:#bd5555; background:#421c1c; color:#ff9696; }
 .history-effort { display:inline-block; margin-top:7px; padding:3px 7px; border-radius:5px; background:var(--surface-2); color:var(--text-muted); font-size:11px; font-weight:800; }
+.history-skip { display:inline-block; margin-top:7px; padding:3px 7px; border-radius:5px; background:#3c2d13; color:#f0c66f; font-size:11px; font-weight:800; }
 .recent-exercise-history { margin:8px 0 10px; padding:9px 10px; border:1px solid var(--border); border-radius:6px; background:rgba(255,255,255,.018); }
 .recent-exercise-title { margin-bottom:6px; color:var(--text-muted); font-size:10px; font-weight:800; text-transform:uppercase; }
 .recent-exercise-row { display:grid; grid-template-columns:76px minmax(0,1fr) auto; align-items:center; gap:8px; min-height:28px; border-top:1px solid rgba(255,255,255,.045); font-size:11px; }
@@ -967,23 +857,42 @@ button { touch-action: manipulation; }
 .week-complete-banner strong { color:var(--green); font-size:15px; }
 .week-complete-banner span { color:var(--text-muted); font-size:12px; }
 .week-complete-banner button { min-height:40px; padding:8px 14px; border:1px solid var(--green); border-radius:6px; background:var(--green-dim); color:var(--green); font-weight:800; white-space:nowrap; }
+.update-banner { position:fixed; left:50%; bottom:calc(92px + var(--safe-bottom)); z-index:190; transform:translateX(-50%); display:none; align-items:center; gap:12px; width:min(420px,calc(100vw - 24px)); padding:11px 12px; border:1px solid var(--blue); border-radius:8px; background:var(--surface-raised); box-shadow:0 10px 35px rgba(0,0,0,.45); }
+.update-banner.show { display:flex; }
+.update-banner span { flex:1; font-size:13px; }
+.update-banner button { min-height:38px; padding:7px 12px; border:1px solid var(--blue); border-radius:6px; background:transparent; color:var(--blue); font-weight:700; }
+.settings-version { color:var(--text2); font-size:11px; text-align:center; }
 @media (max-width:600px) {
   .weekly-nav { grid-template-columns:repeat(7,96px); }
-  .exercise-card { padding:14px 12px; }
+  .exercise-card { padding:0; }
+  .exercise-header { align-items:flex-start; }
   .exercise-meta { padding-right:0; }
+  .exercise-instructions { max-width:100%; }
+  .exercise-check { display:none; }
+  .acc-note-input { min-height:44px; }
   .set-choice { margin-left:auto; }
   .recent-exercise-row { grid-template-columns:62px minmax(0,1fr); padding:5px 0; }
   .recent-exercise-rating { grid-column:2; justify-self:start; }
   .week-complete-banner { align-items:stretch; flex-direction:column; }
   .week-complete-banner button { width:100%; }
+  .sync-status { width:9px; overflow:hidden; color:transparent; gap:0; }
+  .sync-status::before { flex:none; }
+  .btn-icon, .page-toggle button, .timer-btn { min-height:44px; }
+  .btn-icon { width:44px; height:44px; }
+  .modal-actions button { min-height:44px; }
+  .btn-devalider { min-height:44px; }
+  .set-checkbox, .remove-extra-btn, .set-choice button, .freestyle-controls button { min-width:44px; min-height:44px; }
+  .acc-input { min-height:44px; }
+  .skip-select { min-height:44px; max-width:118px; }
+  .effort-rating button { min-height:44px; }
 }
 </style>
 </head>
 <body>
 
-<div class="login-overlay" id="loginOverlay">
+<div class="login-overlay" id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
   <div class="login-box">
-    <h2><span>&#9679;</span> Skin Grinding</h2>
+    <h2 id="loginTitle"><span>&#9679;</span> Skin Grinding</h2>
     <p>Connecte-toi à ton compte</p>
     <input type="email" id="welcomeEmail" placeholder="Adresse e-mail" autocomplete="email">
     <input type="password" id="welcomePassword" placeholder="Mot de passe" autocomplete="current-password">
@@ -1003,19 +912,14 @@ button { touch-action: manipulation; }
     </div>
   </div>
   <div class="header-right">
+    <span class="sync-status offline" id="syncStatus" role="status">Connexion…</span>
     <div class="page-toggle">
-      <button class="active" id="btnProgram" onclick="showPage('program')">Programme</button>
-      <button id="btnHistory" onclick="showPage('history')">Historique</button>
+      <button class="active" id="btnProgram" aria-pressed="true" onclick="showPage('program')">Programme</button>
+      <button id="btnHistory" aria-pressed="false" onclick="showPage('history')">Historique</button>
     </div>
     <button class="btn-icon" onclick="openSettings()" title="Paramètres" aria-label="Paramètres">&#9881;</button>
     <button class="btn-icon" id="resetDayBtn" onclick="resetDay()" title="Réinitialiser la séance" aria-label="Réinitialiser la séance">&#8635;</button>
   </div>
-</div>
-
-<div class="maxes-bar" id="maxesBar" style="display:none">
-  <div class="max-item"><span class="max-label">Squat</span><span class="max-value" id="dispSquat">110 kg</span></div>
-  <div class="max-item"><span class="max-label">Bench</span><span class="max-value" id="dispBench">97 kg</span></div>
-  <div class="max-item"><span class="max-label">Deadlift</span><span class="max-value" id="dispDeadlift">120 kg</span></div>
 </div>
 
 <div class="nav" id="nav"></div>
@@ -1033,17 +937,26 @@ button { touch-action: manipulation; }
   <button class="timer-btn" onclick="resetTimer()">Reset</button>
 </div>
 
-<div class="modal-overlay" id="settingsModal">
+<div class="update-banner" id="updateBanner" role="status">
+  <span>Une nouvelle version est prête.</span>
+  <button onclick="activateAppUpdate()">Actualiser</button>
+</div>
+
+<div class="modal-overlay" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
   <div class="modal">
-    <h3>Paramètres</h3>
+    <h3 id="settingsTitle">Paramètres</h3>
     <div class="modal-actions settings-actions">
       <div class="settings-actions-main">
         <button onclick="openAccountModal()">Compte</button>
         <button onclick="exportLocalData()">Exporter données</button>
+        <button onclick="requestImportData()">Importer données</button>
+        <button onclick="restoreRecoverySnapshot()">Annuler dernier reset</button>
         <button class="danger" onclick="resetAllProgress()">Reset prog.</button>
         <button class="danger" onclick="resetHistory()">Reset histo.</button>
         <button class="danger" onclick="logout()">Déconnexion</button>
       </div>
+      <input id="importDataInput" type="file" accept="application/json,.json" hidden onchange="importLocalData(this)">
+      <div class="settings-version" id="settingsVersion"></div>
       <div class="settings-actions-footer">
         <button class="save" onclick="closeSettings()">Fermer</button>
       </div>
@@ -1051,7 +964,7 @@ button { touch-action: manipulation; }
   </div>
 </div>
 
-<div class="modal-overlay" id="validateModal">
+<div class="modal-overlay" id="validateModal" role="dialog" aria-modal="true" aria-labelledby="validateModalTitle">
   <div class="modal">
     <h3 id="validateModalTitle">Valider la séance</h3>
     <p id="validateModalText" style="color:var(--text2);margin-bottom:4px"></p>
@@ -1062,7 +975,7 @@ button { touch-action: manipulation; }
   </div>
 </div>
 
-<div class="modal-overlay" id="accessoryPickerModal">
+<div class="modal-overlay" id="accessoryPickerModal" role="dialog" aria-modal="true" aria-labelledby="accessoryPickerTitle">
   <div class="modal">
     <h3 id="accessoryPickerTitle">Ajouter un accessoire</h3>
     <p id="accessoryPickerSubtitle" style="color:var(--text2);font-size:13px">Ajouté uniquement à cette séance.</p>
@@ -1073,9 +986,9 @@ button { touch-action: manipulation; }
   </div>
 </div>
 
-<div class="modal-overlay" id="accountModal">
+<div class="modal-overlay" id="accountModal" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
   <div class="modal">
-    <h3>Compte personnel</h3>
+    <h3 id="accountModalTitle">Compte personnel</h3>
     <div class="account-status" id="accountStatus"></div>
     <div class="account-fields" id="accountChangeFields" style="display:none">
       <label>Mot de passe actuel
@@ -1114,15 +1027,85 @@ const FIREBASE_CONFIG = {
   appId: "1:94530619554:web:4d54f18fa30a1f7f442ffb"
 };
 
+const APP_VERSION = "2.1.0";
+const PROGRAM_ID = "upper-lower-2026-v1";
+const INITIAL_RUN_ID = "initial-run";
+const STORAGE_PROGRAM = "muscu_program";
+const STORAGE_HISTORY = "muscu_history";
+const STORAGE_RECOVERY = "muscu_recovery";
+const STORAGE_TIMER = "muscu_timer";
+const STORAGE_LEGACY_OWNER = "muscu_legacy_owner_uid";
+let activeStorageUid = null;
+
+function storageKey(base, uid = activeStorageUid) {
+  return uid ? `${base}:${uid}` : base;
+}
+
+function activateAccountStorage(uid, options = {}) {
+  activeStorageUid = uid || null;
+  if (!uid) return;
+  if (options.claimLegacy === false) return;
+
+  const owner = localStorage.getItem(STORAGE_LEGACY_OWNER);
+  const mayClaimLegacyData = !owner || owner === uid;
+  if (mayClaimLegacyData) {
+    [STORAGE_PROGRAM, STORAGE_HISTORY].forEach(base => {
+      const scopedKey = storageKey(base, uid);
+      const legacyValue = localStorage.getItem(base);
+      if (localStorage.getItem(scopedKey) === null && legacyValue !== null) {
+        localStorage.setItem(scopedKey, legacyValue);
+      }
+    });
+    if (!owner) localStorage.setItem(STORAGE_LEGACY_OWNER, uid);
+  }
+}
+
+function createRunId() {
+  if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+  return `run-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 let accountAuth = null;
 let accountDatabase = null;
 let accountUser = null;
 let accountApplyingRemote = false;
 let accountProgramTimer = null;
 let accountListeners = [];
+let accountRemoteSessions = {};
+let accountRemoteMaxHistory = {};
+let accountRemoteTombstones = {};
+let accountHistoryClearedAt = 0;
+let accountHistoryApplyTimer = null;
+
+function setSyncStatus(status, label) {
+  const el = document.getElementById("syncStatus");
+  if (!el) return;
+  const text = label || ({ saved: "Synchronisé", saving: "Synchronisation…", offline: "Hors ligne", error: "Erreur de synchro" }[status] || "");
+  el.className = `sync-status ${status || ""}`;
+  el.textContent = text;
+  el.title = text;
+}
+
+function prepareProgramForCloud(data) {
+  if (!data) return data;
+  const cloud = { ...data };
+  delete cloud.day;
+  delete cloud.week;
+  delete cloud.timerDuration;
+  delete cloud.timerRemaining;
+  delete cloud.timerRunning;
+  return cloud;
+}
 
 function accountSessionKey(session) {
-  return `${session.date}_c${session.cycle || 1}_w${session.week}_s${session.day}`;
+  const clean = value => String(value ?? "legacy").replace(/[.#$\[\]\/]/g, "-");
+  return [
+    clean(effectiveSessionProgramId(session)),
+    clean(effectiveSessionRunId(session)),
+    `c${session.cycle || 1}`,
+    `w${session.week ?? 0}`,
+    `d${session.day ?? 0}`
+  ].join("_");
 }
 
 function historyToCloudMap(history) {
@@ -1146,7 +1129,7 @@ function cloudMapToHistory(data) {
 
 function getLocalProgramData() {
   try {
-    return JSON.parse(localStorage.getItem("muscu_program")) || null;
+    return JSON.parse(localStorage.getItem(storageKey(STORAGE_PROGRAM))) || null;
   } catch(e) {
     return null;
   }
@@ -1293,23 +1276,46 @@ async function changeAccountPassword() {
 function applyCloudProgram(program) {
   if (!program || typeof program !== "object") return;
   const requiresMigration = program.programVersion !== PROGRAM_VERSION || program.weightDataVersion !== WEIGHT_DATA_VERSION;
+  const local = getLocalProgramData();
+  const mergedProgram = {
+    ...program,
+    week: local?.week ?? state.week,
+    day: local?.day ?? state.day,
+    timerDuration: local?.timerDuration ?? state.timerDuration
+  };
   accountApplyingRemote = true;
-  localStorage.setItem("muscu_program", JSON.stringify(program));
+  localStorage.setItem(storageKey(STORAGE_PROGRAM), JSON.stringify(mergedProgram));
   loadState();
   accountApplyingRemote = false;
   if (requiresMigration) scheduleAccountProgramSync(getLocalProgramData());
   render();
 }
 
-function applyCloudHistory(remoteHistory) {
+function applyCloudHistory(remoteHistory, tombstones = accountRemoteTombstones, clearedAt = accountHistoryClearedAt) {
   const merged = mergeHistory(loadHistory(), remoteHistory);
-  localStorage.setItem("muscu_history", JSON.stringify(merged));
+  merged.sessions = merged.sessions.filter(session => {
+    const updatedAt = session.updatedAt || 0;
+    if (clearedAt && updatedAt <= clearedAt) return false;
+    const deletedAt = tombstones[accountSessionKey(session)] || 0;
+    return !deletedAt || deletedAt < updatedAt;
+  });
+  localStorage.setItem(storageKey(STORAGE_HISTORY), JSON.stringify(merged));
   if (currentPage === "history") renderHistory();
   else render();
 }
 
+function scheduleRemoteHistoryApply() {
+  clearTimeout(accountHistoryApplyTimer);
+  accountHistoryApplyTimer = setTimeout(() => {
+    applyCloudHistory({
+      sessions: Object.values(accountRemoteSessions),
+      maxHistory: Object.values(accountRemoteMaxHistory)
+    });
+  }, 60);
+}
+
 async function migrateLocalDataToAccount(user) {
-  const localProgram = getLocalProgramData() || {};
+  const localProgram = getLocalProgramData() || serializeState();
   const localHistory = loadHistory();
   const cloudHistory = historyToCloudMap(localHistory);
   const accountRef = accountDatabase.ref(`accounts/${user.uid}`);
@@ -1318,11 +1324,11 @@ async function migrateLocalDataToAccount(user) {
       email: user.email,
       createdAt: firebase.database.ServerValue.TIMESTAMP
     },
-    program: { ...localProgram, updatedAt: Date.now() },
+    program: prepareProgramForCloud({ ...localProgram, updatedAt: Date.now() }),
     sessions: cloudHistory.sessions,
     maxHistory: cloudHistory.maxHistory,
     meta: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       migratedAt: firebase.database.ServerValue.TIMESTAMP
     }
   });
@@ -1333,7 +1339,7 @@ async function initializeAccountData(user) {
   const snapshot = await accountRef.once("value");
   const cloud = snapshot.val();
 
-  if (!cloud?.meta?.migratedAt) {
+  if (!cloud) {
     await migrateLocalDataToAccount(user);
   } else {
     const localProgram = getLocalProgramData();
@@ -1341,11 +1347,26 @@ async function initializeAccountData(user) {
     if (remoteProgram && (!localProgram || (remoteProgram.updatedAt || 0) > (localProgram.updatedAt || 0))) {
       applyCloudProgram(remoteProgram);
     } else if (localProgram) {
-      await accountRef.child("program").set(localProgram);
+      await accountRef.child("program").set(prepareProgramForCloud(localProgram));
     }
+    accountRemoteTombstones = cloud.sessionTombstones || {};
+    accountHistoryClearedAt = cloud.meta?.historyClearedAt || 0;
     const mergedHistory = mergeHistory(loadHistory(), cloudMapToHistory(cloud));
-    localStorage.setItem("muscu_history", JSON.stringify(mergedHistory));
-    await syncAccountHistory(mergedHistory);
+    mergedHistory.sessions = mergedHistory.sessions.filter(session => {
+      const updatedAt = session.updatedAt || 0;
+      if (accountHistoryClearedAt && updatedAt <= accountHistoryClearedAt) return false;
+      const deletedAt = accountRemoteTombstones[accountSessionKey(session)] || 0;
+      return !deletedAt || deletedAt < updatedAt;
+    });
+    localStorage.setItem(storageKey(STORAGE_HISTORY), JSON.stringify(mergedHistory));
+    await replaceAccountHistory(mergedHistory);
+    if (!cloud.meta?.migratedAt) {
+      await accountRef.update({
+        "profile/email": user.email,
+        "meta/schemaVersion": 2,
+        "meta/migratedAt": firebase.database.ServerValue.TIMESTAMP
+      });
+    }
   }
 
   accountListeners.forEach(ref => ref.off());
@@ -1361,24 +1382,57 @@ async function initializeAccountData(user) {
   });
   accountListeners.push(programRef);
 
-  const historyRef = accountRef;
-  historyRef.on("value", snap => {
-    const data = snap.val();
-    if (data) applyCloudHistory(cloudMapToHistory(data));
+  const sessionsRef = accountRef.child("sessions");
+  sessionsRef.on("child_added", snap => {
+    accountRemoteSessions[snap.key] = snap.val();
+    scheduleRemoteHistoryApply();
   });
-  accountListeners.push(historyRef);
+  sessionsRef.on("child_changed", snap => {
+    accountRemoteSessions[snap.key] = snap.val();
+    scheduleRemoteHistoryApply();
+  });
+  sessionsRef.on("child_removed", snap => {
+    delete accountRemoteSessions[snap.key];
+    scheduleRemoteHistoryApply();
+  });
+  accountListeners.push(sessionsRef);
+
+  const maxHistoryRef = accountRef.child("maxHistory");
+  maxHistoryRef.on("value", snap => {
+    accountRemoteMaxHistory = snap.val() || {};
+    applyCloudHistory({ sessions: Object.values(accountRemoteSessions), maxHistory: Object.values(accountRemoteMaxHistory) });
+  });
+  accountListeners.push(maxHistoryRef);
+
+  const tombstonesRef = accountRef.child("sessionTombstones");
+  tombstonesRef.on("value", snap => {
+    accountRemoteTombstones = snap.val() || {};
+    applyCloudHistory({ sessions: Object.values(accountRemoteSessions), maxHistory: Object.values(accountRemoteMaxHistory) });
+  });
+  accountListeners.push(tombstonesRef);
+
+  const clearedAtRef = accountRef.child("meta/historyClearedAt");
+  clearedAtRef.on("value", snap => {
+    accountHistoryClearedAt = snap.val() || 0;
+    applyCloudHistory({ sessions: Object.values(accountRemoteSessions), maxHistory: Object.values(accountRemoteMaxHistory) });
+  });
+  accountListeners.push(clearedAtRef);
 }
 
 function scheduleAccountProgramSync(data) {
   if (!accountUser || !accountDatabase || accountApplyingRemote) return;
   clearTimeout(accountProgramTimer);
+  setSyncStatus(navigator.onLine === false ? "offline" : "saving");
   accountProgramTimer = setTimeout(() => {
-    accountDatabase.ref(`accounts/${accountUser.uid}/program`).set(data);
+    accountDatabase.ref(`accounts/${accountUser.uid}/program`).set(prepareProgramForCloud(data))
+      .then(() => setSyncStatus("saved"))
+      .catch(() => setSyncStatus(navigator.onLine === false ? "offline" : "error"));
   }, 400);
 }
 
 async function syncAccountHistory(history) {
   if (!accountUser || !accountDatabase) return;
+  setSyncStatus("saving");
   const maps = historyToCloudMap(history);
   const updates = {};
   Object.entries(maps.sessions).forEach(([key, value]) => {
@@ -1389,19 +1443,61 @@ async function syncAccountHistory(history) {
   });
   updates["profile/lastSyncAt"] = firebase.database.ServerValue.TIMESTAMP;
   await accountDatabase.ref(`accounts/${accountUser.uid}`).update(updates);
+  setSyncStatus("saved");
+}
+
+async function replaceAccountHistory(history, options = {}) {
+  if (!accountUser || !accountDatabase) return;
+  setSyncStatus("saving");
+  const maps = historyToCloudMap(history);
+  const accountRef = accountDatabase.ref(`accounts/${accountUser.uid}`);
+  const writes = [
+    accountRef.child("sessions").set(maps.sessions),
+    accountRef.child("maxHistory").set(maps.maxHistory),
+    accountRef.child("profile/lastSyncAt").set(firebase.database.ServerValue.TIMESTAMP)
+  ];
+  if (options.resetDeletionMarkers) {
+    accountRemoteTombstones = {};
+    accountHistoryClearedAt = 0;
+    writes.push(accountRef.child("sessionTombstones").remove());
+    writes.push(accountRef.child("meta/historyClearedAt").remove());
+  }
+  await Promise.all(writes);
+  setSyncStatus("saved");
+}
+
+function syncAccountSession(session) {
+  if (!accountUser || !accountDatabase || !session) return Promise.resolve();
+  const key = accountSessionKey(session);
+  setSyncStatus("saving");
+  return accountDatabase.ref(`accounts/${accountUser.uid}`).update({
+    [`sessions/${key}`]: session,
+    [`sessionTombstones/${key}`]: null,
+    "profile/lastSyncAt": firebase.database.ServerValue.TIMESTAMP
+  }).then(() => setSyncStatus("saved"))
+    .catch(() => setSyncStatus(navigator.onLine === false ? "offline" : "error"));
 }
 
 function deleteAccountSession(session) {
   if (!accountUser || !accountDatabase || !session) return;
-  accountDatabase.ref(`accounts/${accountUser.uid}/sessions/${accountSessionKey(session)}`).remove();
+  const key = accountSessionKey(session);
+  const deletedAt = Date.now();
+  accountDatabase.ref(`accounts/${accountUser.uid}`).update({
+    [`sessions/${key}`]: null,
+    [`sessionTombstones/${key}`]: deletedAt
+  }).catch(() => setSyncStatus(navigator.onLine === false ? "offline" : "error"));
 }
 
 function clearAccountHistory() {
   if (!accountUser || !accountDatabase) return;
+  const clearedAt = Date.now();
+  accountHistoryClearedAt = clearedAt;
   accountDatabase.ref(`accounts/${accountUser.uid}`).update({
     sessions: null,
-    maxHistory: null
-  });
+    maxHistory: null,
+    sessionTombstones: null,
+    "meta/historyClearedAt": clearedAt
+  }).catch(() => setSyncStatus(navigator.onLine === false ? "offline" : "error"));
 }
 
 function initAccountSystem() {
@@ -1416,680 +1512,46 @@ function initAccountSystem() {
   accountAuth.onAuthStateChanged(async user => {
     accountListeners.forEach(ref => ref.off());
     accountListeners = [];
+    accountRemoteSessions = {};
+    accountRemoteMaxHistory = {};
+    accountRemoteTombstones = {};
+    accountHistoryClearedAt = 0;
     accountUser = user;
     updateAccountModal();
     if (!user) {
+      activateAccountStorage(null);
+      resetStateToDefaults();
+      render();
+      setSyncStatus("offline", "Déconnecté");
       document.getElementById("loginOverlay").style.display = "flex";
       return;
     }
+    activateAccountStorage(user.uid);
+    const hasLocalProgram = localStorage.getItem(storageKey(STORAGE_PROGRAM)) !== null;
+    loadState();
+    restoreLocalTimerState();
+    if (!hasLocalProgram) saveState({ sync: false });
+    render();
     document.getElementById("loginOverlay").style.display = "none";
     document.getElementById("welcomePassword").value = "";
     setWelcomeMessage("");
     setAccountMessage("Synchronisation...", "");
+    setSyncStatus("saving");
     try {
       await initializeAccountData(user);
       setAccountMessage("Synchronisation active.", "success");
+      setSyncStatus("saved");
     } catch(error) {
       setAccountMessage("Synchronisation impossible. Les données locales sont conservées.", "error");
+      setSyncStatus(navigator.onLine === false ? "offline" : "error");
     }
   });
 }
 
 // ============================================================
-// PROGRAM DATA — 4-week cycle
-// Each exercise has optional `ref` ("squat"|"bench"|"deadlift")
-// Sets with `pct` compute weight from the referenced max
-// Sets with only `rpe` are accessory (no weight shown)
-// s=numSets, r=reps|"AMRAP", pct=% of max, rpe=RPE target
 // ============================================================
-const RAW_PROGRAM = [
-  // ==================== WEEK 1 ====================
-  {
-    name: "Bloc 1",
-    days: [
-      {
-        name: "Squat + Pause Bench",
-        exercises: [
-          { name: "Squat", tag: "A", ref: "squat", sets: [
-            { s:1, r:5, pct:66 },
-            { s:1, r:5, pct:74, rpe:5 },
-            { s:2, r:5, pct:80, rpe:7 },
-            { s:1, r:5, pct:74 }
-          ]},
-          { name: "2CT Pause Bench", tag: "B", ref: "bench", sets: [
-            { s:1, r:3, pct:70 },
-            { s:1, r:3, pct:76, rpe:5 },
-            { s:1, r:3, pct:80, rpe:7 },
-            { s:1, r:1, pct:86, rpe:7 },
-            { s:2, r:5, pct:72 }
-          ]},
-          { name: "Curl Biceps Rotation", tag: "C", sets: [
-            { s:3, r:12, rpe:8 }
-          ]}
-        ]
-      },
-      {
-        name: "Bench + Deadlift",
-        exercises: [
-          { name: "Bench", tag: "A", ref: "bench", sets: [
-            { s:1, r:5, pct:66 },
-            { s:1, r:5, pct:72, rpe:6 },
-            { s:2, r:5, pct:78, rpe:8 },
-            { s:1, r:5, pct:70 }
-          ]},
-          { name: "Deadlift", tag: "B", ref: "deadlift", sets: [
-            { s:1, r:5, pct:66 },
-            { s:1, r:5, pct:74, rpe:5 },
-            { s:2, r:5, pct:80, rpe:7 }
-          ]},
-          { name: "2CT Pause Deadlift", tag: "C", ref: "deadlift", sets: [
-            { s:2, r:3, pct:65 }
-          ]},
-          { name: "Lat Pull Down", tag: "D", sets: [
-            { s:3, r:8, rpe:8 }
-          ]},
-          { name: "Chest Supported Row", tag: "E", sets: [
-            { s:3, r:12, rpe:7 }
-          ]}
-        ]
-      },
-      {
-        name: "Accessoires Haut",
-        exercises: [
-          { name: "Développé Militaire Haltères", tag: "A", sets: [
-            { s:1, r:8, rpe:6 },
-            { s:2, r:8, rpe:8 }
-          ]},
-          { name: "Élévations latérales poulie", tag: "B", sets: [
-            { s:3, r:12, rpe:7 }
-          ]},
-          { name: "Overhead Extensions Triceps", tag: "C", sets: [
-            { s:3, r:12, rpe:8 }
-          ]},
-          { name: "Curl marteau pupitre", tag: "D", sets: [
-            { s:3, r:8, rpe:8 }
-          ]},
-          { name: "Curl biceps poulie", tag: "E", sets: [
-            { s:3, r:12, rpe:8 }
-          ]},
-          { name: "Ab crunch poulie", tag: "F", sets: [
-            { s:3, r:15, rpe:8 }
-          ]}
-        ]
-      },
-      {
-        name: "Tempo Squat + Bench",
-        exercises: [
-          { name: "Tempo squat 3:1:3", tag: "A", ref: "squat", sets: [
-            { s:1, r:4, pct:50 },
-            { s:1, r:4, pct:60 },
-            { s:3, r:4, pct:70 }
-          ]},
-          { name: "Bench", tag: "B", ref: "bench", sets: [
-            { s:1, r:1, pct:85, rpe:8 }
-          ]},
-          { name: "Larsen Press (bench)", tag: "C", ref: "bench", sets: [
-            { s:2, r:6, pct:70 },
-            { s:2, r:6, pct:63 }
-          ]}
-        ]
-      },      {
-        name: "Force Composés",
-        exercises: [
-          { name: "Squat", tag: "A", ref: "squat", sets: [
-            { s:1, r:3, pct:72 },
-            { s:1, r:3, pct:80, rpe:5 },
-            { s:2, r:3, pct:86, rpe:7 },
-            { s:1, r:3, pct:80 }
-          ]},
-          { name: "Bench", tag: "B", ref: "bench", sets: [
-            { s:1, r:3, pct:72 },
-            { s:1, r:3, pct:80, rpe:5 },
-            { s:1, r:3, pct:85, rpe:7 },
-            { s:1, r:1, pct:88, rpe:7.5 },
-            { s:1, r:"AMRAP", pct:70 }
-          ]},
-          { name: "Deadlift", tag: "C", ref: "deadlift", sets: [
-            { s:1, r:3, pct:72 },
-            { s:1, r:3, pct:80, rpe:5 },
-            { s:2, r:3, pct:86, rpe:7 }
-          ]},
-          { name: "Halt (deadlift)", tag: "D", ref: "deadlift", sets: [
-            { s:1, r:3, pct:80 },
-            { s:1, r:3, pct:75 }
-          ]},
-          { name: "Presse à cuisses", tag: "E", sets: [
-            { s:2, r:10, rpe:8 }
-          ]},
-          { name: "Leg Extension Machine", tag: "F", sets: [
-            { s:3, r:12, rpe:8 }
-          ]},
-          { name: "Leg Curl", tag: "G", sets: [
-            { s:3, r:12, rpe:7 }
-          ]}
-        ]
-      },
-      {
-        name: "Accessoires Haut 2",
-        exercises: [
-          { name: "Développé Militaire Haltères", tag: "A", sets: [
-            { s:3, r:10, rpe:7 }
-          ]},
-          { name: "Élévations latérales haltères", tag: "B", sets: [
-            { s:3, r:15, rpe:7 }
-          ]},
-          { name: "Overhead Extensions Triceps", tag: "C", sets: [
-            { s:3, r:8, rpe:8 }
-          ]},
-          { name: "Curl barre EZ", tag: "D", sets: [
-            { s:3, r:10, rpe:8 }
-          ]},
-          { name: "Rowing Bucheron", tag: "E", sets: [
-            { s:1, r:8, rpe:7 },
-            { s:2, r:8, rpe:9 }
-          ]},
-          { name: "Lat Pull Down", tag: "F", sets: [
-            { s:3, r:12, rpe:7 }
-          ]}
-        ]
-      }
-    ]
-  },
-  // ==================== WEEK 2 ====================
-  {
-    name: "Bloc 2",
-    days: [
-      {
-        name: "Squat + Pause Bench",
-        exercises: [
-          { name: "Squat", tag: "A", ref: "squat", sets: [
-            { s:1, r:5, pct:68 },
-            { s:1, r:5, pct:77, rpe:6 },
-            { s:1, r:5, pct:83, rpe:8 },
-            { s:2, r:5, pct:80 }
-          ]},
-          { name: "2CT Pause Bench", tag: "B", ref: "bench", sets: [
-            { s:1, r:3, pct:72 },
-            { s:1, r:3, pct:79, rpe:6 },
-            { s:1, r:3, pct:83, rpe:8 },
-            { s:1, r:1, pct:88, rpe:8 },
-            { s:3, r:5, pct:75 }
-          ]},
-          { name: "Curl Biceps Rotation", tag: "C", sets: [
-            { s:3, r:12, rpe:8 }
-          ]}
-        ]
-      },
-      {
-        name: "Bench + Deadlift",
-        exercises: [
-          { name: "Bench", tag: "A", ref: "bench", sets: [
-            { s:1, r:5, pct:69 },
-            { s:1, r:5, pct:75, rpe:6 },
-            { s:1, r:5, pct:81, rpe:8 },
-            { s:1, r:5, pct:78 }
-          ]},
-          { name: "Deadlift", tag: "B", ref: "deadlift", sets: [
-            { s:1, r:5, pct:66 },
-            { s:1, r:5, pct:77, rpe:6 },
-            { s:1, r:5, pct:83, rpe:8 },
-            { s:1, r:5, pct:80 }
-          ]},
-          { name: "2CT Pause Deadlift", tag: "C", ref: "deadlift", sets: [
-            { s:2, r:3, pct:70 }
-          ]},
-          { name: "Lat Pull Down", tag: "D", sets: [
-            { s:3, r:8, rpe:8 }
-          ]},
-          { name: "Chest Supported Row", tag: "E", sets: [
-            { s:3, r:12, rpe:7 }
-          ]}
-        ]
-      },
-      {
-        name: "Accessoires Haut",
-        exercises: [
-          { name: "Développé Militaire Haltères", tag: "A", sets: [
-            { s:1, r:8, rpe:6 },
-            { s:2, r:8, rpe:8 }
-          ]},
-          { name: "Élévations latérales poulie", tag: "B", sets: [
-            { s:3, r:12, rpe:7 }
-          ]},
-          { name: "Overhead Extensions Triceps", tag: "C", sets: [
-            { s:3, r:12, rpe:8 }
-          ]},
-          { name: "Curl marteau pupitre", tag: "D", sets: [
-            { s:3, r:8, rpe:8 }
-          ]},
-          { name: "Curl biceps poulie", tag: "E", sets: [
-            { s:3, r:12, rpe:8 }
-          ]},
-          { name: "Ab crunch poulie", tag: "F", sets: [
-            { s:3, r:15, rpe:8 }
-          ]}
-        ]
-      },
-      {
-        name: "Tempo Squat + Bench",
-        exercises: [
-          { name: "Tempo squat 3:1:3", tag: "A", ref: "squat", sets: [
-            { s:1, r:4, pct:50 },
-            { s:1, r:4, pct:60 },
-            { s:3, r:4, pct:70 }
-          ]},
-          { name: "Bench", tag: "B", ref: "bench", sets: [
-            { s:1, r:1, pct:85, rpe:6 }
-          ]},
-          { name: "Larsen Press (bench)", tag: "C", ref: "bench", sets: [
-            { s:2, r:6, pct:70 },
-            { s:2, r:6, pct:63 }
-          ]}
-        ]
-      },      {
-        name: "Force Composés",
-        exercises: [
-          { name: "Squat", tag: "A", ref: "squat", sets: [
-            { s:1, r:3, pct:75 },
-            { s:1, r:3, pct:82, rpe:6 },
-            { s:1, r:3, pct:87, rpe:8 },
-            { s:1, r:1, pct:91, rpe:8.5 },
-            { s:1, r:3, pct:86 }
-          ]},
-          { name: "Bench", tag: "B", ref: "bench", sets: [
-            { s:1, r:3, pct:74 },
-            { s:1, r:3, pct:82, rpe:6 },
-            { s:1, r:3, pct:87, rpe:8 },
-            { s:1, r:1, pct:90, rpe:8.5 },
-            { s:1, r:"AMRAP", pct:75 }
-          ]},
-          { name: "Deadlift", tag: "C", ref: "deadlift", sets: [
-            { s:1, r:3, pct:75 },
-            { s:1, r:3, pct:83, rpe:6 },
-            { s:1, r:3, pct:88, rpe:8 },
-            { s:1, r:1, pct:91, rpe:8.5 },
-            { s:1, r:3, pct:85 }
-          ]},
-          { name: "Halt (deadlift)", tag: "D", ref: "deadlift", sets: [
-            { s:1, r:3, pct:80 },
-            { s:1, r:3, pct:75 }
-          ]},
-          { name: "Presse à cuisses", tag: "E", sets: [
-            { s:2, r:10, rpe:8 }
-          ]},
-          { name: "Leg Extension Machine", tag: "F", sets: [
-            { s:3, r:12, rpe:8 }
-          ]},
-          { name: "Leg Curl", tag: "G", sets: [
-            { s:3, r:12, rpe:7 }
-          ]}
-        ]
-      },
-      {
-        name: "Accessoires Haut 2",
-        exercises: [
-          { name: "Développé Militaire Haltères", tag: "A", sets: [
-            { s:3, r:10, rpe:7 }
-          ]},
-          { name: "Élévations latérales haltères", tag: "B", sets: [
-            { s:3, r:15, rpe:7 }
-          ]},
-          { name: "Overhead Extensions Triceps", tag: "C", sets: [
-            { s:3, r:8, rpe:8 }
-          ]},
-          { name: "Curl barre EZ", tag: "D", sets: [
-            { s:3, r:10, rpe:8 }
-          ]},
-          { name: "Rowing Bucheron", tag: "E", sets: [
-            { s:1, r:8, rpe:7 },
-            { s:2, r:8, rpe:9 }
-          ]},
-          { name: "Lat Pull Down", tag: "F", sets: [
-            { s:3, r:12, rpe:7 }
-          ]}
-        ]
-      }
-    ]
-  },
-  // ==================== WEEK 3 ====================
-  {
-    name: "Bloc 3",
-    days: [
-      {
-        name: "Squat + Pause Bench",
-        exercises: [
-          { name: "Squat", tag: "A", ref: "squat", sets: [
-            { s:1, r:4, pct:71 },
-            { s:1, r:4, pct:79, rpe:6 },
-            { s:2, r:4, pct:85, rpe:8 },
-            { s:1, r:4, pct:80 }
-          ]},
-          { name: "2CT Pause Bench", tag: "B", ref: "bench", sets: [
-            { s:1, r:3, pct:72 },
-            { s:1, r:3, pct:79, rpe:6 },
-            { s:1, r:3, pct:83, rpe:8 },
-            { s:1, r:1, pct:88, rpe:8 },
-            { s:2, r:5, pct:75 }
-          ]},
-          { name: "Curl Biceps Rotation", tag: "C", sets: [
-            { s:3, r:12, rpe:8 }
-          ]}
-        ]
-      },
-      {
-        name: "Bench + Deadlift",
-        exercises: [
-          { name: "Bench", tag: "A", ref: "bench", sets: [
-            { s:1, r:4, pct:72 },
-            { s:1, r:4, pct:78, rpe:6 },
-            { s:1, r:4, pct:84, rpe:8 },
-            { s:1, r:4, pct:80, rpe:7 },
-            { s:1, r:4, pct:70 }
-          ]},
-          { name: "Deadlift", tag: "B", ref: "deadlift", sets: [
-            { s:1, r:4, pct:71 },
-            { s:1, r:4, pct:79, rpe:6 },
-            { s:1, r:4, pct:85, rpe:8 },
-            { s:1, r:4, pct:80, rpe:7 },
-            { s:1, r:4, pct:70 }
-          ]},
-          { name: "2CT Pause Deadlift", tag: "C", ref: "deadlift", sets: [
-            { s:2, r:3, pct:75 }
-          ]},
-          { name: "Lat Pull Down", tag: "D", sets: [
-            { s:3, r:8, rpe:8 }
-          ]},
-          { name: "Chest Supported Row", tag: "E", sets: [
-            { s:3, r:12, rpe:7 }
-          ]}
-        ]
-      },
-      {
-        name: "Accessoires Haut",
-        exercises: [
-          { name: "Développé Militaire Haltères", tag: "A", sets: [
-            { s:1, r:8, rpe:6 },
-            { s:2, r:8, rpe:8 }
-          ]},
-          { name: "Élévations latérales poulie", tag: "B", sets: [
-            { s:3, r:12, rpe:7 }
-          ]},
-          { name: "Overhead Extensions Triceps", tag: "C", sets: [
-            { s:3, r:12, rpe:8 }
-          ]},
-          { name: "Curl marteau pupitre", tag: "D", sets: [
-            { s:3, r:8, rpe:8 }
-          ]},
-          { name: "Curl biceps poulie", tag: "E", sets: [
-            { s:3, r:12, rpe:8 }
-          ]},
-          { name: "Ab crunch poulie", tag: "F", sets: [
-            { s:3, r:15, rpe:8 }
-          ]}
-        ]
-      },
-      {
-        name: "Squat Volume + Bench",
-        exercises: [
-          { name: "Squat", tag: "A", ref: "squat", sets: [
-            { s:1, r:6, pct:54 },
-            { s:1, r:6, pct:64 },
-            { s:3, r:6, pct:74 }
-          ]},
-          { name: "Bench", tag: "B", ref: "bench", sets: [
-            { s:1, r:1, pct:88, rpe:7 }
-          ]},
-          { name: "Larsen Press (bench)", tag: "C", ref: "bench", sets: [
-            { s:2, r:6, pct:70 },
-            { s:2, r:6, pct:63 }
-          ]}
-        ]
-      },      {
-        name: "Force Composés",
-        exercises: [
-          { name: "Squat", tag: "A", ref: "squat", sets: [
-            { s:1, r:3, pct:76 },
-            { s:1, r:3, pct:84, rpe:6 },
-            { s:1, r:3, pct:90, rpe:8 },
-            { s:1, r:1, pct:94, rpe:9 },
-            { s:1, r:3, pct:86 }
-          ]},
-          { name: "Bench", tag: "B", ref: "bench", sets: [
-            { s:1, r:3, pct:82 },
-            { s:1, r:3, pct:87, rpe:6 },
-            { s:1, r:3, pct:93, rpe:8 },
-            { s:1, r:1, pct:94, rpe:9 },
-            { s:1, r:"AMRAP", pct:80 }
-          ]},
-          { name: "Deadlift", tag: "C", ref: "deadlift", sets: [
-            { s:1, r:3, pct:75 },
-            { s:1, r:3, pct:83, rpe:6 },
-            { s:1, r:3, pct:88, rpe:8 },
-            { s:1, r:1, pct:93, rpe:9 },
-            { s:1, r:3, pct:83 }
-          ]},
-          { name: "Halt (deadlift)", tag: "D", ref: "deadlift", sets: [
-            { s:1, r:3, pct:80 },
-            { s:1, r:3, pct:75 }
-          ]},
-          { name: "Presse à cuisses", tag: "E", sets: [
-            { s:2, r:10, rpe:8 }
-          ]},
-          { name: "Leg Extension Machine", tag: "F", sets: [
-            { s:3, r:12, rpe:8 }
-          ]},
-          { name: "Leg Curl", tag: "G", sets: [
-            { s:3, r:12, rpe:7 }
-          ]}
-        ]
-      },
-      {
-        name: "Accessoires Haut 2",
-        exercises: [
-          { name: "Développé Militaire Haltères", tag: "A", sets: [
-            { s:3, r:10, rpe:7 }
-          ]},
-          { name: "Élévations latérales haltères", tag: "B", sets: [
-            { s:3, r:15, rpe:7 }
-          ]},
-          { name: "Overhead Extensions Triceps", tag: "C", sets: [
-            { s:3, r:8, rpe:8 }
-          ]},
-          { name: "Curl barre EZ", tag: "D", sets: [
-            { s:3, r:10, rpe:8 }
-          ]},
-          { name: "Rowing Bucheron", tag: "E", sets: [
-            { s:1, r:8, rpe:7 },
-            { s:2, r:8, rpe:9 }
-          ]},
-          { name: "Lat Pull Down", tag: "F", sets: [
-            { s:3, r:12, rpe:7 }
-          ]}
-        ]
-      }
-    ]
-  },
-  // ==================== WEEK 4 — PEAK ====================
-  {
-    name: "Bloc 4",
-    days: [
-      {
-        name: "Squat + Pause Bench",
-        exercises: [
-          { name: "Squat", tag: "A", ref: "squat", sets: [
-            { s:1, r:4, pct:66 },
-            { s:1, r:4, pct:74, rpe:5 },
-            { s:2, r:4, pct:80, rpe:7 },
-            { s:1, r:4, pct:74 }
-          ]},
-          { name: "2CT Pause Bench", tag: "B", ref: "bench", sets: [
-            { s:1, r:3, pct:72 },
-            { s:1, r:3, pct:79, rpe:6 },
-            { s:1, r:3, pct:83, rpe:8 },
-            { s:1, r:1, pct:88, rpe:8 },
-            { s:2, r:5, pct:75 }
-          ]},
-          { name: "Curl Biceps Rotation", tag: "C", sets: [
-            { s:3, r:12, rpe:8 }
-          ]}
-        ]
-      },
-      {
-        name: "Bench + Deadlift",
-        exercises: [
-          { name: "Bench", tag: "A", ref: "bench", sets: [
-            { s:1, r:4, pct:70 },
-            { s:1, r:4, pct:76, rpe:5 },
-            { s:2, r:4, pct:81, rpe:7 },
-            { s:1, r:4, pct:70 }
-          ]},
-          { name: "Deadlift", tag: "B", ref: "deadlift", sets: [
-            { s:1, r:4, pct:66 },
-            { s:1, r:4, pct:74, rpe:5 },
-            { s:2, r:4, pct:80, rpe:7 }
-          ]},
-          { name: "2CT Pause Deadlift", tag: "C", ref: "deadlift", sets: [
-            { s:2, r:3, pct:65 }
-          ]},
-          { name: "Lat Pull Down", tag: "D", sets: [
-            { s:3, r:8, rpe:8 }
-          ]},
-          { name: "Chest Supported Row", tag: "E", sets: [
-            { s:3, r:12, rpe:7 }
-          ]}
-        ]
-      },
-      {
-        name: "Accessoires Légers",
-        exercises: [
-          { name: "Développé Militaire Haltères", tag: "A", sets: [
-            { s:2, r:8, rpe:6 }
-          ]},
-          { name: "Élévations latérales poulie", tag: "B", sets: [
-            { s:2, r:12, rpe:6 }
-          ]},
-          { name: "Overhead Extensions Triceps", tag: "C", sets: [
-            { s:2, r:12, rpe:6 }
-          ]},
-          { name: "Curl biceps poulie", tag: "D", sets: [
-            { s:2, r:12, rpe:6 }
-          ]}
-        ]
-      },
-      {
-        name: "Squat Volume + Bench",
-        exercises: [
-          { name: "Squat", tag: "A", ref: "squat", sets: [
-            { s:1, r:6, pct:54 },
-            { s:1, r:6, pct:64 },
-            { s:2, r:6, pct:74 }
-          ]},
-          { name: "Bench", tag: "B", ref: "bench", sets: [
-            { s:1, r:1, pct:88, rpe:7 }
-          ]},
-          { name: "Larsen Press (bench)", tag: "C", ref: "bench", sets: [
-            { s:2, r:6, pct:70 },
-            { s:2, r:6, pct:63 }
-          ]}
-        ]
-      },      {
-        name: "Test 1RM / Peak",
-        exercises: [
-          { name: "Squat", tag: "A", ref: "squat", sets: [
-            { s:1, r:1, pct:88, rpe:6 },
-            { s:1, r:1, pct:94, rpe:8.5 },
-            { s:1, r:1, pct:100, rpe:10 },
-            { s:1, r:3, pct:86 }
-          ]},
-          { name: "Bench", tag: "B", ref: "bench", sets: [
-            { s:1, r:1, pct:88, rpe:6 },
-            { s:1, r:1, pct:94, rpe:8.5 },
-            { s:1, r:1, pct:100, rpe:10 },
-            { s:1, r:"AMRAP", pct:85 }
-          ]},
-          { name: "Deadlift", tag: "C", ref: "deadlift", sets: [
-            { s:1, r:3, pct:75 },
-            { s:1, r:3, pct:83, rpe:6 },
-            { s:1, r:3, pct:88, rpe:8 },
-            { s:1, r:1, pct:93, rpe:8 },
-            { s:1, r:3, pct:83 }
-          ]},
-          { name: "Halt (deadlift)", tag: "D", ref: "deadlift", sets: [
-            { s:1, r:3, pct:80 },
-            { s:1, r:3, pct:75 }
-          ]},
-          { name: "Presse à cuisses", tag: "E", sets: [
-            { s:2, r:10, rpe:8 }
-          ]},
-          { name: "Leg Extension Machine", tag: "F", sets: [
-            { s:3, r:12, rpe:8 }
-          ]},
-          { name: "Leg Curl", tag: "G", sets: [
-            { s:3, r:12, rpe:7 }
-          ]}
-        ]
-      },
-      {
-        name: "Accessoires Haut 2",
-        exercises: [
-          { name: "Développé Militaire Haltères", tag: "A", sets: [
-            { s:3, r:10, rpe:7 }
-          ]},
-          { name: "Élévations latérales haltères", tag: "B", sets: [
-            { s:3, r:15, rpe:7 }
-          ]},
-          { name: "Overhead Extensions Triceps", tag: "C", sets: [
-            { s:3, r:8, rpe:8 }
-          ]},
-          { name: "Curl barre EZ", tag: "D", sets: [
-            { s:3, r:10, rpe:8 }
-          ]},
-          { name: "Rowing Bucheron", tag: "E", sets: [
-            { s:1, r:8, rpe:7 },
-            { s:2, r:8, rpe:9 }
-          ]},
-          { name: "Lat Pull Down", tag: "F", sets: [
-            { s:3, r:12, rpe:7 }
-          ]}
-        ]
-      }
-    ]
-  }
-];
-
+// CURRENT WEEKLY PROGRAM
 // ============================================================
-// STRUCTURE TRANSFORM — regroupe les 4 blocs × 7 jours (avec repos)
-// en 4 Waves × 10 Sessions (file linéaire, sans jour de repos).
-// Les données (sets/reps/pct/rpe) sont réutilisées telles quelles :
-// on ne fait que redécouper et re-tagger. Rien n'est recalculé.
-// ============================================================
-function buildWaves(raw) {
-  const LETTERS = ['A','B','C','D','E','F','G'];
-  // Accessoires (sans ref) : on n'affiche pas de cible RPE -> on la retire.
-  // Les exos de force (avec ref/pct) conservent leur RPE.
-  const stripRpe = (ex) => ex.ref ? ex
-    : { ...ex, sets: ex.sets.map(({ rpe, ...rest }) => rest) };
-  const retag = (list) => list.map((ex, i) => ({ ...stripRpe(ex), tag: LETTERS[i] || '' }));
-  return raw.map((bloc, wi) => {
-    // On retire les jours de repos, puis on reprend l'ordre :
-    // Day1, Day2, Day3, Day4, Day6, Day7 (l'ancien Day5 = repos, supprimé).
-    const [day1, day2, day3, day4, day6, day7] = bloc.days.filter(d => !d.rest);
-    const sessions = [
-      { name: day1.name,      exercises: retag(day1.exercises) },              // S1
-      { name: day2.name,      exercises: retag(day2.exercises.slice(0, 3)) },  // S2
-      { name: 'Dos',          exercises: retag(day2.exercises.slice(3)) },     // S3
-      { name: day3.name,      exercises: retag(day3.exercises.slice(0, 3)) },  // S4
-      { name: 'Bras + Abdos', exercises: retag(day3.exercises.slice(3)) },     // S5
-      { name: day4.name,      exercises: retag(day4.exercises) },              // S6
-      { name: day6.name,      exercises: retag(day6.exercises.slice(0, 4)) },  // S7
-      { name: 'Jambes',       exercises: retag(day6.exercises.slice(4)) },     // S8
-      { name: day7.name,      exercises: retag(day7.exercises.slice(0, 3)) },  // S9
-      { name: 'Dos + Bras',   exercises: retag(day7.exercises.slice(3)) }      // S10
-    ];
-    return { name: `Wave ${wi + 1}`, days: sessions };
-  });
-}
-
 function buildWeeklyProgram() {
   const warmup = (id, name, reps, tracking = "reps") => ({
     id, name, preFatigue: true, tempo: "Contrôlé",
@@ -2172,33 +1634,52 @@ function buildWeeklyProgram() {
 
 const PROGRAM_VERSION = 2;
 const WEIGHT_DATA_VERSION = 2;
+const DATA_SCHEMA_VERSION = 3;
 const PROGRAM = buildWeeklyProgram();
 
 // ============================================================
 // STATE
 // ============================================================
-let state = {
-  programVersion: PROGRAM_VERSION,
-  cycle: 1,
-  week: 0,
-  day: 0,
-  completions: {},
-  maxSquat: 110,
-  maxBench: 97,
-  maxDeadlift: 120,
-  customWeights: {}, // { [exerciseName]: [{w}, ...] } — weight, independent per set
-  customReps: {},    // { [exerciseName]: [repsSet0, repsSet1, ...] } — reps, independent per set
-  customNotes: {},   // { [exerciseName]: "note libre" } — note par accessoire
-  exerciseRatings: {}, // { [sessionOccurrence][exerciseId]: "easy|right|hard" }
-  extraAccessories: {}, // { "c{cycle}w{wave}s{session}": [accessoryId, ...] }
-  preFatigueSets: {},
-  freestyleSelections: {},
-  updatedAt: 0,
-  timerDuration: 120,
-  timerRemaining: 120,
-  timerRunning: false,
-  timerInterval: null
-};
+function createDefaultState() {
+  return {
+    schemaVersion: DATA_SCHEMA_VERSION,
+    programVersion: PROGRAM_VERSION,
+    programId: PROGRAM_ID,
+    runId: INITIAL_RUN_ID,
+    cycle: 1,
+    week: 0,
+    day: 0,
+    completions: {},
+    maxSquat: 110,
+    maxBench: 97,
+    maxDeadlift: 120,
+    customWeights: {}, // Dernières charges validées, utilisées comme pré-remplissage.
+    customReps: {},    // Dernières répétitions validées, utilisées comme pré-remplissage.
+    sessionDrafts: {}, // Saisie indépendante par occurrence de séance.
+    customNotes: {},
+    exerciseRatings: {},
+    exerciseSkips: {},
+    extraAccessories: {},
+    preFatigueSets: {},
+    freestyleSelections: {},
+    updatedAt: 0,
+    timerDuration: 120,
+    timerRemaining: 120,
+    timerEndsAt: null,
+    timerRunning: false,
+    timerInterval: null,
+    timerAlarmPlayed: false
+  };
+}
+
+let state = createDefaultState();
+
+function resetStateToDefaults() {
+  if (state?.timerInterval) clearInterval(state.timerInterval);
+  const defaults = createDefaultState();
+  Object.keys(state).forEach(key => delete state[key]);
+  Object.assign(state, defaults);
+}
 
 // ============================================================
 // WEIGHT CALCULATION
@@ -2368,6 +1849,7 @@ function getExerciseSets(exercise) {
 }
 
 function setPreFatigueSetCount(exerciseId, count) {
+  const wasComplete = getDayProgress(state.week, state.day).pct === 100;
   state.preFatigueSets[exerciseId] = count === 2 ? 2 : 1;
   if (count === 1) {
     PROGRAM[0].days.forEach((day, dayIndex) => {
@@ -2379,10 +1861,35 @@ function setPreFatigueSetCount(exerciseId, count) {
   }
   saveState();
   render();
+  afterSessionChange(state.week, state.day, wasComplete);
 }
 
-function sessionOccurrenceKey(cycle = state.cycle, week = state.week, day = state.day) {
-  return `c${cycle}w${week}s${day}`;
+function sessionOccurrenceKey(cycle = state.cycle, week = state.week, day = state.day, runId = state.runId) {
+  const base = `c${cycle}w${week}s${day}`;
+  return !runId || runId === INITIAL_RUN_ID ? base : `r${runId}:${base}`;
+}
+
+function isLegacyWeeklySession(session) {
+  if (!session || session.programId) return false;
+  const day = PROGRAM[session.week]?.days?.[session.day];
+  return session.weekName === PROGRAM[session.week]?.name && (!session.dayName || session.dayName === day?.name);
+}
+
+function effectiveSessionProgramId(session) {
+  if (session?.programId) return session.programId;
+  return isLegacyWeeklySession(session) ? PROGRAM_ID : "legacy-sbd";
+}
+
+function effectiveSessionRunId(session) {
+  return session?.runId || INITIAL_RUN_ID;
+}
+
+function sessionMatchesContext(session, week, day, cycle = state.cycle, runId = state.runId) {
+  return effectiveSessionProgramId(session) === PROGRAM_ID
+    && effectiveSessionRunId(session) === (runId || INITIAL_RUN_ID)
+    && session.week === week
+    && session.day === day
+    && (session.cycle || 1) === cycle;
 }
 
 function getExtraAccessoryIds(week = state.week, day = state.day) {
@@ -2430,6 +1937,29 @@ function isSetDone(week, day, exKey, setIdx) {
   return !!state.completions[setKey(week, day, exKey, setIdx)];
 }
 
+function getExerciseSkip(exerciseId, cycle = state.cycle, week = state.week, day = state.day) {
+  return state.exerciseSkips[sessionOccurrenceKey(cycle, week, day)]?.[exerciseId] || "";
+}
+
+function setExerciseSkip(exerciseId, exKey, reason) {
+  const occurrence = sessionOccurrenceKey();
+  const previousProgress = getDayProgress(state.week, state.day);
+  if (!state.exerciseSkips[occurrence]) state.exerciseSkips[occurrence] = {};
+  if (reason) {
+    state.exerciseSkips[occurrence][exerciseId] = reason;
+    const exercise = getSessionExercises().find((candidate, index) => exerciseCompletionKey(candidate, index) === String(exKey));
+    getExerciseSets(exercise || { sets: [] }).forEach((_, index) => {
+      delete state.completions[setKey(state.week, state.day, exKey, index)];
+    });
+  } else {
+    delete state.exerciseSkips[occurrence][exerciseId];
+    if (!Object.keys(state.exerciseSkips[occurrence]).length) delete state.exerciseSkips[occurrence];
+  }
+  saveState();
+  render();
+  afterSessionChange(state.week, state.day, previousProgress.pct === 100);
+}
+
 function getExerciseTimerDuration(week, day, exKey) {
   const exercise = getSessionExercises(week, day).find((candidate, index) =>
     exerciseCompletionKey(candidate, index) === String(exKey)
@@ -2445,6 +1975,14 @@ function toggleSetDone(week, day, exKey, setIdx) {
   if (wasChecked) {
     delete state.completions[key];
   } else {
+    const exercise = getSessionExercises(week, day).find((candidate, index) =>
+      exerciseCompletionKey(candidate, index) === String(exKey));
+    const exerciseId = exercise?.id || (exercise ? accessoryDataKey(exercise.name) : null);
+    const occurrence = sessionOccurrenceKey(state.cycle, week, day);
+    if (exerciseId && state.exerciseSkips[occurrence]) {
+      delete state.exerciseSkips[occurrence][exerciseId];
+      if (!Object.keys(state.exerciseSkips[occurrence]).length) delete state.exerciseSkips[occurrence];
+    }
     state.completions[key] = true;
     const duration = getExerciseTimerDuration(week, day, exKey);
     if (duration > 0) startRestTimer(duration);
@@ -2456,20 +1994,41 @@ function toggleSetDone(week, day, exKey, setIdx) {
 
 function getDayProgress(week, day) {
   const dayData = PROGRAM[week].days[day];
-  if (dayData.rest) return { done: 0, total: 0, pct: 100 };
-  let total = 0, done = 0;
+  if (dayData.rest) return { done: 0, resolved: 0, total: 0, pct: 100, skipped: 0, exercisesStarted: 0, exercisesTotal: 0, exercisePct: 100 };
+  let total = 0, done = 0, resolved = 0, skipped = 0, exercisesStarted = 0, exercisesTotal = 0;
   getSessionExercises(week, day).forEach((ex, ei) => {
     const exKey = exerciseCompletionKey(ex, ei);
     const sets = getExerciseSets(ex);
+    const exerciseId = ex.id || accessoryDataKey(ex.name);
+    const skipReason = getExerciseSkip(exerciseId, state.cycle, week, day);
     total += sets.length;
+    if (!ex.preFatigue) exercisesTotal++;
+    let exerciseDone = 0;
     sets.forEach((_, si) => {
-      if (isSetDone(week, day, exKey, si)) done++;
+      if (isSetDone(week, day, exKey, si)) {
+        done++;
+        exerciseDone++;
+      }
     });
+    if (skipReason) {
+      resolved += sets.length;
+      skipped++;
+      if (!ex.preFatigue) exercisesStarted++;
+    } else {
+      resolved += exerciseDone;
+      if (!ex.preFatigue && exerciseDone > 0) exercisesStarted++;
+    }
   });
-  if (dayData.freestyle && !state.freestyleSelections[sessionOccurrenceKey(state.cycle, week, day)]) {
-    total += 1;
-  }
-  return { done, total, pct: total > 0 ? Math.round((done/total)*100) : 0 };
+  return {
+    done,
+    resolved,
+    total,
+    skipped,
+    exercisesStarted,
+    exercisesTotal,
+    pct: total > 0 ? Math.round((resolved / total) * 100) : 0,
+    exercisePct: exercisesTotal > 0 ? Math.round((exercisesStarted / exercisesTotal) * 100) : 0
+  };
 }
 
 function isBlocComplete(blocIndex) {
@@ -2480,11 +2039,6 @@ function isBlocComplete(blocIndex) {
     if (!isSessionValidated(blocIndex, di, state.cycle, history)) return false;
   }
   return true;
-}
-
-function isBlocUnlocked(blocIndex) {
-  if (blocIndex === 0) return true;
-  return isBlocComplete(blocIndex - 1);
 }
 
 function getLatestExercisePerformance(exerciseName) {
@@ -2514,8 +2068,8 @@ function openAccessoryPicker() {
     const alreadyPresent = currentExercises.includes(ex.id);
     const summary = alreadyPresent ? "Déjà présent dans cette séance" : getLatestExercisePerformance(ex.name);
     return `<button class="accessory-picker-item" ${alreadyPresent ? "disabled" : ""} onclick="addExtraAccessory('${ex.id}')">`
-      + `<span class="accessory-picker-name">${ex.name}</span>`
-      + `<span class="accessory-picker-meta">${ex.range} · ${summary}</span>`
+      + `<span class="accessory-picker-name">${escHtml(ex.name)}</span>`
+      + `<span class="accessory-picker-meta">${escHtml(ex.range)} · ${escHtml(summary)}</span>`
       + `</button>`;
   }).join("");
   document.getElementById("accessoryPickerModal").classList.add("show");
@@ -2527,8 +2081,8 @@ function openFreestylePicker() {
   document.getElementById("accessoryPickerList").innerHTML = FREESTYLE_CATALOG.map(ex => {
     const summary = getLatestExercisePerformance(ex.name);
     return `<button class="accessory-picker-item" onclick="selectFreestyleExercise('${ex.id}')">`
-      + `<span class="accessory-picker-name">${ex.name}</span>`
-      + `<span class="accessory-picker-meta">${summary}</span>`
+      + `<span class="accessory-picker-name">${escHtml(ex.name)}</span>`
+      + `<span class="accessory-picker-meta">${escHtml(summary)}</span>`
       + `</button>`;
   }).join("");
   document.getElementById("accessoryPickerModal").classList.add("show");
@@ -2543,6 +2097,7 @@ function selectFreestyleExercise(exerciseId) {
 }
 
 function changeFreestyleSetCount(delta) {
+  const wasComplete = getDayProgress(state.week, state.day).pct === 100;
   const occurrence = sessionOccurrenceKey();
   const selection = state.freestyleSelections[occurrence];
   if (!selection) return;
@@ -2556,9 +2111,11 @@ function changeFreestyleSetCount(delta) {
   }
   saveState();
   render();
+  afterSessionChange(state.week, state.day, wasComplete);
 }
 
 function removeFreestyleExercise() {
+  const wasComplete = getDayProgress(state.week, state.day).pct === 100;
   const occurrence = sessionOccurrenceKey();
   const selection = state.freestyleSelections[occurrence];
   if (!selection) return;
@@ -2572,6 +2129,7 @@ function removeFreestyleExercise() {
   delete state.freestyleSelections[occurrence];
   saveState();
   render();
+  afterSessionChange(state.week, state.day, wasComplete);
 }
 
 function closeAccessoryPicker() {
@@ -2592,10 +2150,8 @@ function addExtraAccessory(accessoryId) {
 function removeExtraAccessory(accessoryId) {
   const exercise = ACCESSORY_BY_ID[accessoryId];
   if (!exercise) return;
-  const today = localDateKey();
   const loggedSession = loadHistory().sessions.find(session =>
-    session.date === today && session.week === state.week && session.day === state.day
-      && session.cycle === state.cycle);
+    sessionMatchesContext(session, state.week, state.day));
   const isSavedInHistory = (loggedSession?.exercises || []).some(ex =>
     ex.source === "added" && (ex.id === accessoryId || ex.name === exercise.name));
   if (isSavedInHistory) {
@@ -2622,25 +2178,20 @@ function removeExtraAccessory(accessoryId) {
 // ============================================================
 // RENDER
 // ============================================================
-function renderMaxesBar() {
-  document.getElementById('dispSquat').textContent = state.maxSquat + ' kg';
-  document.getElementById('dispBench').textContent = state.maxBench + ' kg';
-  document.getElementById('dispDeadlift').textContent = state.maxDeadlift + ' kg';
-}
-
 function renderNav() {
   const nav = document.getElementById('nav');
   let html = '<div class="nav-section weekly-nav">';
   PROGRAM[state.week].days.forEach((d, di) => {
     const active = di === state.day ? 'active' : '';
     const check = (!d.rest && isSessionValidated(state.week, di)) ? ' &#10003;' : '';
-    html += `<div class="nav-tab ${active}${d.rest ? ' rest' : ''}" onclick="selectDay(${di})">J${di + 1} · ${d.shortName}${check}</div>`;
+    html += `<button class="nav-tab ${active}${d.rest ? ' rest' : ''}" onclick="selectDay(${di})" ${active ? 'aria-current="page"' : ''}>J${di + 1} · ${d.shortName}${check}</button>`;
   });
   html += '</div>';
   nav.innerHTML = html;
 }
 
 const RATING_LABELS = { easy: 'Très facile', right: 'Adapté', hard: 'Très difficile' };
+const SKIP_LABELS = { injury: 'Blessure / douleur', time: 'Manque de temps', equipment: 'Matériel indisponible', choice: 'Choix du jour' };
 
 function renderWeekAdvanceBanner() {
   if (!isBlocComplete(0)) return '';
@@ -2656,7 +2207,7 @@ function getRecentExerciseHistory(exercise, history, limit = 3) {
   const results = [];
   const sessions = (history?.sessions || []).slice().reverse();
   for (const session of sessions) {
-    const isCurrentSession = session.cycle === state.cycle && session.week === state.week && session.day === state.day;
+    const isCurrentSession = sessionMatchesContext(session, state.week, state.day);
     if (isCurrentSession) continue;
     const match = (session.exercises || []).find(item =>
       (item.id && normalizeAccessoryId(item.id) === normalizeAccessoryId(exerciseId)) ||
@@ -2683,9 +2234,12 @@ function renderRecentExerciseHistory(exercise, history) {
   if (recent.length === 0) return '';
   let html = '<div class="recent-exercise-history"><div class="recent-exercise-title">3 dernières séances</div>';
   recent.forEach(item => {
-    const rating = item.exercise.rating || '';
-    html += `<div class="recent-exercise-row"><span class="recent-exercise-date">${formatHistoryDate(item.session.date)}</span>`;
-    html += `<span class="recent-exercise-sets">${formatPreviousSets(item.exercise.sets)}</span>`;
+    const rating = RATING_LABELS[item.exercise.rating] ? item.exercise.rating : '';
+    const performance = item.exercise.skipped
+      ? `Ignoré · ${SKIP_LABELS[item.exercise.skipReason] || item.exercise.skipReason || 'Non précisé'}`
+      : formatPreviousSets(item.exercise.sets);
+    html += `<div class="recent-exercise-row"><span class="recent-exercise-date">${escHtml(formatHistoryDate(item.session.date))}</span>`;
+    html += `<span class="recent-exercise-sets">${escHtml(performance)}</span>`;
     html += rating ? `<span class="recent-exercise-rating ${rating}">${RATING_LABELS[rating] || rating}</span>` : '<span></span>';
     html += '</div>';
   });
@@ -2714,8 +2268,8 @@ function renderContent() {
       <h2>${dayData.name}</h2>
       <p>Jour ${state.day + 1}/7 · Semaine ${state.cycle}</p>
       <div class="day-progress">
-        <div class="progress-bar"><div class="progress-fill" style="width:${prog.pct}%"></div></div>
-        <span class="progress-text">${prog.done}/${prog.total}</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:${prog.exercisePct}%"></div></div>
+        <span class="progress-text">${prog.exercisesStarted}/${prog.exercisesTotal} exos</span>
       </div>
     </div>${renderWeekAdvanceBanner()}`;
 
@@ -2730,18 +2284,22 @@ function renderContent() {
     }
     const exKey = exerciseCompletionKey(ex, ei);
     const sets = getExerciseSets(ex);
-    const allDone = sets.every((_, si) => isSetDone(state.week, state.day, exKey, si));
-    const cardClass = allDone ? 'exercise-card completed' : 'exercise-card';
+    const exerciseId = ex.id || accessoryDataKey(ex.name);
+    const skipReason = getExerciseSkip(exerciseId);
+    const allDone = !skipReason && sets.every((_, si) => isSetDone(state.week, state.day, exKey, si));
+    const cardClass = skipReason ? 'exercise-card skipped' : allDone ? 'exercise-card completed' : 'exercise-card';
 
     const tag = ex.preFatigue ? "P" : ex.isFreestyle ? "F" : ex.isExtra ? "+" : String(++workIndex);
     html += `<div class="${cardClass}${ex.isExtra ? ' extra-accessory' : ''}${ex.preFatigue ? ' pre-fatigue-card' : ''}${ex.isFreestyle ? ' freestyle-card' : ''}">`;
     html += `<div class="exercise-header">`;
     html += `<div class="exercise-tag">${tag}</div>`;
     html += `<div class="exercise-title"><div class="exercise-name">${ex.name}</div>`;
-    html += `<div class="exercise-meta">${ex.tempo ? `<span>${ex.tempo}</span>` : ''}${ex.rpe ? `<span>RPE ${ex.rpe}</span>` : ''}${ex.rest ? `<span>${ex.rest / 60} min repos</span>` : ''}</div></div>`;
+    html += `<div class="exercise-meta">${ex.tempo ? `<span>${ex.tempo}</span>` : ''}${ex.rpe ? `<span>RPE ${ex.rpe}</span>` : ''}${ex.rest ? `<span>${ex.rest / 60} min repos</span>` : ''}</div>`;
+    html += ex.instructions ? `<div class="exercise-instructions">${ex.instructions}</div>` : '';
+    html += `</div>`;
     if (ex.preFatigue) {
       const selectedSets = state.preFatigueSets[ex.id] || 1;
-      html += `<div class="set-choice" onclick="event.stopPropagation()"><button class="${selectedSets === 1 ? 'active' : ''}" onclick="setPreFatigueSetCount('${ex.id}',1)">1</button><button class="${selectedSets === 2 ? 'active' : ''}" onclick="setPreFatigueSetCount('${ex.id}',2)">2</button></div>`;
+      html += `<div class="set-choice" onclick="event.stopPropagation()"><button class="${selectedSets === 1 ? 'active' : ''}" aria-label="Une série pour ${escAttr(ex.name)}" aria-pressed="${selectedSets === 1}" onclick="setPreFatigueSetCount('${ex.id}',1)">1</button><button class="${selectedSets === 2 ? 'active' : ''}" aria-label="Deux séries pour ${escAttr(ex.name)}" aria-pressed="${selectedSets === 2}" onclick="setPreFatigueSetCount('${ex.id}',2)">2</button></div>`;
     }
     if (ex.isFreestyle) {
       html += `<div class="freestyle-controls" onclick="event.stopPropagation()"><button onclick="changeFreestyleSetCount(-1)" aria-label="Retirer une série">−</button><span>${sets.length} séries</span><button onclick="changeFreestyleSetCount(1)" aria-label="Ajouter une série">+</button><button onclick="openFreestylePicker()" aria-label="Changer d'exercice">↻</button><button onclick="removeFreestyleExercise()" aria-label="Retirer l'exercice">×</button></div>`;
@@ -2749,7 +2307,15 @@ function renderContent() {
     if (ex.isExtra) {
       html += `<button class="remove-extra-btn" onclick="event.stopPropagation();removeExtraAccessory('${ex.id}')" title="Retirer de cette séance" aria-label="Retirer ${escAttr(ex.name)}">&times;</button>`;
     }
-    html += `<div class="exercise-check">${allDone ? '&#10003;' : ''}</div>`;
+    if (!ex.preFatigue) {
+      html += `<select class="skip-select${skipReason ? ' active' : ''}" aria-label="Statut de ${escAttr(ex.name)}" onclick="event.stopPropagation()" onchange="setExerciseSkip('${escAttr(exerciseId)}','${escAttr(exKey)}',this.value)">`;
+      html += `<option value="">À faire</option>`;
+      Object.entries(SKIP_LABELS).forEach(([value, label]) => {
+        html += `<option value="${value}"${skipReason === value ? ' selected' : ''}>${label}</option>`;
+      });
+      html += `</select>`;
+    }
+    html += `<div class="exercise-check" aria-hidden="true">${skipReason ? '&#8212;' : allDone ? '&#10003;' : ''}</div>`;
     html += `</div>`;
     html += `<div class="sets-container">`;
 
@@ -2757,7 +2323,7 @@ function renderContent() {
     if (!ex.ref) {
       const note = getCustomNote(ex.name);
       const exNameEsc = ex.name.replace(/"/g, '&quot;');
-      html += `<div class="acc-note-row"><input type="text" class="acc-note-input${note ? '' : ' empty'}" placeholder="&#128221; Note (ex. r&eacute;glage si&egrave;ge, prise, cran&hellip;)" value="${escAttr(note)}" data-exname="${exNameEsc}" onclick="event.stopPropagation()" onchange="onNoteInputChange(this)"></div>`;
+      html += `<div class="acc-note-row"><input type="text" class="acc-note-input${note ? '' : ' empty'}" aria-label="Note, ${escAttr(ex.name)}" placeholder="&#128221; Note (ex. r&eacute;glage si&egrave;ge, prise, cran&hellip;)" value="${escAttr(note)}" data-exname="${exNameEsc}" onclick="event.stopPropagation()" onchange="onNoteInputChange(this)"></div>`;
     }
 
     if (!ex.preFatigue) {
@@ -2795,7 +2361,7 @@ function renderContent() {
         const cr = getCustomReps(ex.name, si);
         const repsVal = (cr !== null) ? cr : '';
         const repsEmpty = (cr === null) ? ' empty' : '';
-        info += `<input type="number" step="1" inputmode="numeric" class="acc-input reps-input${repsEmpty}" placeholder="${programReps}" value="${repsVal}" data-exname="${exNameEsc}" data-set="${si}" data-ekey="${exKey}" onclick="event.stopPropagation()" onchange="onRepsInputChange(this)">`;
+        info += `<input type="number" step="1" inputmode="numeric" class="acc-input reps-input${repsEmpty}" aria-label="Répétitions, ${escAttr(ex.name)}, série ${si + 1}" placeholder="${programReps}" value="${repsVal}" data-exname="${exNameEsc}" data-set="${si}" data-ekey="${exKey}" onclick="event.stopPropagation()" onchange="onRepsInputChange(this)"${skipReason ? ' disabled' : ''}>`;
         info += `<span class="acc-unit">${ex.tracking === "time" ? "sec" : "reps"}</span>`;
 
         info += `<span class="acc-x">&times;</span>`;
@@ -2804,7 +2370,7 @@ function renderContent() {
         const cw = getCustomWeight(ex.name, si);
         const weightVal = (cw !== null) ? cw : '';
         const weightEmpty = (cw === null) ? ' empty' : '';
-        info += `<input type="number" step="0.5" inputmode="decimal" class="acc-input weight-input${weightEmpty}" placeholder="—" value="${weightVal}" data-exname="${exNameEsc}" data-set="${si}" onclick="event.stopPropagation()" onchange="onWeightInputChange(this)">`;
+        info += `<input type="number" step="0.5" inputmode="decimal" class="acc-input weight-input${weightEmpty}" aria-label="Poids, ${escAttr(ex.name)}, série ${si + 1}" placeholder="—" value="${weightVal}" data-exname="${exNameEsc}" data-set="${si}" onclick="event.stopPropagation()" oninput="onWeightInputChange(this)"${skipReason ? ' disabled' : ''}>`;
         info += `<span class="acc-unit">kg</span>`;
       } else {
         // Fallback (shouldn't happen): just show reps
@@ -2827,18 +2393,18 @@ function renderContent() {
       }
 
       html += `<div class="${rowClass}">`;
-      html += `<div class="${checkClass}" onclick="toggleSetDone(${state.week},${state.day},'${exKey}',${si})">&#10003;</div>`;
+      html += `<button type="button" class="${checkClass}" aria-label="${done ? 'Décocher' : 'Cocher'} ${escAttr(ex.name)}, série ${si + 1}" aria-pressed="${done}" onclick="toggleSetDone(${state.week},${state.day},'${exKey}',${si})"${skipReason ? ' disabled' : ''}>&#10003;</button>`;
       html += `<div class="set-info">${info}</div>`;
       html += `</div>`;
     });
 
-    if (!ex.preFatigue) {
+    if (!ex.preFatigue && !skipReason) {
       const rating = getExerciseRating(ex.id || accessoryDataKey(ex.name));
       const ratingId = escAttr(ex.id || accessoryDataKey(ex.name));
       html += `<div class="effort-rating"><span class="effort-rating-label">Ressenti du bloc</span>`;
-      html += `<button class="easy${rating === 'easy' ? ' active' : ''}" onclick="setExerciseRating('${ratingId}','easy')">Très facile</button>`;
-      html += `<button class="right${rating === 'right' ? ' active' : ''}" onclick="setExerciseRating('${ratingId}','right')">Adapté</button>`;
-      html += `<button class="hard${rating === 'hard' ? ' active' : ''}" onclick="setExerciseRating('${ratingId}','hard')">Très difficile</button></div>`;
+      html += `<button class="easy${rating === 'easy' ? ' active' : ''}" aria-label="${escAttr(ex.name)} : très facile" aria-pressed="${rating === 'easy'}" onclick="setExerciseRating('${ratingId}','easy')">Très facile</button>`;
+      html += `<button class="right${rating === 'right' ? ' active' : ''}" aria-label="${escAttr(ex.name)} : adapté" aria-pressed="${rating === 'right'}" onclick="setExerciseRating('${ratingId}','right')">Adapté</button>`;
+      html += `<button class="hard${rating === 'hard' ? ' active' : ''}" aria-label="${escAttr(ex.name)} : très difficile" aria-pressed="${rating === 'hard'}" onclick="setExerciseRating('${ratingId}','hard')">Très difficile</button></div>`;
     }
 
     html += `</div></div>`;
@@ -2855,13 +2421,13 @@ function renderContent() {
   {
     const sp = getDayProgress(state.week, state.day);
     const logged = isSessionLogged(state.week, state.day);
-    if (logged || sp.done > 0) {
+    if (logged || sp.done > 0 || sp.skipped > 0) {
       html += `<div class="session-validate">`;
       if (logged) {
-        html += `<span class="session-validate-ok">&#10003; Séance enregistrée dans l'historique (${sp.done}/${sp.total})</span>`;
+        html += `<span class="session-validate-ok">&#10003; Séance enregistrée dans l'historique</span>`;
         html += `<button class="btn-devalider" onclick="devalidateSession(${state.week},${state.day})">Dévalider</button>`;
       } else {
-        html += `<button class="btn-valider" onclick="showValidateModal(${state.week},${state.day})">Valider la séance (${sp.done}/${sp.total})</button>`;
+        html += `<button class="btn-valider" onclick="showValidateModal(${state.week},${state.day})">Valider la séance</button>`;
       }
       html += `</div>`;
     }
@@ -2879,23 +2445,24 @@ function render() {
 // ============================================================
 // NAVIGATION
 // ============================================================
-function selectWeek(w) {
-  // Toutes les Waves sont navigables librement (révision par le coach / soi-même),
-  // même celles pas encore débloquées.
-  state.week = w;
-  state.day = 0;
-  saveState();
-  render();
-}
-
 function selectDay(d) {
   state.day = d;
-  saveState();
+  saveState({ sync: false });
   render();
 }
 
 function advanceCycle() {
   if (!isBlocComplete(0)) return;
+  if (!confirm(`Commencer la semaine ${state.cycle + 1} ? Les séances validées resteront dans l’historique.`)) return;
+  storeRecoverySnapshot('advance-week');
+  PROGRAM[0].days.forEach((_, dayIndex) => {
+    const occurrence = sessionOccurrenceKey(state.cycle, 0, dayIndex);
+    delete state.sessionDrafts[occurrence];
+    delete state.exerciseRatings[occurrence];
+    delete state.exerciseSkips[occurrence];
+    delete state.extraAccessories[occurrence];
+    delete state.freestyleSelections[occurrence];
+  });
   state.cycle++;
   state.completions = {};
   state.week = 0;
@@ -2908,6 +2475,11 @@ function advanceCycle() {
 function resetDay() {
   const dayData = PROGRAM[state.week].days[state.day];
   if (dayData.rest) return;
+  const progress = getDayProgress(state.week, state.day);
+  if ((progress.done > 0 || progress.skipped > 0 || isSessionLogged(state.week, state.day))
+      && !confirm('Réinitialiser cette séance ? Une copie locale de récupération sera créée.')) return;
+  storeRecoverySnapshot('reset-session');
+  if (isSessionLogged(state.week, state.day)) removeSessionLog(state.week, state.day);
   getSessionExercises(state.week, state.day).forEach((ex, ei) => {
     const exKey = exerciseCompletionKey(ex, ei);
     const sets = getExerciseSets(ex);
@@ -2915,6 +2487,10 @@ function resetDay() {
       delete state.completions[setKey(state.week, state.day, exKey, si)];
     });
   });
+  const occurrence = sessionOccurrenceKey();
+  delete state.sessionDrafts[occurrence];
+  delete state.exerciseRatings[occurrence];
+  delete state.exerciseSkips[occurrence];
   saveState();
   render();
 }
@@ -2923,6 +2499,32 @@ function resetDay() {
 // TIMER
 // ============================================================
 let timerAudioContext = null;
+
+function saveLocalTimerState() {
+  localStorage.setItem(storageKey(STORAGE_TIMER), JSON.stringify({
+    duration: state.timerDuration,
+    remaining: state.timerRemaining,
+    running: state.timerRunning,
+    endsAt: state.timerEndsAt
+  }));
+}
+
+function restoreLocalTimerState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey(STORAGE_TIMER)));
+    if (!saved) return;
+    state.timerDuration = Number(saved.duration) || 120;
+    state.timerEndsAt = saved.running && Number(saved.endsAt) ? Number(saved.endsAt) : null;
+    state.timerRemaining = state.timerEndsAt
+      ? Math.max(0, Math.ceil((state.timerEndsAt - Date.now()) / 1000))
+      : Math.max(0, Number(saved.remaining) || state.timerDuration);
+    state.timerRunning = !!state.timerEndsAt && state.timerRemaining > 0;
+    state.timerAlarmPlayed = state.timerRemaining === 0;
+    if (state.timerRunning) state.timerInterval = setInterval(updateTimerFromClock, 250);
+    document.getElementById('timerBtn').textContent = state.timerRunning ? 'Pause' : 'Start';
+    updateTimerDisplay();
+  } catch(e) {}
+}
 
 function unlockTimerAudio() {
   try {
@@ -2948,10 +2550,12 @@ function unlockTimerAudio() {
 function setTimer(seconds) {
   state.timerDuration = seconds;
   state.timerRemaining = seconds;
-  if (state.timerRunning) {
-    clearInterval(state.timerInterval);
-    state.timerRunning = false;
-  }
+  clearInterval(state.timerInterval);
+  state.timerInterval = null;
+  state.timerRunning = false;
+  state.timerEndsAt = null;
+  state.timerAlarmPlayed = false;
+  saveLocalTimerState();
   updateTimerDisplay();
 }
 
@@ -2962,36 +2566,56 @@ function startRestTimer(seconds) {
 
 function toggleTimer() {
   if (state.timerRunning) {
+    updateTimerFromClock();
     clearInterval(state.timerInterval);
+    state.timerInterval = null;
     state.timerRunning = false;
+    state.timerEndsAt = null;
     document.getElementById('timerBtn').textContent = 'Start';
+    saveLocalTimerState();
   } else {
     if (state.timerRemaining <= 0) {
       state.timerRemaining = state.timerDuration;
     }
     unlockTimerAudio();
     state.timerRunning = true;
+    state.timerAlarmPlayed = false;
+    state.timerEndsAt = Date.now() + state.timerRemaining * 1000;
     document.getElementById('timerBtn').textContent = 'Pause';
-    state.timerInterval = setInterval(() => {
-      state.timerRemaining--;
-      if (state.timerRemaining <= 0) {
-        state.timerRemaining = 0;
-        clearInterval(state.timerInterval);
-        state.timerRunning = false;
-        document.getElementById('timerBtn').textContent = 'Start';
-        playAlarm();
-      }
-      updateTimerDisplay();
-    }, 1000);
+    state.timerInterval = setInterval(updateTimerFromClock, 250);
+    saveLocalTimerState();
+  }
+  updateTimerDisplay();
+}
+
+function updateTimerFromClock() {
+  if (!state.timerRunning || !state.timerEndsAt) return;
+  state.timerRemaining = Math.max(0, Math.ceil((state.timerEndsAt - Date.now()) / 1000));
+  if (state.timerRemaining === 0) {
+    clearInterval(state.timerInterval);
+    state.timerInterval = null;
+    state.timerRunning = false;
+    state.timerEndsAt = null;
+    document.getElementById('timerBtn').textContent = 'Start';
+    if (!state.timerAlarmPlayed) {
+      state.timerAlarmPlayed = true;
+      playAlarm();
+      if (navigator.vibrate) navigator.vibrate([180, 100, 180]);
+    }
+    saveLocalTimerState();
   }
   updateTimerDisplay();
 }
 
 function resetTimer() {
   clearInterval(state.timerInterval);
+  state.timerInterval = null;
   state.timerRunning = false;
+  state.timerEndsAt = null;
+  state.timerAlarmPlayed = false;
   state.timerRemaining = state.timerDuration;
   document.getElementById('timerBtn').textContent = 'Start';
+  saveLocalTimerState();
   updateTimerDisplay();
 }
 
@@ -3033,6 +2657,7 @@ function playAlarm() {
 // SETTINGS
 // ============================================================
 function openSettings() {
+  document.getElementById('settingsVersion').textContent = `Version ${APP_VERSION}`;
   document.getElementById('settingsModal').classList.add('show');
 }
 
@@ -3040,20 +2665,17 @@ function closeSettings() {
   document.getElementById('settingsModal').classList.remove('show');
 }
 
-function saveSettings() {
-  closeSettings();
-}
-
 function resetAllProgress() {
-  if (confirm('Supprimer toute la progression ? Cette action est irréversible.')) {
+  if (confirm('Recommencer à la semaine 1 ? L’historique et les dernières charges seront conservés.')) {
+    storeRecoverySnapshot('reset-program');
+    state.runId = createRunId();
     state.completions = {};
     state.cycle = 1;
     state.week = 0;
     state.day = 0;
-    state.customWeights = {};
-    state.customReps = {};
-    state.customNotes = {};
+    state.sessionDrafts = {};
     state.exerciseRatings = {};
+    state.exerciseSkips = {};
     state.extraAccessories = {};
     state.preFatigueSets = {};
     state.freestyleSelections = {};
@@ -3065,8 +2687,9 @@ function resetAllProgress() {
 }
 
 function resetHistory() {
-  if (confirm('Supprimer tout l\'historique (maxes et sessions) ? Cette action est irréversible.')) {
-    localStorage.removeItem('muscu_history');
+  if (confirm('Masquer tout l\'historique ? Une copie locale de récupération sera créée.')) {
+    storeRecoverySnapshot('reset-history');
+    localStorage.removeItem(storageKey(STORAGE_HISTORY));
     clearAccountHistory();
     closeSettings();
     renderHistory();
@@ -3089,14 +2712,88 @@ async function logout() {
 function buildLocalBackup() {
   let program = null;
   let history = { sessions: [], maxHistory: [] };
-  try { program = JSON.parse(localStorage.getItem('muscu_program')); } catch(e) {}
-  try { history = JSON.parse(localStorage.getItem('muscu_history')) || history; } catch(e) {}
+  try { program = JSON.parse(localStorage.getItem(storageKey(STORAGE_PROGRAM))); } catch(e) {}
+  try { history = JSON.parse(localStorage.getItem(storageKey(STORAGE_HISTORY))) || history; } catch(e) {}
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     application: 'skin-grinding',
+    appVersion: APP_VERSION,
     exportedAt: new Date().toISOString(),
+    accountEmail: accountUser?.email || null,
     data: { program, history }
   };
+}
+
+function storeRecoverySnapshot(reason) {
+  const snapshot = buildLocalBackup();
+  snapshot.recoveryReason = reason;
+  localStorage.setItem(storageKey(STORAGE_RECOVERY), JSON.stringify(snapshot));
+}
+
+async function restoreRecoverySnapshot() {
+  const raw = localStorage.getItem(storageKey(STORAGE_RECOVERY));
+  if (!raw) {
+    alert('Aucune sauvegarde de récupération disponible.');
+    return;
+  }
+  if (!confirm('Restaurer l’état enregistré avant le dernier reset ?')) return;
+  try {
+    const backup = JSON.parse(raw);
+    await applyImportedBackup(backup, true);
+    localStorage.removeItem(storageKey(STORAGE_RECOVERY));
+  } catch(e) {
+    alert('La sauvegarde de récupération est illisible.');
+  }
+}
+
+function validateBackup(backup) {
+  if (!backup || backup.application !== 'skin-grinding' || !backup.data) {
+    throw new Error('invalid-backup');
+  }
+  const history = backup.data.history || { sessions: [], maxHistory: [] };
+  if (!Array.isArray(history.sessions || []) || !Array.isArray(history.maxHistory || [])) {
+    throw new Error('invalid-history');
+  }
+  return backup;
+}
+
+async function applyImportedBackup(input, forceProgramRestore = false) {
+  const backup = validateBackup(input);
+  storeRecoverySnapshot('before-import');
+  const importedHistory = backup.data.history || { sessions: [], maxHistory: [] };
+  const mergedHistory = mergeHistory(loadHistory(), importedHistory);
+  localStorage.setItem(storageKey(STORAGE_HISTORY), JSON.stringify(mergedHistory));
+
+  const importedProgram = backup.data.program;
+  const compatibleProgram = importedProgram?.programVersion === PROGRAM_VERSION;
+  const restoreProgram = compatibleProgram && (forceProgramRestore || confirm('Restaurer aussi la progression et les saisies du programme ?'));
+  if (restoreProgram) {
+    localStorage.setItem(storageKey(STORAGE_PROGRAM), JSON.stringify(importedProgram));
+    loadState();
+    saveState();
+  }
+  await replaceAccountHistory(mergedHistory, { resetDeletionMarkers: true }).catch(() => setSyncStatus('error'));
+  render();
+  if (currentPage === 'history') renderHistory();
+  const count = importedHistory.sessions?.length || 0;
+  alert(`${count} séance${count > 1 ? 's' : ''} lue${count > 1 ? 's' : ''}. L’historique a été fusionné sans écrasement.`);
+}
+
+function requestImportData() {
+  document.getElementById('importDataInput').click();
+}
+
+async function importLocalData(input) {
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file) return;
+  try {
+    const backup = JSON.parse(await file.text());
+    await applyImportedBackup(backup);
+    closeSettings();
+  } catch(e) {
+    alert('Fichier invalide. Choisis une sauvegarde JSON créée par Skin Grinding.');
+  }
 }
 
 async function exportLocalData() {
@@ -3135,10 +2832,12 @@ async function exportLocalData() {
 // ============================================================
 // PERSISTENCE
 // ============================================================
-function saveState() {
-  if (!accountApplyingRemote) state.updatedAt = Date.now();
-  const data = {
+function serializeState() {
+  return {
+    schemaVersion: DATA_SCHEMA_VERSION,
     programVersion: PROGRAM_VERSION,
+    programId: PROGRAM_ID,
+    runId: state.runId || INITIAL_RUN_ID,
     cycle: state.cycle,
     week: state.week,
     day: state.day,
@@ -3148,8 +2847,10 @@ function saveState() {
     maxDeadlift: state.maxDeadlift,
     customWeights: state.customWeights,
     customReps: state.customReps,
+    sessionDrafts: state.sessionDrafts,
     customNotes: state.customNotes,
     exerciseRatings: state.exerciseRatings,
+    exerciseSkips: state.exerciseSkips,
     weightDataVersion: WEIGHT_DATA_VERSION,
     extraAccessories: state.extraAccessories,
     preFatigueSets: state.preFatigueSets,
@@ -3157,34 +2858,29 @@ function saveState() {
     updatedAt: state.updatedAt,
     timerDuration: state.timerDuration
   };
-  localStorage.setItem('muscu_program', JSON.stringify(data));
-  scheduleAccountProgramSync(data);
+}
+
+function saveState(options = {}) {
+  if (!accountApplyingRemote && options.touch !== false) state.updatedAt = Date.now();
+  const data = serializeState();
+  localStorage.setItem(storageKey(STORAGE_PROGRAM), JSON.stringify(data));
+  if (options.sync !== false) scheduleAccountProgramSync(data);
 }
 
 function loadState() {
+  resetStateToDefaults();
   try {
-    const data = JSON.parse(localStorage.getItem('muscu_program'));
+    const data = JSON.parse(localStorage.getItem(storageKey(STORAGE_PROGRAM)));
     if (data) {
       if (data.programVersion !== PROGRAM_VERSION) {
-        state.programVersion = PROGRAM_VERSION;
-        state.cycle = 1;
-        state.week = 0;
-        state.day = 0;
-        state.completions = {};
-        state.customWeights = {};
-        state.customReps = {};
-        state.customNotes = {};
-        state.exerciseRatings = {};
-        state.extraAccessories = {};
-        state.preFatigueSets = {};
-        state.freestyleSelections = {};
         state.updatedAt = Date.now();
-        state.timerDuration = 120;
-        state.timerRemaining = 120;
         saveState();
         return;
       }
+      state.schemaVersion = DATA_SCHEMA_VERSION;
       state.programVersion = PROGRAM_VERSION;
+      state.programId = PROGRAM_ID;
+      state.runId = data.runId || INITIAL_RUN_ID;
       state.cycle = data.cycle || 1;
       state.week = 0;
       state.day = Math.max(0, Math.min(6, Number(data.day) || 0));
@@ -3194,8 +2890,10 @@ function loadState() {
       state.maxDeadlift = data.maxDeadlift || 120;
       state.customWeights = migrateAccessoryKeys(migrateCustomWeights(data.customWeights || {}));
       state.customReps = migrateAccessoryKeys(data.customReps || {});
+      state.sessionDrafts = data.sessionDrafts || {};
       state.customNotes = migrateAccessoryKeys(data.customNotes || {});
       state.exerciseRatings = data.exerciseRatings || {};
+      state.exerciseSkips = data.exerciseSkips || {};
       const migrateWeights = data.weightDataVersion !== WEIGHT_DATA_VERSION;
       if (migrateWeights) migrateWeightsToIndependentSets();
       state.extraAccessories = migrateExtraAccessories(data.extraAccessories || {});
@@ -3204,7 +2902,7 @@ function loadState() {
       state.updatedAt = data.updatedAt || 0;
       state.timerDuration = data.timerDuration || 120;
       state.timerRemaining = state.timerDuration;
-      if (migrateWeights) {
+      if (migrateWeights || data.schemaVersion !== DATA_SCHEMA_VERSION || !data.runId) {
         state.updatedAt = Date.now();
         saveState();
       }
@@ -3245,7 +2943,7 @@ function migrateExtraAccessories(data) {
   return data;
 }
 
-function _ensureEntry(exName, setIdx) {
+function _ensureBaselineWeightEntry(exName, setIdx) {
   const key = accessoryDataKey(exName);
   if (!state.customWeights[key]) state.customWeights[key] = [];
   const entry = state.customWeights[key][setIdx];
@@ -3255,7 +2953,24 @@ function _ensureEntry(exName, setIdx) {
   return state.customWeights[key][setIdx];
 }
 
-function getCustomWeight(exName, setIdx) {
+function getSessionDraft(exName, create = false, cycle = state.cycle, week = state.week, day = state.day) {
+  const occurrence = sessionOccurrenceKey(cycle, week, day);
+  const exerciseKey = accessoryDataKey(exName);
+  if (create) {
+    if (!state.sessionDrafts[occurrence]) state.sessionDrafts[occurrence] = {};
+    if (!state.sessionDrafts[occurrence][exerciseKey]) {
+      state.sessionDrafts[occurrence][exerciseKey] = { weights: [], reps: [] };
+    }
+  }
+  return state.sessionDrafts[occurrence]?.[exerciseKey] || null;
+}
+
+function getCustomWeight(exName, setIdx, cycle = state.cycle, week = state.week, day = state.day) {
+  const draft = getSessionDraft(exName, false, cycle, week, day);
+  if (draft?.weights && Object.prototype.hasOwnProperty.call(draft.weights, setIdx)) {
+    const value = draft.weights[setIdx];
+    return typeof value === 'number' && !isNaN(value) ? value : null;
+  }
   const arr = state.customWeights[accessoryDataKey(exName)];
   if (!arr) return null;
   const entry = arr[setIdx];
@@ -3267,7 +2982,12 @@ function getCustomWeight(exName, setIdx) {
   return null;
 }
 
-function getCustomReps(exName, setIdx) {
+function getCustomReps(exName, setIdx, cycle = state.cycle, week = state.week, day = state.day) {
+  const draft = getSessionDraft(exName, false, cycle, week, day);
+  if (draft?.reps && Object.prototype.hasOwnProperty.call(draft.reps, setIdx)) {
+    const value = draft.reps[setIdx];
+    return typeof value === 'number' && !isNaN(value) ? value : null;
+  }
   const arr = state.customReps[accessoryDataKey(exName)];
   if (!arr) return null;
   const r = arr[setIdx];
@@ -3275,8 +2995,8 @@ function getCustomReps(exName, setIdx) {
 }
 
 function setCustomWeight(exName, setIdx, weight) {
-  const entry = _ensureEntry(exName, setIdx);
-  entry.w = (weight === null || weight === '' || isNaN(weight)) ? null : Number(weight);
+  const draft = getSessionDraft(exName, true);
+  draft.weights[setIdx] = (weight === null || weight === '' || isNaN(weight)) ? null : Number(weight);
   saveState();
 }
 
@@ -3286,24 +3006,48 @@ function getExerciseRating(exerciseId, cycle = state.cycle, week = state.week, d
 
 function setExerciseRating(exerciseId, rating) {
   if (!['easy', 'right', 'hard'].includes(rating)) return;
+  const wasComplete = getDayProgress(state.week, state.day).pct === 100;
   const occurrence = sessionOccurrenceKey();
   if (!state.exerciseRatings[occurrence]) state.exerciseRatings[occurrence] = {};
   state.exerciseRatings[occurrence][exerciseId] = rating;
   saveState();
   render();
+  afterSessionChange(state.week, state.day, wasComplete);
 }
 
 function setCustomReps(exName, setIdx, reps, persist = true) {
-  const key = accessoryDataKey(exName);
-  if (!state.customReps[key]) state.customReps[key] = [];
-  state.customReps[key][setIdx] = (reps === null || reps === '' || isNaN(reps)) ? null : Number(reps);
+  const draft = getSessionDraft(exName, true);
+  draft.reps[setIdx] = (reps === null || reps === '' || isNaN(reps)) ? null : Number(reps);
   if (persist) saveState();
+}
+
+function commitExerciseDraft(exName, completedSetIndexes) {
+  const draft = getSessionDraft(exName);
+  if (!draft) return;
+  const key = accessoryDataKey(exName);
+  if (!state.customWeights[key]) state.customWeights[key] = [];
+  if (!state.customReps[key]) state.customReps[key] = [];
+  completedSetIndexes.forEach(setIdx => {
+    if (draft.weights && Object.prototype.hasOwnProperty.call(draft.weights, setIdx)) {
+      const entry = _ensureBaselineWeightEntry(key, setIdx);
+      entry.w = draft.weights[setIdx];
+    }
+    if (draft.reps && Object.prototype.hasOwnProperty.call(draft.reps, setIdx)) {
+      state.customReps[key][setIdx] = draft.reps[setIdx];
+    }
+  });
 }
 
 // Escape a string for safe use inside an HTML attribute value.
 function escAttr(s) {
   return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+function escHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 // Per-exercise free-text note (keyed by exercise name, persists across cycles/days).
@@ -3319,8 +3063,10 @@ function setCustomNote(exName, text) {
   saveState();
 }
 function onNoteInputChange(inputEl) {
+  const wasComplete = getDayProgress(state.week, state.day).pct === 100;
   setCustomNote(inputEl.dataset.exname, inputEl.value);
   inputEl.classList.toggle('empty', inputEl.value.trim() === '');
+  afterSessionChange(state.week, state.day, wasComplete);
 }
 
 // Migrate old format [number] → [{w, r}] in place
@@ -3375,7 +3121,16 @@ function onRepsInputChange(inputEl) {
   const wasSetDone = !!state.completions[key];
   setCustomReps(exName, setIdx, num, false); // independent per set — no sibling sync
   // Saisir des reps coche la série (= validée) ; vider la case la décoche.
-  if (num !== null) state.completions[key] = true; else delete state.completions[key];
+  if (num !== null) {
+    state.completions[key] = true;
+    const exercise = getSessionExercises().find((candidate, index) => exerciseCompletionKey(candidate, index) === String(exKey));
+    const exerciseId = exercise?.id || (exercise ? accessoryDataKey(exercise.name) : null);
+    const occurrence = sessionOccurrenceKey();
+    if (exerciseId && state.exerciseSkips[occurrence]) {
+      delete state.exerciseSkips[occurrence][exerciseId];
+      if (!Object.keys(state.exerciseSkips[occurrence]).length) delete state.exerciseSkips[occurrence];
+    }
+  } else delete state.completions[key];
   if (num !== null && !wasSetDone) {
     const duration = getExerciseTimerDuration(state.week, state.day, exKey);
     if (duration > 0) startRestTimer(duration);
@@ -3394,14 +3149,16 @@ function onRepsInputChange(inputEl) {
 
 function loadHistory() {
   try {
-    const data = JSON.parse(localStorage.getItem('muscu_history'));
+    const data = JSON.parse(localStorage.getItem(storageKey(STORAGE_HISTORY)));
     return data || { sessions: [], maxHistory: [] };
   } catch(e) { return { sessions: [], maxHistory: [] }; }
 }
 
-function saveHistory(history) {
-  localStorage.setItem('muscu_history', JSON.stringify(history));
-  syncAccountHistory(history);
+function saveHistory(history, options = {}) {
+  localStorage.setItem(storageKey(STORAGE_HISTORY), JSON.stringify(history));
+  if (options.sync === false) return;
+  const sync = options.session ? syncAccountSession(options.session) : syncAccountHistory(history);
+  Promise.resolve(sync).catch(() => setSyncStatus(navigator.onLine === false ? 'offline' : 'error'));
 }
 
 // Merge two history objects without data loss.
@@ -3429,7 +3186,7 @@ function mergeHistory(a, b) {
     .sort((x, y) => (x.date || '').localeCompare(y.date || ''));
 
   const sessByKey = new Map();
-  const keyOf = s => `${s.cycle||1}|${s.week}|${s.day}|${s.date}`;
+  const keyOf = s => `${effectiveSessionProgramId(s)}|${effectiveSessionRunId(s)}|${s.cycle || 1}|${s.week}|${s.day}`;
   [...(a.sessions || []), ...(b.sessions || [])].forEach(s => {
     if (!s || s.date === undefined) return;
     const k = keyOf(s);
@@ -3458,8 +3215,7 @@ function mergeHistory(a, b) {
 // never on individual set/reps/weight changes.
 // ============================================================
 function isSessionValidated(week, day, cycle = state.cycle, history = loadHistory()) {
-  return history.sessions.some(s =>
-    s.week === week && s.day === day && (s.cycle || 1) === cycle);
+  return history.sessions.some(s => sessionMatchesContext(s, week, day, cycle));
 }
 
 function isSessionLogged(week, day) {
@@ -3468,12 +3224,10 @@ function isSessionLogged(week, day) {
 
 function removeSessionLog(week, day) {
   const history = loadHistory();
-  const removed = history.sessions.filter(s =>
-    s.week === week && s.day === day && (s.cycle || 1) === state.cycle);
+  const removed = history.sessions.filter(s => sessionMatchesContext(s, week, day));
   if (removed.length) {
-    history.sessions = history.sessions.filter(s =>
-      !(s.week === week && s.day === day && (s.cycle || 1) === state.cycle));
-    saveHistory(history);
+    history.sessions = history.sessions.filter(s => !sessionMatchesContext(s, week, day));
+    saveHistory(history, { sync: false });
     removed.forEach(deleteAccountSession);
     if (currentPage === 'history') renderHistory();
   }
@@ -3491,7 +3245,7 @@ function afterSessionChange(week, day, wasComplete) {
   const prog = getDayProgress(week, day);
   const logged = isSessionLogged(week, day);
   if (logged) {
-    if (prog.done === 0) removeSessionLog(week, day);
+    if (prog.done === 0 && prog.skipped === 0) removeSessionLog(week, day);
     else logSession(week, day);
   } else if (prog.pct === 100 && !wasComplete) {
     showValidateModal(week, day);
@@ -3499,16 +3253,33 @@ function afterSessionChange(week, day, wasComplete) {
 }
 
 let _validateTarget = null;
+function getMissingRatingCount(week, day) {
+  let missing = 0;
+  getSessionExercises(week, day).forEach((exercise, index) => {
+    if (exercise.preFatigue) return;
+    const exKey = exerciseCompletionKey(exercise, index);
+    const exerciseId = exercise.id || accessoryDataKey(exercise.name);
+    if (getExerciseSkip(exerciseId, state.cycle, week, day)) return;
+    const hasPerformedSet = getExerciseSets(exercise).some((_, setIndex) => isSetDone(week, day, exKey, setIndex));
+    if (hasPerformedSet && !getExerciseRating(exerciseId, state.cycle, week, day)) missing++;
+  });
+  return missing;
+}
+
 function showValidateModal(week, day) {
   _validateTarget = { week, day };
   const dd = PROGRAM[week].days[day];
   const prog = getDayProgress(week, day);
   const partial = prog.pct < 100;
+  const missingRatings = getMissingRatingCount(week, day);
+  const ratingWarning = missingRatings
+    ? ` ${missingRatings} ressenti${missingRatings > 1 ? 's' : ''} de bloc reste${missingRatings > 1 ? 'nt' : ''} vide${missingRatings > 1 ? 's' : ''}; la validation reste possible.`
+    : '';
   document.getElementById('validateModalTitle').textContent =
     partial ? 'Valider la séance (incomplète)' : 'Séance terminée';
   document.getElementById('validateModalText').textContent = partial
-    ? `Enregistrer « ${dd.name} » dans l'historique avec ${prog.done}/${prog.total} séries faites ? Les exercices non cochés seront notés comme non réalisés.`
-    : `Toutes les séries de « ${dd.name} » sont cochées. Enregistrer cette séance dans l'historique ?`;
+    ? `Enregistrer « ${dd.name} » avec ${prog.done} série${prog.done > 1 ? 's' : ''} réalisée${prog.done > 1 ? 's' : ''}${prog.skipped ? ` et ${prog.skipped} exercice${prog.skipped > 1 ? 's' : ''} ignoré${prog.skipped > 1 ? 's' : ''}` : ''} ?${ratingWarning}`
+    : `Enregistrer « ${dd.name} » dans l'historique ?${ratingWarning}`;
   document.getElementById('validateModal').classList.add('show');
 }
 function closeValidateModal() {
@@ -3532,7 +3303,7 @@ function logSession(week, day) {
   if (dayData.rest) return;
 
   const prog = getDayProgress(week, day);
-  if (prog.done === 0) return; // Don't log empty sessions
+  if (prog.done === 0 && prog.skipped === 0) return;
 
   const history = loadHistory();
   const today = localDateKey();
@@ -3540,12 +3311,18 @@ function logSession(week, day) {
   const exercises = [];
   getSessionExercises(week, day).forEach((ex, ei) => {
     const exKey = exerciseCompletionKey(ex, ei);
+    const exerciseId = ex.id || ACCESSORY_IDS[ex.name] || accessoryDataKey(ex.name);
+    const skipReason = getExerciseSkip(exerciseId, state.cycle, week, day);
     const sets = getExerciseSets(ex);
     const details = [];
     let exDone = 0;
+    const completedSetIndexes = [];
     sets.forEach((set, si) => {
       const done = isSetDone(week, day, exKey, si);
-      if (done) exDone++;
+      if (done) {
+        exDone++;
+        completedSetIndexes.push(si);
+      }
       let weight = null;
       let reps = set.r === "AMRAP" ? "AMRAP" : set.r;
       let desc = '';
@@ -3568,11 +3345,15 @@ function logSession(week, day) {
       if (set.rpe) desc += ` RPE${set.rpe}`;
       details.push({ desc, done, reps, weight });
     });
+    if (!ex.ref && completedSetIndexes.length) commitExerciseDraft(ex.name, completedSetIndexes);
     exercises.push({
-      id: ex.id || ACCESSORY_IDS[ex.name] || null,
+      id: exerciseId,
       name: ex.name,
       source: ex.isFreestyle ? "freestyle" : ex.isExtra ? "added" : "programmed",
+      note: getCustomNote(ex.name),
       rating: getExerciseRating(ex.id || accessoryDataKey(ex.name), state.cycle, week, day),
+      skipped: !!skipReason,
+      skipReason: skipReason || null,
       sets: details,
       done: exDone,
       total: sets.length
@@ -3581,22 +3362,31 @@ function logSession(week, day) {
 
   // Check if session for today+week+day already exists, update it
   const existingIdx = history.sessions.findIndex(s =>
-    s.week === week && s.day === day && (s.cycle || 1) === state.cycle
+    sessionMatchesContext(s, week, day)
   );
+  const existingSession = existingIdx >= 0 ? history.sessions[existingIdx] : null;
   const sessionDate = existingIdx >= 0 ? history.sessions[existingIdx].date : today;
+  const now = Date.now();
 
   const session = {
+    sessionId: existingSession?.sessionId || createRunId(),
+    schemaVersion: DATA_SCHEMA_VERSION,
+    programId: PROGRAM_ID,
+    runId: state.runId || INITIAL_RUN_ID,
     date: sessionDate,
     cycle: state.cycle,
     week,
     day,
     dayName: dayData.name,
     weekName: PROGRAM[week].name,
-    maxes: { squat: state.maxSquat, bench: state.maxBench, deadlift: state.maxDeadlift },
     setsTotal: prog.total,
     setsDone: prog.done,
+    setsResolved: prog.resolved,
+    skippedExercises: prog.skipped,
     exercises,
-    updatedAt: Date.now()
+    startedAt: existingSession?.startedAt || now,
+    validatedAt: existingSession?.validatedAt || now,
+    updatedAt: now
   };
 
   if (existingIdx >= 0) {
@@ -3605,41 +3395,9 @@ function logSession(week, day) {
     history.sessions.push(session);
   }
 
-  // Keep last 500 sessions max
-  if (history.sessions.length > 500) {
-    history.sessions = history.sessions.slice(-500);
-  }
-
-  saveHistory(history);
-}
-
-function logMaxChange() {
-  const history = loadHistory();
-  const today = localDateKey();
-
-  // Only add if different from last entry
-  const last = history.maxHistory.length > 0 ? history.maxHistory[history.maxHistory.length - 1] : null;
-  if (last && last.squat === state.maxSquat && last.bench === state.maxBench && last.deadlift === state.maxDeadlift) {
-    return;
-  }
-
-  // Update if same date, else add new
-  const todayIdx = history.maxHistory.findIndex(m => m.date === today);
-  const entry = {
-    date: today,
-    squat: state.maxSquat,
-    bench: state.maxBench,
-    deadlift: state.maxDeadlift,
-    updatedAt: Date.now()
-  };
-
-  if (todayIdx >= 0) {
-    history.maxHistory[todayIdx] = entry;
-  } else {
-    history.maxHistory.push(entry);
-  }
-
-  saveHistory(history);
+  if (prog.pct === 100) delete state.sessionDrafts[sessionOccurrenceKey(state.cycle, week, day)];
+  saveState();
+  saveHistory(history, { session });
 }
 
 // ============================================================
@@ -3651,10 +3409,11 @@ function showPage(page) {
   currentPage = page;
   document.getElementById('content').style.display = page === 'program' ? '' : 'none';
   document.getElementById('nav').style.display = page === 'program' ? '' : 'none';
-  document.getElementById('maxesBar').style.display = 'none';
   document.getElementById('historyPage').style.display = page === 'history' ? '' : 'none';
   document.getElementById('btnProgram').classList.toggle('active', page === 'program');
   document.getElementById('btnHistory').classList.toggle('active', page === 'history');
+  document.getElementById('btnProgram').setAttribute('aria-pressed', String(page === 'program'));
+  document.getElementById('btnHistory').setAttribute('aria-pressed', String(page === 'history'));
   document.getElementById('timerBar').style.display = page === 'program' ? '' : 'none';
   document.getElementById('resetDayBtn').style.display = page === 'program' ? '' : 'none';
 
@@ -3671,160 +3430,136 @@ function formatHistoryDate(dateKey) {
   return match ? `${match[3]}/${match[2]}/${match[1].slice(2)}` : String(dateKey || '');
 }
 
+let historySearchQuery = '';
+let historyVisibleCount = 50;
+let historySearchTimer = null;
+
+function queueHistorySearch(query) {
+  clearTimeout(historySearchTimer);
+  historySearchTimer = setTimeout(() => setHistorySearch(query), 120);
+}
+
+function setHistorySearch(query) {
+  historySearchQuery = String(query || '').trim().toLocaleLowerCase('fr');
+  historyVisibleCount = 50;
+  renderHistory();
+  const input = document.getElementById('historySearch');
+  if (input) {
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  }
+}
+
+function showMoreHistory() {
+  historyVisibleCount += 50;
+  renderHistory();
+}
+
 function renderHistory() {
   const container = document.getElementById('historyPage');
   const history = loadHistory();
+  const allSessions = (history.sessions || []).slice().sort((a, b) =>
+    ((b.validatedAt || b.updatedAt || 0) - (a.validatedAt || a.updatedAt || 0)) || String(b.date || '').localeCompare(String(a.date || ''))
+  );
 
-  if (history.sessions.length === 0 && history.maxHistory.length === 0) {
-    container.innerHTML = `
-      <div class="empty-history">
-        <div class="icon">&#128202;</div>
-        <h2>Pas encore d'historique</h2>
-        <p>Complète des séances pour voir ton évolution ici.</p>
-      </div>`;
+  if (allSessions.length === 0) {
+    container.innerHTML = `<div class="empty-history"><div class="icon">&#128202;</div><h2>Pas encore d'historique</h2><p>Les séances validées apparaîtront ici.</p></div>`;
     return;
   }
 
-  let html = '<h2>Historique & Progression</h2>';
+  const recentRatings = allSessions.slice(0, 12).flatMap(session =>
+    (session.exercises || []).map(exercise => exercise.rating).filter(Boolean)
+  );
+  const ratingCounts = recentRatings.reduce((counts, rating) => {
+    counts[rating] = (counts[rating] || 0) + 1;
+    return counts;
+  }, {});
 
-  // === MAXES EVOLUTION ===
-  if (history.maxHistory.length > 0) {
-    const latest = history.maxHistory[history.maxHistory.length - 1];
-    const first = history.maxHistory[0];
+  let html = '<div class="history-title-row"><div><h2>Historique</h2><p>Performances, ressentis et adaptations enregistrés</p></div></div>';
+  html += `<div class="history-summary">
+    <div><strong>${allSessions.length}</strong><span>Séances</span></div>
+    <div><strong>${ratingCounts.easy || 0}</strong><span>Très faciles</span></div>
+    <div><strong>${ratingCounts.right || 0}</strong><span>Adaptées</span></div>
+    <div><strong>${ratingCounts.hard || 0}</strong><span>Très difficiles</span></div>
+  </div>`;
+  html += `<div class="history-toolbar"><input id="historySearch" type="search" value="${escAttr(historySearchQuery)}" placeholder="Rechercher un exercice ou une date" aria-label="Rechercher dans l'historique" oninput="queueHistorySearch(this.value)"></div>`;
 
-    html += '<div class="maxes-history"><h3>Évolution des Maxes</h3>';
-    html += '<div class="maxes-chart">';
+  const sessions = allSessions.filter(session => {
+    if (!historySearchQuery) return true;
+    const haystack = [session.date, session.dayName, session.weekName, ...(session.exercises || []).map(exercise => exercise.name)]
+      .join(' ').toLocaleLowerCase('fr');
+    return haystack.includes(historySearchQuery);
+  });
 
-    ['squat', 'bench', 'deadlift'].forEach(lift => {
-      const current = latest[lift];
-      const initial = first[lift];
-      const delta = current - initial;
-      const deltaClass = delta > 0 ? 'up' : delta < 0 ? 'down' : 'same';
-      const deltaStr = delta > 0 ? `+${delta}` : delta === 0 ? '=' : `${delta}`;
-      const label = lift.charAt(0).toUpperCase() + lift.slice(1);
-
-      html += `<div class="max-chart-item">
-        <div class="max-chart-label">${label}</div>
-        <div class="max-chart-value">${current} kg
-          <span class="max-chart-delta ${deltaClass}">${deltaStr}</span>
-        </div>
-      </div>`;
-    });
-    html += '</div>';
-
-    // Max timeline (graph)
-    if (history.maxHistory.length > 1) {
-      const maxEntries = history.maxHistory.slice(-20); // Last 20 entries
-      const allVals = maxEntries.flatMap(m => [m.squat, m.bench, m.deadlift]);
-      const maxVal = Math.max(...allVals);
-      const minVal = Math.min(...allVals) * 0.9;
-      const range = maxVal - minVal || 1;
-
-      html += '<div style="margin-top:16px"><h3 style="font-size:13px;color:var(--text2);margin-bottom:8px">Graphique des Maxes</h3>';
-      html += '<div class="graph-bars">';
-      maxEntries.forEach(m => {
-        const sH = Math.round(((m.squat - minVal) / range) * 100);
-        const bH = Math.round(((m.bench - minVal) / range) * 100);
-        const dH = Math.round(((m.deadlift - minVal) / range) * 100);
-        const dateLabel = `#${maxEntries.indexOf(m) + 1}`;
-        html += `<div class="graph-bar-group">
-          <div style="display:flex;gap:2px;align-items:flex-end;height:100%;width:100%">
-            <div class="graph-bar squat" style="height:${sH}%" title="Squat ${m.squat}kg"></div>
-            <div class="graph-bar bench" style="height:${bH}%" title="Bench ${m.bench}kg"></div>
-            <div class="graph-bar dl" style="height:${dH}%" title="DL ${m.deadlift}kg"></div>
-          </div>
-          <div class="graph-bar-label">${dateLabel}</div>
-        </div>`;
-      });
-      html += '</div>';
-      html += `<div class="graph-legend">
-        <div class="graph-legend-item"><div class="legend-dot" style="background:var(--green)"></div> Squat</div>
-        <div class="graph-legend-item"><div class="legend-dot" style="background:var(--blue)"></div> Bench</div>
-        <div class="graph-legend-item"><div class="legend-dot" style="background:var(--orange)"></div> Deadlift</div>
-      </div>`;
-      html += '</div>';
-    }
-
-    // Timeline table
-    html += '<div class="max-timeline" style="margin-top:12px">';
-    history.maxHistory.slice().reverse().slice(0, 20).forEach((m, i) => {
-      html += `<div class="max-timeline-row">
-        <span class="max-timeline-date">${i === 0 ? 'Actuel' : `Mise à jour ${history.maxHistory.length - i}`}</span>
-        <div class="max-timeline-values">
-          <span class="max-timeline-val squat">S: ${m.squat}kg</span>
-          <span class="max-timeline-val bench">B: ${m.bench}kg</span>
-          <span class="max-timeline-val dl">D: ${m.deadlift}kg</span>
-        </div>
-      </div>`;
-    });
-    html += '</div></div>';
+  if (!sessions.length) {
+    html += '<div class="empty-history compact"><p>Aucune séance ne correspond à cette recherche.</p></div>';
   }
 
-  // === VOLUME GRAPH ===
-  if (history.sessions.length > 1) {
-    const recentSessions = history.sessions.slice(-30);
-    const maxSets = Math.max(1, ...recentSessions.map(s => s.setsTotal || 0));
-
-    html += '<div class="graph-container"><h3>Volume par séance (séries complétées)</h3>';
-    html += '<div class="graph-bars">';
-    recentSessions.forEach(s => {
-      const h = Math.round((s.setsDone / maxSets) * 100);
-      const color = s.setsDone === s.setsTotal ? 'var(--green)' : 'var(--orange)';
-      const shortName = s.dayName.substring(0, 8);
-      html += `<div class="graph-bar-group">
-        <div class="graph-bar" style="height:${h}%;background:${color}" title="${s.dayName}: ${s.setsDone}/${s.setsTotal}"></div>
-        <div class="graph-bar-label">${shortName}</div>
-      </div>`;
-    });
-    html += '</div></div>';
-  }
-
-  // === SESSION LOGS ===
-  html += '<h3 style="margin-bottom:12px;color:var(--text2);font-size:15px">Séances récentes</h3>';
-
-  const sessions = history.sessions.slice().reverse();
-  sessions.slice(0, 50).forEach((s, idx) => {
-    const pct = s.setsTotal > 0 ? Math.round((s.setsDone / s.setsTotal) * 100) : 0;
-    const badgeClass = pct === 100 ? 'complete' : 'partial';
-    const badgeText = pct === 100 ? '100%' : `${pct}%`;
+  sessions.slice(0, historyVisibleCount).forEach((session, index) => {
+    const performedExercises = (session.exercises || []).filter(exercise => (exercise.done || 0) > 0).length;
+    const skippedExercises = (session.exercises || []).filter(exercise => exercise.skipped).length;
+    const currentProgram = effectiveSessionProgramId(session) === PROGRAM_ID;
+    const sessionLabel = currentProgram
+      ? `Semaine ${session.cycle || 1} · ${session.dayName || 'Séance'}`
+      : `${session.weekName || 'Archive'} · ${session.dayName || 'Séance'}`;
+    const badgeText = `${performedExercises} réalisé${performedExercises > 1 ? 's' : ''}${skippedExercises ? ` · ${skippedExercises} ignoré${skippedExercises > 1 ? 's' : ''}` : ''}`;
 
     html += `<div class="session-log">
-      <div class="session-header" onclick="toggleSessionDetail(${idx})">
-        <span class="session-date">${formatHistoryDate(s.date)}</span>
-        <span class="session-label">${s.cycle ? 'C' + s.cycle + ' ' : ''}${s.weekName} — ${s.dayName}</span>
-        <span class="session-badge ${badgeClass}">${badgeText} (${s.setsDone}/${s.setsTotal})</span>
-      </div>
-      <div class="session-detail" id="session-${idx}">`;
+      <button class="session-header" aria-expanded="false" aria-controls="session-${index}" onclick="toggleSessionDetail(${index},this)">
+        <span class="session-date">${escHtml(formatHistoryDate(session.date))}</span>
+        <span class="session-label">${escHtml(sessionLabel)}</span>
+        <span class="session-badge ${skippedExercises ? 'partial' : 'complete'}">${escHtml(badgeText)}</span>
+      </button>
+      <div class="session-detail" id="session-${index}">`;
 
-    (s.exercises || []).forEach(ex => {
-      const exPct = ex.total > 0 ? Math.round((ex.done / ex.total) * 100) : 0;
-      // Highlight the weight portion of each set desc for readability
-      const formatDesc = (desc) => desc.replace(/(\d+(?:\.\d+)?kg)/g, '<b style="color:var(--blue)">$1</b>');
-      html += `<div class="session-exercise">
-        <div class="session-exercise-name">${ex.name}${ex.source === 'added' ? ' · ajouté' : ''} (${ex.done}/${ex.total})</div>
-        <div class="session-sets">${ex.sets.map(st =>
-          `<span style="color:${st.done ? 'var(--green)' : 'var(--red)'}">&#${st.done ? '10003' : '10007'}; ${formatDesc(st.desc)}</span>`
-        ).join(' &nbsp; ')}</div>
-        ${ex.rating ? `<span class="history-effort">Ressenti : ${{easy:'Très facile',right:'Adapté',hard:'Très difficile'}[ex.rating] || ex.rating}</span>` : ''}
-      </div>`;
+    (session.exercises || []).filter(exercise =>
+      (exercise.done || 0) > 0 || exercise.skipped || exercise.rating || exercise.note
+    ).forEach(exercise => {
+      const formatDesc = desc => escHtml(desc).replace(/(\d+(?:\.\d+)?kg)/g, '<b style="color:var(--blue)">$1</b>');
+      html += `<div class="session-exercise"><div class="session-exercise-name">${escHtml(exercise.name)}${exercise.source === 'added' ? ' · ajouté' : ''}</div>`;
+      if (exercise.skipped) {
+        html += `<span class="history-skip">Ignoré · ${escHtml(SKIP_LABELS[exercise.skipReason] || exercise.skipReason || 'Non précisé')}</span>`;
+      } else {
+        html += `<div class="session-sets">${(exercise.sets || []).map(set =>
+          `<span class="${set.done ? 'history-set-done' : 'history-set-missed'}">${set.done ? '&#10003;' : '&#8212;'} ${formatDesc(set.desc)}</span>`
+        ).join(' &nbsp; ')}</div>`;
+      }
+      if (exercise.rating) html += `<span class="history-effort">Ressenti : ${escHtml(RATING_LABELS[exercise.rating] || exercise.rating)}</span>`;
+      if (exercise.note) html += `<div class="history-note">${escHtml(exercise.note)}</div>`;
+      html += '</div>';
     });
-
     html += '</div></div>';
   });
 
+  if (sessions.length > historyVisibleCount) {
+    html += `<button class="history-more" onclick="showMoreHistory()">Afficher 50 séances de plus (${sessions.length - historyVisibleCount} restantes)</button>`;
+  }
+  if ((history.maxHistory || []).length) {
+    html += `<p class="history-archive-note">${history.maxHistory.length} ancienne${history.maxHistory.length > 1 ? 's' : ''} mesure${history.maxHistory.length > 1 ? 's' : ''} SBD conservée${history.maxHistory.length > 1 ? 's' : ''} dans les sauvegardes.</p>`;
+  }
   container.innerHTML = html;
 }
 
-function toggleSessionDetail(idx) {
+function toggleSessionDetail(idx, button) {
   const el = document.getElementById('session-' + idx);
-  if (el) el.classList.toggle('open');
+  if (el) {
+    const open = el.classList.toggle('open');
+    if (button) button.setAttribute('aria-expanded', String(open));
+  }
 }
 
 // ============================================================
 // KEYBOARD SHORTCUTS
 // ============================================================
 document.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'Escape') {
+    if (document.getElementById('accountModal').classList.contains('show')) closeAccountModal();
+    else if (document.getElementById('accessoryPickerModal').classList.contains('show')) closeAccessoryPicker();
+    else if (document.getElementById('validateModal').classList.contains('show')) closeValidateModal();
+    else if (document.getElementById('settingsModal').classList.contains('show')) closeSettings();
+    return;
+  }
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
   if (e.key === ' ' || e.key === 'Spacebar') {
     e.preventDefault();
     toggleTimer();
@@ -3854,22 +3589,74 @@ document.getElementById('accountModal').addEventListener('click', (e) => {
   if (e.target.classList.contains('modal-overlay')) closeAccountModal();
 });
 
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) updateTimerFromClock();
+});
+
+if (window.addEventListener) {
+  window.addEventListener('online', () => {
+    setSyncStatus('saving');
+    if (accountUser) {
+      scheduleAccountProgramSync(getLocalProgramData());
+      replaceAccountHistory(loadHistory()).catch(() => setSyncStatus('error'));
+    }
+  });
+  window.addEventListener('offline', () => setSyncStatus('offline'));
+}
+
 // ============================================================
 // INIT
 // ============================================================
 localStorage.removeItem('muscu_auth');
-loadState();
+resetStateToDefaults();
 render();
 updateTimerDisplay();
-initAccountSystem();
+const localPreviewMode = ['localhost', '127.0.0.1'].includes(location.hostname)
+  && new URLSearchParams(location.search).has('preview');
+if (localPreviewMode) {
+  activateAccountStorage('local-preview', { claimLegacy: false });
+  loadState();
+  restoreLocalTimerState();
+  if (!getLocalProgramData()) saveState({ sync: false });
+  document.getElementById('loginOverlay').style.display = 'none';
+  setSyncStatus('saved', 'Aperçu local');
+  render();
+} else {
+  initAccountSystem();
+}
 
 document.getElementById('welcomePassword').addEventListener('keydown', event => {
   if (event.key === 'Enter') loginFromWelcome();
 });
 
+let waitingServiceWorker = null;
+function showAppUpdate(worker) {
+  waitingServiceWorker = worker;
+  document.getElementById('updateBanner').classList.add('show');
+}
+function activateAppUpdate() {
+  if (waitingServiceWorker) waitingServiceWorker.postMessage({ type: 'SKIP_WAITING' });
+  else location.reload();
+}
+
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    refreshing = true;
+    location.reload();
+  });
+  navigator.serviceWorker.register('sw.js').then(registration => {
+    if (registration.waiting) showAppUpdate(registration.waiting);
+    registration.addEventListener('updatefound', () => {
+      const worker = registration.installing;
+      if (!worker) return;
+      worker.addEventListener('statechange', () => {
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) showAppUpdate(worker);
+      });
+    });
+  }).catch(() => {});
 }
 </script>
 
