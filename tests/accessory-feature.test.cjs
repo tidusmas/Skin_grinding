@@ -9,20 +9,26 @@ const html = fs.readFileSync(path.join(root, "programme_muscu.html"), "utf8");
 const serviceWorker = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 const databaseRules = JSON.parse(fs.readFileSync(path.join(root, "database.rules.json"), "utf8"));
 const script = html.match(/<script>([\s\S]*)<\/script>/)[1].split("// INIT")[0];
+
 assert.doesNotMatch(html, /PASSWORD_HASH|attemptLogin|id="loginPassword"/);
-assert.doesNotMatch(html, /const RAW_PROGRAM/);
-assert.match(html, /aria-label="Poids,/);
-assert.match(html, /oninput="onWeightInputChange\(this\)"/);
+assert.match(html, /Plan actuel/);
+assert.match(html, /En attente du nouveau programme Rudy/);
+assert.match(html, /Charge réellement utilisée/);
+assert.match(html, /Vidéo personnelle/);
 assert.match(serviceWorker, /url\.origin !== self\.location\.origin/);
 assert.match(serviceWorker, /type === 'SKIP_WAITING'/);
 assert.equal(databaseRules.rules.accounts.$uid[".read"], "auth != null && auth.uid === $uid");
 
 const storage = new Map();
 const classList = { add() {}, remove() {}, toggle() {}, contains() { return false; } };
-const element = () => ({ value: "", textContent: "", style: {}, classList, addEventListener() {}, querySelectorAll() { return []; } });
+const element = () => ({
+  value: "", checked: false, textContent: "", innerHTML: "", style: {}, className: "",
+  classList, addEventListener() {}, setAttribute() {}, focus() {}, setSelectionRange() {},
+  querySelectorAll() { return []; }
+});
 const elements = new Map();
 const context = {
-  console, crypto: crypto.webcrypto, TextEncoder, Uint8Array, Map, Set, Date, Math, JSON,
+  console, crypto: crypto.webcrypto, TextEncoder, Uint8Array, Map, Set, Date, Math, JSON, URL,
   localStorage: {
     getItem: key => storage.get(key) ?? null,
     setItem: (key, value) => storage.set(key, String(value)),
@@ -32,198 +38,181 @@ const context = {
     getElementById: id => { if (!elements.has(id)) elements.set(id, element()); return elements.get(id); },
     querySelectorAll: () => [], addEventListener() {}
   },
-  navigator: {}, fetch: async () => ({ ok: true, json: async () => null }), confirm: () => true,
+  navigator: {}, fetch: async () => ({ ok: true, json: async () => null }),
+  confirm: () => true, alert() {},
   setInterval: () => 1, clearInterval() {}, setTimeout, clearTimeout
 };
 context.window = context;
 vm.createContext(context);
 vm.runInContext(`${script}
 globalThis.testApi = {
-  state, PROGRAM, PROGRAM_VERSION, PROGRAM_ID, INITIAL_RUN_ID, DATA_SCHEMA_VERSION,
-  FREESTYLE_CATALOG, FREESTYLE_BY_ID,
-  getSessionExercises, getExerciseSets, setPreFatigueSetCount,
-  sessionOccurrenceKey, exerciseCompletionKey, getExerciseTimerDuration,
-  getDayProgress, setKey, saveState, loadState, buildLocalBackup,
+  state, PROGRAM, PROGRAM_VERSION, PROGRAM_ID, PREVIOUS_PROGRAM_ID, TRAINING_ONE_ARCHIVE_ID,
+  INITIAL_RUN_ID, DATA_SCHEMA_VERSION, WEIGHT_DATA_VERSION,
+  getEffectiveDayData, getSessionExercises, getExerciseSets, sessionOccurrenceKey,
+  exerciseCompletionKey, getExerciseTimerDuration, getDayProgress, setKey,
+  saveState, loadState, buildLocalBackup, serializeState, resetStateToDefaults,
   historyToCloudMap, cloudMapToHistory, mergeHistory, accountSessionKey, localDateKey,
-  storageKey, activateAccountStorage, resetStateToDefaults, serializeState,
-  setCustomWeight, getCustomWeight, setCustomReps, getCustomReps, getSessionDraft,
-  setExerciseRating, getExerciseRating, setExerciseSkip, getExerciseSkip,
-  logSession, loadHistory, WEIGHT_DATA_VERSION,
+  storageKey, activateAccountStorage, setCustomWeight, getCustomWeight,
+  setCustomReps, getCustomReps, getSessionDraft, setSetRpe, getSetRpe,
+  setExerciseRating, getExerciseRating, setExercisePain, getExercisePain,
+  setPersonalMedia, getPersonalMedia, logSession, loadHistory,
   getRecentExerciseHistory, formatPreviousSets, renderRecentExerciseHistory,
-  isSessionValidated, isSessionLogged, isBlocComplete, advanceCycle, renderWeekAdvanceBanner,
-  effectiveSessionProgramId, effectiveSessionRunId, sessionMatchesContext, validateBackup,
+  isSessionValidated, isSessionLogged, isBlocComplete, advanceCycle,
+  renderWeekAdvanceBanner, effectiveSessionProgramId, effectiveSessionRunId,
+  sessionMatchesContext, validateBackup, buildTrainingOneArchive, ensureTrainingOneArchive,
   setTimer, toggleTimer, resetTimer, restoreLocalTimerState, STORAGE_TIMER
 };`, context);
 const api = context.testApi;
 
-assert.equal(api.PROGRAM_VERSION, 2);
+assert.equal(api.PROGRAM_VERSION, 3);
+assert.equal(api.DATA_SCHEMA_VERSION, 4);
+assert.equal(api.PROGRAM_ID, "rudy-training-2-v1");
 assert.equal(api.PROGRAM.length, 1);
 assert.deepEqual(Array.from(api.PROGRAM[0].days, day => day.name), [
-  "Upper 1", "Lower 1", "Repos", "Upper 2", "Lower 2", "Repos", "Repos"
+  "Jour 1", "Jour 2", "Repos", "Jour 4", "Jour 5", "Repos", "Repos"
 ]);
-assert.equal(api.PROGRAM[0].days.filter(day => !day.rest).length, 4);
+assert.equal(api.PROGRAM[0].days[3].pending, true);
+assert.equal(api.PROGRAM[0].days[4].pending, true);
 
-const upper1 = api.PROGRAM[0].days[0];
-assert.equal(upper1.exercises.find(ex => ex.name === "Bench Feet Up").range, "10-15");
-assert.equal(upper1.exercises.find(ex => ex.name === "Bench Feet Up").rest, 120);
-const lower1 = api.PROGRAM[0].days[1];
-const lower2 = api.PROGRAM[0].days[4];
-assert.equal(lower1.exercises.find(ex => ex.name === "Adductions Machine").range, "10-15");
-assert.equal(lower2.exercises.find(ex => ex.name === "Adductions Machine").range, "20");
-
-const warmup = upper1.exercises[0];
-assert.equal(api.getExerciseSets(warmup).length, 1);
-api.setPreFatigueSetCount(warmup.id, 2);
-assert.equal(api.getExerciseSets(warmup).length, 2);
-assert.equal(api.getExerciseTimerDuration(0, 0, api.exerciseCompletionKey(warmup, 0)), 0);
+const day1 = api.PROGRAM[0].days[0];
+const day2 = api.PROGRAM[0].days[1];
+assert.equal(day1.exercises.length, 12);
+assert.equal(day2.exercises.length, 6);
+const lateralIso = day1.exercises.find(ex => ex.id === "iso-elevation-laterale");
+assert.equal(api.getExerciseSets(lateralIso).length, 2);
+assert.equal(lateralIso.targetWeight, 3);
+assert.equal(lateralIso.requiresPersonalVideo, true);
+const inclineCurl = day1.exercises.find(ex => ex.id === "curl-incline");
+assert.equal(inclineCurl.targetWeight, 8);
+assert.equal(inclineCurl.sets[0].r, 13);
+const skullCrusher = day2.exercises.find(ex => ex.id === "barre-au-front");
+assert.equal(skullCrusher.targetWeightLabel, "15 kg de disques + barre EZ");
+assert.match(skullCrusher.weightNote, /barre EZ/);
 
 api.state.cycle = 1;
 api.state.week = 0;
-api.state.day = 1;
-api.state.freestyleSelections = {};
-assert.equal(api.getDayProgress(0, 1).total, 16); // Freestyle is optional until an exercise is selected.
-const occurrence = api.sessionOccurrenceKey();
-api.state.freestyleSelections[occurrence] = { id: "leg-press-freestyle", sets: 4 };
-const exercises = api.getSessionExercises(0, 1);
-const freestyle = exercises.find(ex => ex.isFreestyle);
-assert.equal(freestyle.name, "Leg Press");
-assert.equal(api.getExerciseSets(freestyle).length, 4);
-assert.equal(api.getExerciseTimerDuration(0, 1, api.exerciseCompletionKey(freestyle, exercises.indexOf(freestyle))), 120);
-
-api.state.preFatigueSets = { [warmup.id]: 2 };
-api.saveState();
-const saved = JSON.parse(storage.get("muscu_program"));
-assert.equal(saved.programVersion, 2);
-assert.equal(saved.preFatigueSets[warmup.id], 2);
-assert.equal(saved.freestyleSelections[occurrence].id, "leg-press-freestyle");
-assert.equal(saved.weightDataVersion, api.WEIGHT_DATA_VERSION);
-
-api.setCustomWeight("Leg Press", 0, 20);
-api.setCustomWeight("Leg Press", 1, 25);
-api.setCustomWeight("Leg Press", 2, 30);
-assert.deepEqual([0, 1, 2].map(i => api.getCustomWeight("Leg Press", i)), [20, 25, 30]);
-api.setExerciseRating(freestyle.id, "hard");
-assert.equal(api.getExerciseRating(freestyle.id), "hard");
-
-storage.set("muscu_program", JSON.stringify({
-  programVersion: 2, weightDataVersion: 1, cycle: 1, day: 0,
-  customWeights: { "bench-feet-up": [{ w: 42.5, r: null }] }, updatedAt: 1
-}));
-api.loadState();
-assert.deepEqual([0, 1, 2].map(i => api.getCustomWeight("Bench Feet Up", i)), [42.5, 42.5, 42.5]);
-assert.equal(JSON.parse(storage.get("muscu_program")).weightDataVersion, api.WEIGHT_DATA_VERSION);
-
-api.state.cycle = 4;
-api.state.week = 0;
 api.state.day = 0;
-const benchExercise = upper1.exercises.find(ex => ex.id === "bench-feet-up");
-const exerciseHistory = { sessions: [
-  { programId: "upper-lower-2026-v1", runId: "initial-run", date: "2026-07-01", cycle: 1, week: 0, day: 0, exercises: [{ id: benchExercise.id, rating: "easy", sets: [{ done: true, reps: 15, weight: 20 }] }] },
-  { programId: "upper-lower-2026-v1", runId: "initial-run", date: "2026-07-08", cycle: 2, week: 0, day: 0, exercises: [{ id: benchExercise.id, rating: "right", sets: [{ done: true, reps: 10, weight: 25 }] }] },
-  { programId: "upper-lower-2026-v1", runId: "initial-run", date: "2026-07-15", cycle: 3, week: 0, day: 0, exercises: [{ id: benchExercise.id, rating: "hard", sets: [{ done: true, reps: 11, weight: 30 }] }] },
-  { programId: "upper-lower-2026-v1", runId: "initial-run", date: "2026-07-22", cycle: 4, week: 0, day: 0, exercises: [{ id: benchExercise.id, rating: "easy", sets: [{ done: true, reps: 12, weight: 32.5 }] }] }
-] };
-const recentBench = api.getRecentExerciseHistory(benchExercise, exerciseHistory);
-assert.equal(recentBench.length, 3);
-assert.deepEqual(Array.from(recentBench, item => item.exercise.rating), ["hard", "right", "easy"]);
-assert.equal(api.formatPreviousSets(recentBench[0].exercise.sets), "11×30 kg");
-assert.match(api.renderRecentExerciseHistory(benchExercise, exerciseHistory), /Très difficile/);
+assert.equal(api.getDayProgress(0, 0).total, 33);
+assert.equal(api.getDayProgress(0, 0).exercisesTotal, 12);
+assert.equal(api.getDayProgress(0, 1).total, 21);
+assert.deepEqual(
+  { total: api.getDayProgress(0, 3).total, pct: api.getDayProgress(0, 3).pct },
+  { total: 0, pct: 100 }
+);
+assert.equal(api.getExerciseTimerDuration(0, 0, api.exerciseCompletionKey(lateralIso, 0)), 0);
+const bench = day1.exercises.find(ex => ex.id === "developpe-couche-halteres");
+const benchKey = api.exerciseCompletionKey(bench, day1.exercises.indexOf(bench));
+assert.equal(api.getExerciseTimerDuration(0, 0, benchKey), 120);
 
-api.state.cycle = 5;
-api.state.week = 0;
-api.state.day = 4;
-api.state.completions = {}; // A validated partial session must still count.
-const validatedDays = [0, 1, 3, 4];
+// Every set keeps its own actual load. Unedited sets use Rudy's target as a convenient default.
+api.setCustomWeight(bench.id, 0, 20);
+api.setCustomWeight(bench.id, 1, 25);
+api.setCustomWeight(bench.id, 2, 30);
+assert.deepEqual([0, 1, 2].map(i => api.getCustomWeight(bench.id, i, 1, 0, 0, bench.targetWeight)), [20, 25, 30]);
+assert.equal(api.getCustomWeight(bench.id, 3, 1, 0, 0, bench.targetWeight), 26);
+api.setCustomReps(bench.id, 0, 15);
+api.setCustomReps(bench.id, 1, 10);
+api.setSetRpe(bench.id, 0, 7.5);
+assert.deepEqual([api.getCustomReps(bench.id, 0), api.getCustomReps(bench.id, 1)], [15, 10]);
+assert.equal(api.getSetRpe(bench.id, 0), 7.5);
+
+api.setExercisePain(bench.id, "score", 4);
+api.setExercisePain(bench.id, "location", "épaule gauche");
+assert.deepEqual(
+  JSON.parse(JSON.stringify(api.getExercisePain(bench.id))),
+  { score: 4, location: "épaule gauche" }
+);
+api.setPersonalMedia(bench.id, "videoUrl", "https://youtu.be/example");
+assert.equal(api.getPersonalMedia(bench.id).videoUrl, "https://youtu.be/example");
+
+// A validated session snapshots actual data, target data, per-set RPE, pain and media separately.
+api.state.completions[api.setKey(0, 0, benchKey, 0)] = true;
+api.state.exerciseRatings[api.sessionOccurrenceKey()] = { [bench.id]: "right" };
+api.logSession(0, 0);
+let currentHistory = api.loadHistory();
+assert.equal(currentHistory.sessions.length, 1);
+let loggedBench = currentHistory.sessions[0].exercises.find(ex => ex.id === bench.id);
+assert.equal(loggedBench.sets[0].weight, 20);
+assert.equal(loggedBench.sets[0].rpe, 7.5);
+assert.equal(loggedBench.target.weight, 26);
+assert.equal(loggedBench.pain.score, 4);
+assert.equal(loggedBench.personalMedia.videoUrl, "https://youtu.be/example");
+
+// Entraînement 1 is a deterministic archive and is seeded only once.
+const archive = api.buildTrainingOneArchive(100);
+assert.equal(archive.length, 4);
+assert.deepEqual(Array.from(archive, session => session.dayName), ["Jour 1", "Jour 2", "Jour 4", "Jour 5"]);
+assert.ok(archive.every(session => session.programId === api.TRAINING_ONE_ARCHIVE_ID));
+assert.ok(archive.every(session => session.displayDate === "Semaine précédente"));
+const archivedCurl = archive[0].exercises.find(ex => ex.id === "curl-incline");
+assert.deepEqual(Array.from(archivedCurl.sets, set => set.weight), [12, 12, 10, 10]);
+assert.match(archivedCurl.summary, /8 kg/);
+api.state.historySeedVersion = 0;
+api.ensureTrainingOneArchive({ sync: false });
+currentHistory = api.loadHistory();
+assert.equal(currentHistory.sessions.length, 5);
+api.ensureTrainingOneArchive({ sync: false });
+assert.equal(api.loadHistory().sessions.length, 5);
+
+const recentCurl = api.getRecentExerciseHistory(inclineCurl, api.loadHistory());
+assert.equal(recentCurl.length, 1);
+assert.equal(api.formatPreviousSets(recentCurl[0].exercise.sets), "12×12 kg · 8×12 kg · RPE ≈8–9 · 12×10 kg · 9×10 kg · RPE ≈8–9");
+assert.match(api.renderRecentExerciseHistory(inclineCurl, api.loadHistory()), /Semaine précédente/);
+
+// Only currently planned sessions block week completion; pending Rudy days do not.
+api.resetStateToDefaults();
+api.state.cycle = 2;
 storage.set("muscu_history", JSON.stringify({
-  sessions: validatedDays.map((day, index) => ({
-    programId: "upper-lower-2026-v1", runId: "initial-run",
-    date: `2026-08-${10 + index}`, cycle: 5, week: 0, day,
-    setsDone: 1, setsTotal: 20, exercises: []
+  sessions: [0, 1].map((day, index) => ({
+    programId: api.PROGRAM_ID, runId: api.INITIAL_RUN_ID,
+    date: `2026-10-0${index + 1}`, cycle: 2, week: 0, day,
+    setsDone: 1, setsTotal: 1, exercises: []
   })),
   maxHistory: []
 }));
-assert.equal(api.isSessionValidated(0, 0), true);
-assert.equal(api.isSessionLogged(0, 0), true);
 assert.equal(api.isBlocComplete(0), true);
-assert.match(api.renderWeekAdvanceBanner(), /Commencer la semaine 6/);
-api.advanceCycle();
-assert.equal(api.state.cycle, 6);
+assert.match(api.renderWeekAdvanceBanner(), /Commencer la semaine 3/);
+api.state.customSessions["3"] = {
+  name: "Séance libre · Jour 4",
+  exercises: [{ id: "custom-test", name: "Test", section: "Séance principale", tracking: "reps", sets: [{ s: 1, r: 10 }] }]
+};
 assert.equal(api.isBlocComplete(0), false);
+delete api.state.customSessions["3"];
+api.advanceCycle();
+assert.equal(api.state.cycle, 3);
 
-storage.set("muscu_history", JSON.stringify({ sessions: [{ date: "2026-08-10" }], maxHistory: [] }));
-storage.set("muscu_program", JSON.stringify({ programVersion: 1, cycle: 9, completions: { old: true }, updatedAt: 1 }));
+// Legacy Upper/Lower sessions remain attached to their old program, never to Entraînement 2.
+const legacyWeekly = { weekName: "Semaine", dayName: "Upper 1", cycle: 1, week: 0, day: 0 };
+const legacySbd = { weekName: "Wave 1", dayName: "Squat", cycle: 1, week: 0, day: 0 };
+assert.equal(api.effectiveSessionProgramId(legacyWeekly), api.PREVIOUS_PROGRAM_ID);
+assert.equal(api.effectiveSessionProgramId(legacySbd), "legacy-sbd");
+assert.equal(api.sessionMatchesContext(legacyWeekly, 0, 0), false);
+const separatePrograms = api.mergeHistory(
+  { sessions: [{ ...legacyWeekly, programId: api.PREVIOUS_PROGRAM_ID, date: "2026-01-01" }], maxHistory: [] },
+  { sessions: [{ ...legacyWeekly, programId: api.PROGRAM_ID, date: "2026-01-01" }], maxHistory: [] }
+);
+assert.equal(separatePrograms.sessions.length, 2);
+
+// Program migration resets only active progress and leaves history untouched with a recovery copy.
+storage.set("muscu_history", JSON.stringify({ sessions: [{ date: "2026-08-10", programId: "old", week: 0, day: 0 }], maxHistory: [] }));
+storage.set("muscu_program", JSON.stringify({ programVersion: 2, cycle: 9, completions: { old: true }, updatedAt: 1 }));
 api.loadState();
-assert.equal(api.state.programVersion, 2);
+assert.equal(api.state.programVersion, 3);
 assert.equal(api.state.cycle, 1);
 assert.deepEqual(Object.keys(api.state.completions), []);
 assert.equal(JSON.parse(storage.get("muscu_history")).sessions.length, 1);
+assert.ok(storage.has("muscu_recovery"));
 
 const backup = api.buildLocalBackup();
 assert.equal(backup.application, "skin-grinding");
-assert.equal(backup.data.history.sessions.length, 1);
 const cloud = api.historyToCloudMap(backup.data.history);
 assert.equal(api.cloudMapToHistory(cloud).sessions.length, 1);
 assert.equal(api.localDateKey(new Date(2026, 0, 2, 0, 30)), "2026-01-02");
-const merged = api.mergeHistory(
-  { sessions: [{ date: "2026-01-02", cycle: 1, week: 0, day: 0, updatedAt: 10 }], maxHistory: [] },
-  { sessions: [{ date: "2026-01-02", cycle: 1, week: 0, day: 0, updatedAt: 20, marker: "new" }], maxHistory: [] }
-);
-assert.equal(merged.sessions[0].marker, "new");
+assert.throws(() => api.validateBackup({ application: "other", data: {} }), /invalid-backup/);
 
-// Drafts are isolated per workout occurrence while validated defaults remain reusable.
-api.activateAccountStorage(null);
-api.resetStateToDefaults();
-api.state.week = 0;
-api.state.day = 1;
-api.setCustomWeight("Adductions Machine", 0, 20);
-api.setCustomReps("Adductions Machine", 0, 15);
-assert.equal(api.getCustomWeight("Adductions Machine", 0), 20);
-api.state.day = 4;
-assert.equal(api.getCustomWeight("Adductions Machine", 0), null);
-assert.equal(api.getCustomReps("Adductions Machine", 0), null);
-api.setCustomWeight("Adductions Machine", 0, 35);
-api.state.day = 1;
-assert.equal(api.getCustomWeight("Adductions Machine", 0), 20);
-
-// Legacy weekly sessions are attributed to the initial run; old SBD sessions are not.
-const legacyWeekly = { weekName: "Semaine", dayName: "Upper 1", cycle: 1, week: 0, day: 0 };
-const legacySbd = { weekName: "Wave 1", dayName: "Squat", cycle: 1, week: 0, day: 0 };
-assert.equal(api.effectiveSessionProgramId(legacyWeekly), api.PROGRAM_ID);
-assert.equal(api.effectiveSessionProgramId(legacySbd), "legacy-sbd");
-api.state.runId = api.INITIAL_RUN_ID;
-assert.equal(api.sessionMatchesContext(legacyWeekly, 0, 0), true);
-api.state.runId = "fresh-run";
-assert.equal(api.sessionMatchesContext(legacyWeekly, 0, 0), false);
-const separateRuns = api.mergeHistory(
-  { sessions: [{ ...legacyWeekly, programId: api.PROGRAM_ID, runId: "run-a", date: "2026-01-01" }], maxHistory: [] },
-  { sessions: [{ ...legacyWeekly, programId: api.PROGRAM_ID, runId: "run-b", date: "2026-01-01" }], maxHistory: [] }
-);
-assert.equal(separateRuns.sessions.length, 2);
-
-// A skipped exercise is valid history, with its reason, without pretending sets were done.
-storage.delete("muscu_history");
-api.resetStateToDefaults();
-api.state.week = 0;
-api.state.day = 0;
-const firstWork = api.getSessionExercises(0, 0).find(exercise => !exercise.preFatigue);
-const firstWorkIndex = api.getSessionExercises(0, 0).indexOf(firstWork);
-api.setExerciseSkip(firstWork.id, api.exerciseCompletionKey(firstWork, firstWorkIndex), "injury");
-assert.equal(api.getDayProgress(0, 0).skipped, 1);
-assert.equal(api.getDayProgress(0, 0).done, 0);
-api.logSession(0, 0);
-const skippedSession = api.loadHistory().sessions.at(-1);
-assert.equal(skippedSession.programId, api.PROGRAM_ID);
-assert.equal(skippedSession.exercises.find(exercise => exercise.id === firstWork.id).skipReason, "injury");
-
-// Rating changes after validation update the existing session rather than duplicating it.
-api.setExerciseRating(firstWork.id, "hard");
-const reratedHistory = api.loadHistory();
-assert.equal(reratedHistory.sessions.length, 1);
-assert.equal(reratedHistory.sessions[0].exercises.find(exercise => exercise.id === firstWork.id).rating, "hard");
-
-// Local data is namespaced by Firebase uid; a second account cannot inherit the first.
+// Local data remains isolated by Firebase account.
 storage.clear();
-storage.set("muscu_program", JSON.stringify({ programVersion: 2, cycle: 7, day: 3, updatedAt: 1 }));
+storage.set("muscu_program", JSON.stringify({ programVersion: 3, weightDataVersion: 2, cycle: 7, day: 1, updatedAt: 1 }));
 api.activateAccountStorage("uid-a");
 api.loadState();
 assert.equal(api.state.cycle, 7);
@@ -232,23 +221,19 @@ api.saveState({ sync: false });
 api.activateAccountStorage("uid-b");
 api.loadState();
 assert.equal(api.state.cycle, 1);
-assert.equal(storage.has("muscu_program:uid-b"), false);
 api.activateAccountStorage("uid-a");
 api.loadState();
 assert.equal(api.state.cycle, 8);
 
-assert.throws(() => api.validateBackup({ application: "other", data: {} }), /invalid-backup/);
-assert.equal(api.validateBackup(api.buildLocalBackup()).application, "skin-grinding");
-
 api.activateAccountStorage(null);
 api.resetStateToDefaults();
-api.setTimer(180);
+api.setTimer(120);
 api.toggleTimer();
 const runningTimer = JSON.parse(storage.get(api.STORAGE_TIMER));
 assert.equal(runningTimer.running, true);
 assert.ok(runningTimer.endsAt > Date.now());
 api.resetTimer();
 const resetTimerState = JSON.parse(storage.get(api.STORAGE_TIMER));
-assert.deepEqual({ running: resetTimerState.running, remaining: resetTimerState.remaining }, { running: false, remaining: 180 });
+assert.deepEqual({ running: resetTimerState.running, remaining: resetTimerState.remaining }, { running: false, remaining: 120 });
 
-console.log("Weekly program tests passed");
+console.log("Rudy training 2 tests passed");

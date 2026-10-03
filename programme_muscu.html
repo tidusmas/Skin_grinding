@@ -14,11 +14,13 @@
   --bg: #090b0c;
   --bg2: #121516;
   --bg3: #1a1f20;
+  --surface-2: #1a1f20;
   --surface-raised: #202627;
   --border: #303738;
   --border-strong: #465052;
   --text: #f1f4f2;
   --text2: #9ba5a2;
+  --text-muted: #9ba5a2;
   --green: #51d47b;
   --green-dim: #173d27;
   --blue: #68b8e8;
@@ -39,6 +41,7 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
+  letter-spacing: 0;
 }
 button, input, select { font: inherit; }
 button { touch-action: manipulation; }
@@ -111,6 +114,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .nav-tab:hover { color: var(--text); background: var(--bg3); }
 .nav-tab.active { color: var(--green); border-bottom-color: var(--green); }
 .nav-tab.rest { color: var(--text2); opacity: .5; font-style: italic; }
+.nav-tab.pending { color: var(--orange); opacity: .78; }
 /* "locked" = pas encore débloquée : grisée mais cliquable (révision libre) */
 .nav-tab.locked { opacity: 0.5; color: var(--text2); }
 
@@ -190,6 +194,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 }
 .exercise-name { font-weight: 600; font-size: 16px; flex: 1; }
 .exercise-instructions { margin-top:5px; color:var(--text2); font-size:12px; line-height:1.35; }
+.exercise-weight-note { margin-top:5px; color:var(--orange); font-size:11px; line-height:1.35; }
+.rudy-comment { display:grid; grid-template-columns:auto 1fr; gap:7px; margin-top:8px; padding:8px 9px; border-left:2px solid var(--blue); background:rgba(104,184,232,.06); color:var(--text2); font-size:12px; line-height:1.4; }
+.rudy-comment strong { color:var(--blue); }
+.exercise-edit-btn { width:34px; height:34px; flex:none; border:1px solid var(--border); border-radius:6px; background:var(--bg3); color:var(--text2); cursor:pointer; }
+.exercise-edit-btn:hover { color:var(--text); border-color:var(--blue); }
 .skip-select { min-height:34px; max-width:132px; padding:5px 24px 5px 7px; border:1px solid var(--border); border-radius:6px; background:var(--bg3); color:var(--text2); font-size:11px; }
 .skip-select.active { border-color:var(--orange); color:var(--orange); }
 .exercise-check {
@@ -267,8 +276,12 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .acc-input.weight-input { color: var(--blue); width: 52px; }
 .acc-input.weight-input:focus { border-color: var(--blue); }
 .acc-input.weight-input.empty { color: var(--text2); }
+.acc-input.rpe-input { width:45px; color:var(--orange); }
+.acc-input.rpe-input:focus { border-color:var(--orange); }
 .acc-unit { color: var(--text2); font-size: 11px; margin-left: 1px; margin-right: 6px; }
 .acc-x { color: var(--text2); font-size: 12px; margin: 0 4px; }
+.set-index { width:24px; color:var(--text2); font-size:11px; font-weight:800; }
+.set-rpe-label { margin-left:auto; color:var(--text2); font-size:10px; font-weight:800; }
 .acc-range {
   margin-left: auto;
   padding: 2px 8px;
@@ -284,6 +297,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 
 /* ACCESSORY NOTE (free text, above the sets) */
 .acc-note-row { padding: 10px 0 4px; }
+.acc-note-row label { display:block; margin-bottom:5px; color:var(--text2); font-size:10px; font-weight:800; text-transform:uppercase; }
 .acc-note-input {
   width: 100%;
   padding: 6px 10px;
@@ -492,7 +506,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 }
 .modal h3 { margin-bottom: 16px; font-size: 18px; }
 .modal label { display: block; color: var(--text2); font-size: 13px; margin-bottom: 6px; margin-top: 14px; }
-.modal input[type="date"], .modal input[type="number"] {
+.modal input[type="date"], .modal input[type="number"], .modal input[type="text"], .modal input[type="url"], .modal select, .modal textarea {
   width: 100%;
   padding: 8px 12px;
   background: var(--bg);
@@ -615,6 +629,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .empty-history .icon { font-size: 48px; margin-bottom: 12px; }
 .empty-history.compact { padding:28px 16px; }
 .history-title-row p { margin-top:-14px; margin-bottom:18px; color:var(--text2); font-size:13px; }
+.history-kicker { display:block; margin-bottom:5px; color:var(--green); font-size:10px; font-weight:850; text-transform:uppercase; }
+.history-title-row .history-kicker + h2 { margin-bottom:20px; }
 .history-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-bottom:14px; }
 .history-summary > div { display:grid; gap:3px; padding:12px; border:1px solid var(--border); border-radius:8px; background:var(--bg2); }
 .history-summary strong { font-size:21px; }
@@ -623,6 +639,13 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .history-toolbar input { width:100%; min-height:42px; padding:9px 12px; border:1px solid var(--border); border-radius:7px; background:var(--bg2); color:var(--text); }
 .history-more { width:100%; min-height:44px; margin-top:4px; border:1px solid var(--border); border-radius:7px; background:var(--bg2); color:var(--blue); font-weight:700; }
 .history-archive-note { margin-top:18px; color:var(--text2); font-size:11px; text-align:center; }
+.history-target { margin-top:6px; color:var(--blue); font-size:11px; }
+.history-summary-text { margin-top:6px; color:var(--text); font-size:12px; line-height:1.45; }
+.history-pain { display:inline-block; margin:7px 0 0 6px; padding:3px 7px; border-radius:5px; background:#421c1c; color:#ff9696; font-size:11px; font-weight:800; }
+.history-rudy { margin-top:6px; color:var(--text2); font-size:11px; }
+.history-rudy strong { color:var(--blue); }
+.history-media { display:flex; flex-wrap:wrap; gap:6px; margin-top:7px; }
+.history-media a { padding:4px 7px; border:1px solid #37627d; border-radius:4px; color:var(--blue); font-size:10px; font-weight:750; text-decoration:none; }
 
 /* POLISHED APP SHELL */
 .header {
@@ -852,6 +875,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .recent-exercise-rating.easy { background:#163b27; color:#7ce7a3; }
 .recent-exercise-rating.right { background:#3c2d13; color:#f0c66f; }
 .recent-exercise-rating.hard { background:#421c1c; color:#ff9696; }
+.recent-exercise-difficulty { padding:3px 6px; border-radius:4px; background:#2f2b20; color:#f0c66f; font-size:10px; font-weight:800; white-space:nowrap; }
 .week-complete-banner { display:flex; align-items:center; justify-content:space-between; gap:18px; margin:0 0 20px; padding:15px 16px; border:1px solid var(--green); border-radius:8px; background:#101b14; }
 .week-complete-banner div { display:grid; gap:3px; }
 .week-complete-banner strong { color:var(--green); font-size:15px; }
@@ -862,6 +886,37 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .update-banner span { flex:1; font-size:13px; }
 .update-banner button { min-height:38px; padding:7px 12px; border:1px solid var(--blue); border-radius:6px; background:transparent; color:var(--blue); font-weight:700; }
 .settings-version { color:var(--text2); font-size:11px; text-align:center; }
+.plan-current-banner { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; padding:10px 12px; border:1px solid #31543d; border-radius:7px; background:#0e1711; }
+.plan-current-banner span { color:var(--green); font-size:10px; font-weight:850; text-transform:uppercase; }
+.plan-current-banner strong { font-size:13px; }
+.pending-day-panel { padding:38px 24px; border:1px dashed var(--orange); border-radius:8px; background:#17140e; text-align:center; }
+.pending-day-kicker { color:var(--orange); font-size:11px; font-weight:800; text-transform:uppercase; }
+.pending-day-panel h2 { margin:8px 0; font-size:22px; }
+.pending-day-panel p { max-width:520px; margin:0 auto 20px; color:var(--text2); line-height:1.5; }
+.pending-day-panel button { min-height:42px; padding:9px 16px; border:1px solid var(--orange); border-radius:6px; background:#3c2d13; color:#f0c66f; font-weight:800; }
+.target-chip { border-color:#3b6250 !important; color:var(--green) !important; }
+.set-table-label { display:flex; justify-content:space-between; gap:10px; padding:10px 0 5px; color:var(--text2); font-size:9px; font-weight:800; text-transform:uppercase; }
+.pain-tracking { display:grid; grid-template-columns:auto 110px minmax(0,1fr); align-items:end; gap:8px; margin-top:10px; padding-top:11px; border-top:1px solid var(--border); }
+.pain-title { align-self:center; color:var(--text2); font-size:11px; font-weight:800; text-transform:uppercase; }
+.pain-tracking label, .personal-media-fields label { color:var(--text2); font-size:10px; font-weight:700; }
+.pain-tracking input, .personal-media-fields input, .editor-grid input, .editor-grid select, .editor-grid textarea { width:100%; min-height:38px; margin-top:4px; padding:7px 9px; border:1px solid var(--border); border-radius:5px; background:var(--bg); color:var(--text); }
+.exercise-media { margin-top:12px; padding-top:11px; border-top:1px solid var(--border); }
+.exercise-media summary { color:var(--blue); font-size:11px; font-weight:800; cursor:pointer; }
+.media-links { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
+.media-links a, .url-field a { display:inline-flex; align-items:center; min-height:34px; padding:6px 9px; border:1px solid #37627d; border-radius:5px; color:var(--blue); font-size:11px; font-weight:750; text-decoration:none; }
+.media-empty { color:var(--text2); font-size:11px; }
+.personal-media-fields { display:grid; gap:9px; margin-top:10px; }
+.url-field { display:flex; align-items:stretch; gap:6px; }
+.url-field input { min-width:0; margin-top:4px; }
+.url-field a { margin-top:4px; white-space:nowrap; }
+.recent-exercise-pain { grid-column:2 / -1; color:var(--red); font-size:10px; }
+.editor-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 12px; }
+.editor-grid label { margin:0; min-width:0; }
+.editor-grid .wide { grid-column:1 / -1; }
+.editor-grid textarea { min-height:72px; resize:vertical; font:inherit; }
+.editor-check { display:flex !important; align-items:center; gap:8px; }
+.editor-check input { width:18px; height:18px; margin:0; }
+.editor-message { min-height:18px; margin-top:8px; color:var(--red); font-size:12px; }
 @media (max-width:600px) {
   .weekly-nav { grid-template-columns:repeat(7,96px); }
   .exercise-card { padding:0; }
@@ -885,6 +940,17 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
   .acc-input { min-height:44px; }
   .skip-select { min-height:44px; max-width:118px; }
   .effort-rating button { min-height:44px; }
+  .exercise-header { flex-wrap:wrap; }
+  .exercise-title { flex-basis:calc(100% - 96px); }
+  .skip-select { order:10; margin-left:42px; max-width:calc(100% - 42px); }
+  .set-info { gap:3px; }
+  .set-rpe-label { margin-left:4px; }
+  .pain-tracking { grid-template-columns:88px minmax(0,1fr); }
+  .pain-title { grid-column:1 / -1; }
+  .editor-grid { grid-template-columns:1fr; }
+  .editor-grid .wide { grid-column:auto; }
+  .url-field { flex-direction:column; }
+  .url-field a { justify-content:center; }
 }
 </style>
 </head>
@@ -986,6 +1052,90 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
   </div>
 </div>
 
+<div class="modal-overlay" id="exerciseEditorModal" role="dialog" aria-modal="true" aria-labelledby="exerciseEditorTitle">
+  <div class="modal" style="width:640px">
+    <h3 id="exerciseEditorTitle">Modifier l’exercice</h3>
+    <div class="editor-grid">
+      <label class="wide">Nom
+        <input type="text" id="editorExerciseName">
+      </label>
+      <label>Jour
+        <select id="editorExerciseDay">
+          <option value="0">Jour 1</option>
+          <option value="1">Jour 2</option>
+          <option value="3">Jour 4</option>
+          <option value="4">Jour 5</option>
+        </select>
+      </label>
+      <label>Bloc
+        <input type="text" id="editorExerciseSection">
+      </label>
+      <label>Nombre de séries
+        <input type="number" id="editorExerciseSets" min="1" max="12">
+      </label>
+      <label>Répétitions / secondes
+        <input type="number" id="editorExerciseReps" min="0">
+      </label>
+      <label>Libellé séries / répétitions
+        <input type="text" id="editorExerciseRepsLabel" placeholder="Ex. 17 / bras">
+      </label>
+      <label>Type de suivi
+        <select id="editorExerciseTracking"><option value="reps">Répétitions</option><option value="time">Durée</option></select>
+      </label>
+      <label>Charge cible Rudy (kg)
+        <input type="number" id="editorExerciseWeight" min="0" step="0.5">
+      </label>
+      <label class="wide">Libellé de la charge cible
+        <input type="text" id="editorExerciseWeightLabel" placeholder="Ex. 26 kg / haltère">
+      </label>
+      <label class="wide">Précision sur la charge
+        <input type="text" id="editorExerciseWeightNote" placeholder="Ex. poids de la barre non comptabilisé">
+      </label>
+      <label>Repos (secondes)
+        <input type="number" id="editorExerciseRest" min="0">
+      </label>
+      <label>Libellé du repos
+        <input type="text" id="editorExerciseRestLabel" placeholder="Ex. 45 sec entre chaque bras">
+      </label>
+      <label class="wide">Commentaire de Rudy
+        <textarea id="editorExerciseRudy"></textarea>
+      </label>
+      <label class="wide">Consigne technique
+        <textarea id="editorExerciseInstructions"></textarea>
+      </label>
+      <label class="wide">Lien photo technique
+        <input type="url" id="editorExercisePhoto" inputmode="url">
+      </label>
+      <label>Type du second lien
+        <select id="editorExerciseVideoType"><option value="video">Vidéo technique</option><option value="reference">Référence exercice</option></select>
+      </label>
+      <label>Lien vidéo / référence
+        <input type="url" id="editorExerciseVideo" inputmode="url">
+      </label>
+      <label class="wide editor-check"><input type="checkbox" id="editorExercisePersonalVideo"> Vidéo personnelle demandée</label>
+    </div>
+    <div class="editor-message" id="exerciseEditorMessage"></div>
+    <div class="modal-actions">
+      <button onclick="closeExerciseEditor()">Annuler</button>
+      <button class="save" onclick="saveExerciseEditor()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="sessionEditorModal" role="dialog" aria-modal="true" aria-labelledby="sessionEditorTitle">
+  <div class="modal">
+    <h3 id="sessionEditorTitle">Créer une séance libre</h3>
+    <input type="hidden" id="sessionEditorDay">
+    <label>Nom de la séance
+      <input type="text" id="sessionEditorName">
+    </label>
+    <div class="modal-actions">
+      <button onclick="closeSessionEditor()">Annuler</button>
+      <button class="save" onclick="saveSessionEditor()">Créer la séance</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="accountModal" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
   <div class="modal">
     <h3 id="accountModalTitle">Compte personnel</h3>
@@ -1027,8 +1177,11 @@ const FIREBASE_CONFIG = {
   appId: "1:94530619554:web:4d54f18fa30a1f7f442ffb"
 };
 
-const APP_VERSION = "2.1.0";
-const PROGRAM_ID = "upper-lower-2026-v1";
+const APP_VERSION = "3.0.0";
+const PROGRAM_ID = "rudy-training-2-v1";
+const PREVIOUS_PROGRAM_ID = "upper-lower-2026-v1";
+const TRAINING_ONE_ARCHIVE_ID = "rudy-training-1-archive";
+const TRAINING_ARCHIVE_OWNER_EMAIL = "tidusma@gmail.com";
 const INITIAL_RUN_ID = "initial-run";
 const STORAGE_PROGRAM = "muscu_program";
 const STORAGE_HISTORY = "muscu_history";
@@ -1539,6 +1692,8 @@ function initAccountSystem() {
     setSyncStatus("saving");
     try {
       await initializeAccountData(user);
+      await ensureTrainingOneArchive();
+      render();
       setAccountMessage("Synchronisation active.", "success");
       setSyncStatus("saved");
     } catch(error) {
@@ -1553,88 +1708,153 @@ function initAccountSystem() {
 // CURRENT WEEKLY PROGRAM
 // ============================================================
 function buildWeeklyProgram() {
-  const warmup = (id, name, reps, tracking = "reps") => ({
-    id, name, preFatigue: true, tempo: "Contrôlé",
-    instructions: "Amplitude · Respiration · Pump",
-    tracking, range: tracking === "time" ? String(reps) : "20-25",
-    sets: [{ s: 2, r: reps }]
+  const exercise = (id, name, section, sets, reps, weight, rest, options = {}) => ({
+    id,
+    name,
+    section,
+    preFatigue: section === "Bloc isométrique",
+    tracking: options.tracking || "reps",
+    range: options.repsLabel || String(reps),
+    repsLabel: options.repsLabel || String(reps),
+    targetWeight: weight,
+    targetWeights: options.targetWeights || null,
+    targetWeightLabel: options.targetWeightLabel || `${weight} kg`,
+    rest,
+    restLabel: options.restLabel || (rest == null ? "Non renseigné" : rest < 60 ? `${rest} sec` : `${Math.floor(rest / 60)} min${rest % 60 ? ` ${rest % 60}` : ""}`),
+    rudyComment: options.rudyComment || "",
+    instructions: options.instructions || "",
+    requiresPersonalVideo: !!options.requiresPersonalVideo,
+    media: options.media || {},
+    weightNote: options.weightNote || "",
+    sets: [{ s: sets, r: reps }]
   });
-  const work = (id, name, sets, reps, rpe, tempo = "Explosif") => ({
-    id, name, rpe, tempo, rest: 120,
-    range: reps === 15 ? "10-15" : reps === 10 ? "8-10" : String(reps),
-    instructions: "Monter en charge progressivement jusqu'au RPE",
-    sets: [{ s: sets, r: reps, rpe }]
-  });
-  const upperWarmup = () => [
-    warmup("chest-fly-dumbbell", "Chest Fly Dumbbell", 25),
-    warmup("reverse-fly-dumbbell", "Reverse Fly Dumbbell", 25),
-    warmup("shrugs-barbell", "Shrugs Barbell", 25),
-    warmup("elevations-xiaojun-dumbbell", "Élévations XiaoJun Dumbbell", 25)
-  ];
+
+  const isoMedia = {
+    lateral: {
+      photo: "https://www.dropbox.com/scl/fi/0jzsqujt2b910yio6kgtm/KEV01197.jpg?rlkey=9u4puo1wknhrf3xc0j24915ja&dl=0",
+      video: "https://www.youtube.com/results?search_query=elevation+laterale+isometrique+musculation"
+    },
+    internal: {
+      photo: "https://www.dropbox.com/scl/fi/ydqj1pfykqytjdzceuxy5/KEV01213.jpg?rlkey=6fp0p7h558apth1on4di9hpt6&dl=0",
+      video: "https://www.youtube.com/results?search_query=rotation+interne+epaule+isometrique"
+    },
+    external: {
+      photo: "https://www.dropbox.com/scl/fi/6daj7vjrua1dbcvolvpuc/KEV01209.jpg?rlkey=c6zooamnoh5fve2fwvzj0mmat&dl=0",
+      video: "https://www.youtube.com/results?search_query=rotation+externe+epaule+isometrique"
+    },
+    pullover: {
+      photo: "https://www.dropbox.com/scl/fi/nags3sr2oo3eu8nzq0ptm/KEV01205.jpg?rlkey=p50588c6050tovomwh3oynvom&dl=0",
+      video: "https://www.youtube.com/results?search_query=pullover+isometrique+musculation"
+    },
+    neck: {
+      photo: "https://www.dropbox.com/scl/fi/jm9u6migwohaflctn0smm/KEV01221.jpg?rlkey=v8xcut4valhlwk8h1ch9guj70&dl=0",
+      video: "https://www.youtube.com/results?search_query=extension+nuque+triceps+isometrique"
+    },
+    curl: {
+      photo: "https://www.dropbox.com/scl/fi/2vqm63eokwffwzox0jo18/KEV01222.jpg?rlkey=vvsebsnp5z6w7g4gkncxljn60&dl=0",
+      video: "https://www.youtube.com/results?search_query=curl+barre+isometrique+90+degres"
+    }
+  };
 
   return [{
-    name: "Semaine",
+    name: "Entraînement 2",
     days: [
       {
-        name: "Upper 1", shortName: "Upper 1",
+        name: "Jour 1", shortName: "Séance 1",
         exercises: [
-          ...upperWarmup(),
-          work("bench-feet-up", "Bench Feet Up", 3, 15, 9),
-          work("tractions-neutres-lestees", "Tractions neutres lestées", 3, 15, 9),
-          work("pushdown-triceps-front", "Pushdown Triceps Front", 3, 15, 9),
-          work("cable-row-close-grip", "Cable Row Close Grip", 3, 15, 9),
-          work("biceps-curl-rotation", "Biceps Curl Rotation", 3, 15, 9),
-          work("chest-press-cable-machine", "Chest Press Cable Machine", 3, 15, 9)
+          exercise("iso-elevation-laterale", "Élévation latérale en isométrie", "Bloc isométrique", 2, 45, 3, null, {
+            tracking: "time", repsLabel: "45 sec", targetWeightLabel: "3 kg / bras", requiresPersonalVideo: true,
+            rudyComment: "Filme les trois premiers exos de cette séance, mets le lien YouTube à la suite, dans la case commentaire, en face de chaque exo :)",
+            instructions: "Bras pratiquement tendus et parallèles au sol.", media: isoMedia.lateral
+          }),
+          exercise("iso-rotation-interne", "Rotation interne en isométrie", "Bloc isométrique", 2, 45, 3, null, {
+            tracking: "time", repsLabel: "45 sec", requiresPersonalVideo: true,
+            instructions: "Fais attention de ne pas lever l'épaule.", media: isoMedia.internal
+          }),
+          exercise("iso-rotation-externe", "Rotation externe en isométrie", "Bloc isométrique", 2, 45, 3, null, {
+            tracking: "time", repsLabel: "45 sec", requiresPersonalVideo: true,
+            instructions: "Coudes dans l'axe des épaules à 90°, descends le plus possible et tiens.", media: isoMedia.external
+          }),
+          exercise("iso-pull-over", "Pull-over en isométrie", "Bloc isométrique", 2, 45, 6, null, {
+            tracking: "time", repsLabel: "45 sec",
+            instructions: "Plaque le bas du dos sur le banc et arrête la descente au début de l'étirement du grand dorsal.", media: isoMedia.pullover
+          }),
+          exercise("iso-extension-nuque", "Extension nuque en isométrie", "Bloc isométrique", 2, 45, 6, null, {
+            tracking: "time", repsLabel: "45 sec",
+            instructions: "Coude à 90° sans accentuer la cambrure du bas du dos.", media: isoMedia.neck
+          }),
+          exercise("iso-curl-barre", "Curl barre en supination en isométrie", "Bloc isométrique", 2, 45, 15, null, {
+            tracking: "time", repsLabel: "45 sec", targetWeights: [15, null], targetWeightLabel: "15 kg en supination · pronation plus légère non renseignée", rudyComment: "Une série en supination et une série en pronation plus légère.",
+            instructions: "Bras à 90° et tiens sans te déformer.", media: isoMedia.curl
+          }),
+          exercise("crunch", "Crunch", "Séance principale", 3, 23, 0, 30, {
+            rudyComment: "J’ai pas compris ta note ?:)", instructions: "Enroule bien, souffle et rentre le ventre.",
+            media: { reference: "https://www.superphysique.org/exercices/crunch" }
+          }),
+          exercise("developpe-couche-halteres", "Développé couché avec haltères", "Séance principale", 4, 11, 26, 120, {
+            targetWeightLabel: "26 kg / haltère", instructions: "Dès que tu touches les pecs, accélère la poussée.",
+            media: { reference: "https://www.superphysique.org/exercices/319" }
+          }),
+          exercise("ecarte-incline-halteres", "Écarté incliné avec haltères", "Séance principale", 3, 27, 10, 90, {
+            targetWeightLabel: "10 kg / haltère", rudyComment: "À mon avis ici, t’as commencé un peu lourd :D Tends bien tes bras.",
+            media: { reference: "https://www.superphysique.org/exercices/175" }
+          }),
+          exercise("pull-over", "Pull-over", "Séance principale", 4, 15, 12, 60, {
+            instructions: "Garde les coudes orientés vers l'extérieur pendant tout le mouvement.",
+            media: { reference: "https://www.superphysique.org/exercices/pull_over" }
+          }),
+          exercise("curl-incline", "Curl incliné", "Séance principale", 4, 13, 8, 90, {
+            targetWeightLabel: "8 kg / haltère", instructions: "Banc à 30°, mains toujours en supination.",
+            media: { reference: "https://www.superphysique.org/exercices/135" }
+          }),
+          exercise("curl-pupitre-un-bras", "Curl pupitre un bras", "Séance principale", 3, 17, 6, 45, {
+            repsLabel: "17 / bras", restLabel: "45 sec entre chaque bras", instructions: "Incline un banc à 80° et utilise-le comme pupitre.",
+            media: { reference: "https://www.superphysique.org/exercices/136" }
+          })
         ]
       },
       {
-        name: "Lower 1", shortName: "Lower 1", freestyle: true,
+        name: "Jour 2", shortName: "Séance 2",
         exercises: [
-          warmup("clamshell-plank", "Clamshell Plank", "MAX", "time"),
-          warmup("farmer-walk-unilateral", "Farmer Walk Unilateral", 120, "time"),
-          warmup("pallof-press-v2", "Pallof Press V2", 25),
-          warmup("cyclist-squat-goblet", "Cyclist Squat Goblet", 25),
-          work("adductions-machine", "Adductions Machine", 3, 15, 9),
-          work("abductions-machine", "Abductions Machine", 3, 15, 9),
-          work("leg-extension", "Leg Extension", 3, 15, 9),
-          work("leg-curl-allonge", "Leg Curl Allongé", 3, 15, 9)
+          exercise("gainage-oblique", "Gainage oblique", "Séance principale", 3, 25, 0, 30, {
+            tracking: "time", repsLabel: "25 sec / côté", restLabel: "30 sec entre chaque côté", instructions: "Trois fois de chaque côté.",
+            media: { reference: "https://www.superphysique.org/exercices/gainage_oblique" }
+          }),
+          exercise("traction-poulie-haute-large-pronation", "Traction poulie haute prise large devant en pronation", "Séance principale", 4, 13, 50, 90, {
+            rudyComment: "N’oublie pas de mettre une note sur 10 dans la colonne de gauche :)",
+            instructions: "Inspire au tirage, bombe le torse et ne descends pas plus bas que le nez.",
+            media: { video: "https://www.youtube.com/results?search_query=lat+pulldown+prise+large+pronation+superphysique" }
+          }),
+          exercise("rowing-haltere-un-bras", "Rowing haltère un bras", "Séance principale", 3, 11, 20, 45, {
+            repsLabel: "11 / bras", restLabel: "45 sec entre chaque bras", instructions: "Applique-toi sur le mouvement de l'épaule.",
+            media: { reference: "https://www.superphysique.org/exercices/272" }
+          }),
+          exercise("rowing-assis-poulie-basse-large-pronation", "Rowing assis poulie basse, prise large pronation", "Séance principale", 4, 14, 35, 90, {
+            instructions: "N'arrondis pas le dos sur la négative et serre les omoplates au tirage.",
+            media: { reference: "https://www.superphysique.org/exercices/263" }
+          }),
+          exercise("barre-au-front", "Barre au front", "Séance principale", 4, 12, 15, 90, {
+            targetWeightLabel: "15 kg de disques + barre EZ", weightNote: "Le poids de la barre EZ n'est pas comptabilisé.",
+            rudyComment: "Tu peux également commenter tes exos si besoin, à la suite de mes commentaires, dans cette colonne :)",
+            media: { reference: "https://www.superphysique.org/exercices/barre_au_front" }
+          }),
+          exercise("extension-nuque-deux-mains", "Extension nuque assis à deux mains", "Séance principale", 3, 17, 12, 90, {
+            instructions: "Descente maximale contrôlée.", media: { reference: "https://www.superphysique.org/exercices/163" }
+          })
         ]
       },
       { name: "Repos", shortName: "Repos", rest: true },
-      {
-        name: "Upper 2", shortName: "Upper 2",
-        exercises: [
-          ...upperWarmup(),
-          work("bench-comp", "Bench Comp", 4, 5, 10),
-          work("tractions-multiple-grips-lestees", "Tractions Multiple Grips lestées", 4, 5, 10),
-          work("pushdown-triceps-rear", "Pushdown Triceps Rear", 3, 15, 9, "Contrôlé"),
-          work("cable-row-wide-grip", "Cable Row Wide Grip", 3, 15, 9, "Contrôlé"),
-          work("biceps-curl-prise-marteau", "Biceps Curl Prise Marteau", 3, 15, 9, "Contrôlé"),
-          work("chest-press-free-weight-machine", "Chest Press Free Weight Machine", 3, 15, 9, "Contrôlé")
-        ]
-      },
-      {
-        name: "Lower 2", shortName: "Lower 2", freestyle: true,
-        exercises: [
-          warmup("romanian-deadlift-barbell", "Romanian Deadlift Barbell", 25),
-          warmup("peterson-step-up", "Peterson Step Up", 25),
-          warmup("oblique-side-bend-hyper-extension", "Oblique Side Bend Hyper Extension", 25),
-          warmup("sissy-squat", "Sissy Squat", 25),
-          work("leg-extension", "Leg Extension", 5, 10, 10),
-          work("leg-curl-allonge", "Leg Curl Allongé", 5, 10, 10),
-          work("adductions-machine", "Adductions Machine", 3, 20, 9),
-          work("abductions-machine", "Abductions Machine", 3, 20, 9)
-        ]
-      },
+      { name: "Jour 4", shortName: "En attente", pending: true, exercises: [] },
+      { name: "Jour 5", shortName: "En attente", pending: true, exercises: [] },
       { name: "Repos", shortName: "Repos", rest: true },
       { name: "Repos", shortName: "Repos", rest: true }
     ]
   }];
 }
 
-const PROGRAM_VERSION = 2;
+const PROGRAM_VERSION = 3;
 const WEIGHT_DATA_VERSION = 2;
-const DATA_SCHEMA_VERSION = 3;
+const DATA_SCHEMA_VERSION = 4;
 const PROGRAM = buildWeeklyProgram();
 
 // ============================================================
@@ -1658,10 +1878,15 @@ function createDefaultState() {
     sessionDrafts: {}, // Saisie indépendante par occurrence de séance.
     customNotes: {},
     exerciseRatings: {},
+    exercisePain: {},
+    personalMedia: {},
+    exerciseOverrides: {},
+    customSessions: {},
     exerciseSkips: {},
     extraAccessories: {},
     preFatigueSets: {},
     freestyleSelections: {},
+    historySeedVersion: 0,
     updatedAt: 0,
     timerDuration: 120,
     timerRemaining: 120,
@@ -1831,6 +2056,63 @@ function equivalentAccessoryIds(id) {
 // ============================================================
 // HELPERS
 // ============================================================
+function getExerciseOverride(exerciseId) {
+  return state.exerciseOverrides?.[exerciseId] || {};
+}
+
+function applyExerciseOverride(exercise, originalDay = null) {
+  const override = getExerciseOverride(exercise.id);
+  const firstGroup = exercise.sets?.[0] || { s: 1, r: 1 };
+  const setCount = Number.isFinite(Number(override.setCount))
+    ? Math.max(1, Math.min(12, Number(override.setCount)))
+    : firstGroup.s;
+  const targetReps = override.targetReps !== undefined && override.targetReps !== ""
+    ? Number(override.targetReps)
+    : firstGroup.r;
+  const own = (key, fallback) => Object.prototype.hasOwnProperty.call(override, key) ? override[key] : fallback;
+  return {
+    ...exercise,
+    name: own("name", exercise.name),
+    section: own("section", exercise.section),
+    preFatigue: String(own("section", exercise.section) || '').toLocaleLowerCase('fr').includes('isométr'),
+    tracking: own("tracking", exercise.tracking || 'reps'),
+    targetWeight: own("targetWeight", exercise.targetWeight),
+    targetWeights: Object.prototype.hasOwnProperty.call(override, "targetWeight") ? null : exercise.targetWeights,
+    targetWeightLabel: own("targetWeightLabel", exercise.targetWeightLabel),
+    repsLabel: own("repsLabel", exercise.repsLabel),
+    range: own("repsLabel", exercise.range),
+    rest: own("rest", exercise.rest),
+    restLabel: own("restLabel", exercise.restLabel),
+    rudyComment: own("rudyComment", exercise.rudyComment),
+    instructions: own("instructions", exercise.instructions),
+    requiresPersonalVideo: own("requiresPersonalVideo", exercise.requiresPersonalVideo),
+    weightNote: own("weightNote", exercise.weightNote),
+    media: {
+      ...(exercise.media || {}),
+      ...(override.media || {})
+    },
+    sets: [{ ...firstGroup, s: setCount, r: Number.isFinite(targetReps) ? targetReps : firstGroup.r }],
+    originalDay
+  };
+}
+
+function getCustomSession(day = state.day) {
+  return state.customSessions?.[String(day)] || null;
+}
+
+function getEffectiveDayData(week = state.week, day = state.day) {
+  const base = PROGRAM[week].days[day];
+  const custom = getCustomSession(day);
+  if (!custom) return base;
+  return {
+    ...base,
+    name: custom.name || base.name,
+    shortName: custom.shortName || custom.name || base.shortName,
+    pending: false,
+    custom: true
+  };
+}
+
 function expandSets(exercise) {
   const expanded = [];
   exercise.sets.forEach((group, gi) => {
@@ -1841,9 +2123,16 @@ function expandSets(exercise) {
   return expanded;
 }
 
+function getExerciseTargetWeight(exercise, setIndex) {
+  if (Array.isArray(exercise.targetWeights) && Object.prototype.hasOwnProperty.call(exercise.targetWeights, setIndex)) {
+    return exercise.targetWeights[setIndex];
+  }
+  return exercise.targetWeight;
+}
+
 function getExerciseSets(exercise) {
   const sets = expandSets(exercise);
-  if (!exercise.preFatigue) return sets;
+  if (!exercise.preFatigue || !exercise.allowSetChoice) return sets;
   const selected = state.preFatigueSets[exercise.id] || 1;
   return sets.slice(0, selected);
 }
@@ -1871,13 +2160,13 @@ function sessionOccurrenceKey(cycle = state.cycle, week = state.week, day = stat
 
 function isLegacyWeeklySession(session) {
   if (!session || session.programId) return false;
-  const day = PROGRAM[session.week]?.days?.[session.day];
-  return session.weekName === PROGRAM[session.week]?.name && (!session.dayName || session.dayName === day?.name);
+  const legacyDays = ["Upper 1", "Lower 1", "Repos", "Upper 2", "Lower 2", "Repos", "Repos"];
+  return session.weekName === "Semaine" && (!session.dayName || session.dayName === legacyDays[session.day]);
 }
 
 function effectiveSessionProgramId(session) {
   if (session?.programId) return session.programId;
-  return isLegacyWeeklySession(session) ? PROGRAM_ID : "legacy-sbd";
+  return isLegacyWeeklySession(session) ? PREVIOUS_PROGRAM_ID : "legacy-sbd";
 }
 
 function effectiveSessionRunId(session) {
@@ -1898,7 +2187,19 @@ function getExtraAccessoryIds(week = state.week, day = state.day) {
 }
 
 function getSessionExercises(week = state.week, day = state.day) {
-  const base = PROGRAM[week].days[day].exercises || [];
+  const base = PROGRAM[week].days.flatMap((programDay, originalDay) =>
+    (programDay.exercises || []).map(exercise => ({ exercise, originalDay }))
+  ).filter(({ exercise, originalDay }) => {
+    const overrideDay = Number(getExerciseOverride(exercise.id).dayIndex);
+    const effectiveDay = Number.isInteger(overrideDay) && overrideDay >= 0 && overrideDay <= 6
+      ? overrideDay
+      : originalDay;
+    return effectiveDay === day;
+  }).map(({ exercise, originalDay }) => applyExerciseOverride(exercise, originalDay));
+  const custom = (getCustomSession(day)?.exercises || []).map(exercise => ({
+    ...applyExerciseOverride(exercise, day),
+    isCustom: true
+  }));
   const occurrence = sessionOccurrenceKey(state.cycle, week, day);
   const freestyleSelection = state.freestyleSelections[occurrence];
   const freestyleTemplate = freestyleSelection ? FREESTYLE_BY_ID[freestyleSelection.id] : null;
@@ -1914,12 +2215,14 @@ function getSessionExercises(week = state.week, day = state.day) {
       sets: ex.sets.map(group => ({ ...group })),
       isExtra: true
     }));
-  return [...base, ...freestyle, ...extras];
+  return [...base, ...custom, ...freestyle, ...extras];
 }
 
 function exerciseCompletionKey(exercise, exIdx) {
   if (exercise.isFreestyle) return `f-${exercise.id}`;
-  return exercise.isExtra ? `x-${exercise.id}` : String(exIdx);
+  if (exercise.isExtra) return `x-${exercise.id}`;
+  if (exercise.isCustom) return `c-${exercise.id}`;
+  return exercise.id ? `p-${exercise.id}` : String(exIdx);
 }
 
 function setKey(week, day, exKey, setIdx) {
@@ -1993,8 +2296,8 @@ function toggleSetDone(week, day, exKey, setIdx) {
 }
 
 function getDayProgress(week, day) {
-  const dayData = PROGRAM[week].days[day];
-  if (dayData.rest) return { done: 0, resolved: 0, total: 0, pct: 100, skipped: 0, exercisesStarted: 0, exercisesTotal: 0, exercisePct: 100 };
+  const dayData = getEffectiveDayData(week, day);
+  if (dayData.rest || dayData.pending) return { done: 0, resolved: 0, total: 0, pct: 100, skipped: 0, exercisesStarted: 0, exercisesTotal: 0, exercisePct: 100 };
   let total = 0, done = 0, resolved = 0, skipped = 0, exercisesStarted = 0, exercisesTotal = 0;
   getSessionExercises(week, day).forEach((ex, ei) => {
     const exKey = exerciseCompletionKey(ex, ei);
@@ -2002,7 +2305,7 @@ function getDayProgress(week, day) {
     const exerciseId = ex.id || accessoryDataKey(ex.name);
     const skipReason = getExerciseSkip(exerciseId, state.cycle, week, day);
     total += sets.length;
-    if (!ex.preFatigue) exercisesTotal++;
+    exercisesTotal++;
     let exerciseDone = 0;
     sets.forEach((_, si) => {
       if (isSetDone(week, day, exKey, si)) {
@@ -2013,10 +2316,10 @@ function getDayProgress(week, day) {
     if (skipReason) {
       resolved += sets.length;
       skipped++;
-      if (!ex.preFatigue) exercisesStarted++;
+      exercisesStarted++;
     } else {
       resolved += exerciseDone;
-      if (!ex.preFatigue && exerciseDone > 0) exercisesStarted++;
+      if (exerciseDone > 0) exercisesStarted++;
     }
   });
   return {
@@ -2035,7 +2338,8 @@ function isBlocComplete(blocIndex) {
   const bloc = PROGRAM[blocIndex];
   const history = loadHistory();
   for (let di = 0; di < bloc.days.length; di++) {
-    if (bloc.days[di].rest) continue;
+    const day = getEffectiveDayData(blocIndex, di);
+    if (day.rest || day.pending) continue;
     if (!isSessionValidated(blocIndex, di, state.cycle, history)) return false;
   }
   return true;
@@ -2181,10 +2485,11 @@ function removeExtraAccessory(accessoryId) {
 function renderNav() {
   const nav = document.getElementById('nav');
   let html = '<div class="nav-section weekly-nav">';
-  PROGRAM[state.week].days.forEach((d, di) => {
+  PROGRAM[state.week].days.forEach((_, di) => {
+    const d = getEffectiveDayData(state.week, di);
     const active = di === state.day ? 'active' : '';
-    const check = (!d.rest && isSessionValidated(state.week, di)) ? ' &#10003;' : '';
-    html += `<button class="nav-tab ${active}${d.rest ? ' rest' : ''}" onclick="selectDay(${di})" ${active ? 'aria-current="page"' : ''}>J${di + 1} · ${d.shortName}${check}</button>`;
+    const check = (!d.rest && !d.pending && isSessionValidated(state.week, di)) ? ' &#10003;' : '';
+    html += `<button class="nav-tab ${active}${d.rest ? ' rest' : ''}${d.pending ? ' pending' : ''}" onclick="selectDay(${di})" ${active ? 'aria-current="page"' : ''}>J${di + 1} · ${escHtml(d.shortName)}${check}</button>`;
   });
   html += '</div>';
   nav.innerHTML = html;
@@ -2197,7 +2502,7 @@ function renderWeekAdvanceBanner() {
   if (!isBlocComplete(0)) return '';
   return `
     <div class="week-complete-banner">
-      <div><strong>Semaine ${state.cycle} terminée</strong><span>Les quatre entraînements ont été validés.</span></div>
+      <div><strong>Semaine ${state.cycle} terminée</strong><span>Toutes les séances actuellement planifiées ont été validées.</span></div>
       <button onclick="advanceCycle()">Commencer la semaine ${state.cycle + 1}</button>
     </div>`;
 }
@@ -2205,7 +2510,9 @@ function renderWeekAdvanceBanner() {
 function getRecentExerciseHistory(exercise, history, limit = 3) {
   const exerciseId = exercise.id || accessoryDataKey(exercise.name);
   const results = [];
-  const sessions = (history?.sessions || []).slice().reverse();
+  const sessions = (history?.sessions || []).slice().sort((a, b) =>
+    ((b.validatedAt || b.updatedAt || 0) - (a.validatedAt || a.updatedAt || 0)) || String(b.date || '').localeCompare(String(a.date || ''))
+  );
   for (const session of sessions) {
     const isCurrentSession = sessionMatchesContext(session, state.week, state.day);
     if (isCurrentSession) continue;
@@ -2224,220 +2531,155 @@ function formatPreviousSets(sets) {
   const completed = (sets || []).filter(set => set.done);
   if (completed.length === 0) return 'Aucune série validée';
   return completed.map(set => {
-    const reps = set.reps === 'AMRAP' ? 'AMRAP' : `${set.reps ?? '—'}`;
-    return set.weight !== null && set.weight !== undefined ? `${reps}×${set.weight} kg` : reps;
+    const reps = set.reps === 'AMRAP' ? 'AMRAP' : `${set.reps ?? '—'}${set.tracking === 'time' ? ' sec' : ''}`;
+    const load = set.weight !== null && set.weight !== undefined ? `${reps}×${set.weight} kg` : reps;
+    return set.rpe !== null && set.rpe !== undefined ? `${load} · RPE ${set.rpe}` : load;
   }).join(' · ');
 }
 
 function renderRecentExerciseHistory(exercise, history) {
   const recent = getRecentExerciseHistory(exercise, history);
   if (recent.length === 0) return '';
-  let html = '<div class="recent-exercise-history"><div class="recent-exercise-title">3 dernières séances</div>';
+  let html = '<div class="recent-exercise-history"><div class="recent-exercise-title">Historique / 3 dernières séances</div>';
   recent.forEach(item => {
     const rating = RATING_LABELS[item.exercise.rating] ? item.exercise.rating : '';
     const performance = item.exercise.skipped
       ? `Ignoré · ${SKIP_LABELS[item.exercise.skipReason] || item.exercise.skipReason || 'Non précisé'}`
       : formatPreviousSets(item.exercise.sets);
-    html += `<div class="recent-exercise-row"><span class="recent-exercise-date">${escHtml(formatHistoryDate(item.session.date))}</span>`;
+    html += `<div class="recent-exercise-row"><span class="recent-exercise-date">${escHtml(formatSessionDate(item.session))}</span>`;
     html += `<span class="recent-exercise-sets">${escHtml(performance)}</span>`;
-    html += rating ? `<span class="recent-exercise-rating ${rating}">${RATING_LABELS[rating] || rating}</span>` : '<span></span>';
+    html += rating
+      ? `<span class="recent-exercise-rating ${rating}">${RATING_LABELS[rating] || rating}</span>`
+      : item.exercise.difficultyText
+        ? `<span class="recent-exercise-difficulty">${escHtml(item.exercise.difficultyText)}</span>`
+        : '<span></span>';
+    if (item.exercise.pain && (item.exercise.pain.score !== null || item.exercise.pain.location)) {
+      const pain = `${item.exercise.pain.score !== null ? `Douleur ${item.exercise.pain.score}/10` : 'Douleur'}${item.exercise.pain.location ? ` · ${item.exercise.pain.location}` : ''}`;
+      html += `<span class="recent-exercise-pain">${escHtml(pain)}</span>`;
+    }
     html += '</div>';
   });
   return html + '</div>';
 }
 
+function renderExerciseMedia(exercise, exerciseId) {
+  const media = exercise.media || {};
+  const personal = getPersonalMedia(exerciseId);
+  const links = [
+    ["Photo technique", safeExternalUrl(media.photo)],
+    ["Vidéo technique", safeExternalUrl(media.video)],
+    ["Référence exercice", safeExternalUrl(media.reference)]
+  ].filter(([, url]) => url);
+  const personalPhoto = safeExternalUrl(personal.photoUrl);
+  const personalVideo = safeExternalUrl(personal.videoUrl);
+  let html = `<details class="exercise-media"${exercise.requiresPersonalVideo ? ' open' : ''}>`;
+  html += `<summary>Média${exercise.requiresPersonalVideo ? ' · vidéo demandée' : ''}</summary>`;
+  html += '<div class="media-links">';
+  html += links.length
+    ? links.map(([label, url]) => `<a href="${escAttr(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`).join('')
+    : '<span class="media-empty">Aucune référence renseignée</span>';
+  html += '</div><div class="personal-media-fields">';
+  html += `<label>Photo personnelle (URL)<div class="url-field"><input type="url" inputmode="url" value="${escAttr(personal.photoUrl)}" placeholder="https://…" data-exercise="${escAttr(exerciseId)}" data-field="photoUrl" onchange="onPersonalMediaChange(this)">${personalPhoto ? `<a href="${escAttr(personalPhoto)}" target="_blank" rel="noopener noreferrer">Ouvrir</a>` : ''}</div></label>`;
+  html += `<label>Vidéo personnelle${exercise.requiresPersonalVideo ? ' · demandée par Rudy' : ''}<div class="url-field"><input type="url" inputmode="url" value="${escAttr(personal.videoUrl)}" placeholder="URL YouTube non répertoriée" data-exercise="${escAttr(exerciseId)}" data-field="videoUrl" onchange="onPersonalMediaChange(this)">${personalVideo ? `<a href="${escAttr(personalVideo)}" target="_blank" rel="noopener noreferrer">Ouvrir la vidéo</a>` : ''}</div></label>`;
+  return html + '</div></details>';
+}
+
+function renderTrackedSet(exercise, exKey, set, setIndex, skipReason) {
+  const done = isSetDone(state.week, state.day, exKey, setIndex);
+  const dataKey = exercise.id || exercise.name;
+  const customReps = getCustomReps(dataKey, setIndex);
+  const repsValue = customReps === null ? '' : customReps;
+  const actualWeight = getCustomWeight(dataKey, setIndex, state.cycle, state.week, state.day, getExerciseTargetWeight(exercise, setIndex));
+  const setRpe = getSetRpe(dataKey, setIndex);
+  const unit = exercise.tracking === 'time' ? 'sec' : 'reps';
+  const disabled = skipReason ? ' disabled' : '';
+  return `<div class="set-row${done ? ' done' : ''}">
+    <button type="button" class="set-checkbox${done ? ' checked' : ''}" aria-label="${done ? 'Décocher' : 'Cocher'} ${escAttr(exercise.name)}, série ${setIndex + 1}" aria-pressed="${done}" onclick="toggleSetDone(${state.week},${state.day},'${escAttr(exKey)}',${setIndex})"${disabled}>&#10003;</button>
+    <div class="set-info">
+      <span class="set-index">S${setIndex + 1}</span>
+      <input type="number" min="0" step="1" inputmode="numeric" class="acc-input reps-input${customReps === null ? ' empty' : ''}" aria-label="${unit === 'sec' ? 'Durée' : 'Répétitions'}, ${escAttr(exercise.name)}, série ${setIndex + 1}" placeholder="${escAttr(set.r)}" value="${repsValue}" data-exname="${escAttr(dataKey)}" data-set="${setIndex}" data-ekey="${escAttr(exKey)}" onchange="onRepsInputChange(this)"${disabled}>
+      <span class="acc-unit">${unit}</span><span class="acc-x">×</span>
+      <input type="number" min="0" step="0.5" inputmode="decimal" class="acc-input weight-input${actualWeight === null ? ' empty' : ''}" aria-label="Charge réelle, ${escAttr(exercise.name)}, série ${setIndex + 1}" placeholder="—" value="${actualWeight ?? ''}" data-exname="${escAttr(dataKey)}" data-set="${setIndex}" oninput="onWeightInputChange(this)"${disabled}>
+      <span class="acc-unit">kg</span><span class="set-rpe-label">RPE</span>
+      <input type="number" min="1" max="10" step="0.5" inputmode="decimal" class="acc-input rpe-input${setRpe === null ? ' empty' : ''}" aria-label="RPE, ${escAttr(exercise.name)}, série ${setIndex + 1}" placeholder="—" value="${setRpe ?? ''}" data-exname="${escAttr(dataKey)}" data-set="${setIndex}" onchange="onRpeInputChange(this)"${disabled}>
+    </div>
+  </div>`;
+}
+
 function renderContent() {
   const content = document.getElementById('content');
-  const dayData = PROGRAM[state.week].days[state.day];
+  const dayData = getEffectiveDayData(state.week, state.day);
+  const planHeader = '<div class="plan-current-banner"><span>Plan actuel</span><strong>Entraînement 2 · Rudy</strong></div>';
 
   if (dayData.rest) {
-    content.innerHTML = `
-      <div class="rest-day">
-        <div class="icon">&#128564;</div>
-        <h2>Repos</h2>
-        <p>Récupère bien. Mange. Dors. Reviens plus fort.</p>
-      </div>${renderWeekAdvanceBanner()}`;
+    content.innerHTML = `${planHeader}<div class="rest-day"><h2>Jour de repos</h2><p>Aucune séance planifiée aujourd’hui.</p></div>${renderWeekAdvanceBanner()}`;
+    return;
+  }
+  if (dayData.pending) {
+    content.innerHTML = `${planHeader}<div class="pending-day-panel"><span class="pending-day-kicker">Jour ${state.day + 1}</span><h2>En attente du nouveau programme Rudy</h2><p>Aucune donnée n’a été inventée. L’ancien Jour ${state.day + 1} reste consultable dans l’historique.</p><button onclick="openSessionEditor(${state.day})">Créer une séance libre</button></div>${renderWeekAdvanceBanner()}`;
     return;
   }
 
   const history = loadHistory();
-
-  const prog = getDayProgress(state.week, state.day);
-  let html = `
-    <div class="day-header">
-      <h2>${dayData.name}</h2>
-      <p>Jour ${state.day + 1}/7 · Semaine ${state.cycle}</p>
-      <div class="day-progress">
-        <div class="progress-bar"><div class="progress-fill" style="width:${prog.exercisePct}%"></div></div>
-        <span class="progress-text">${prog.exercisesStarted}/${prog.exercisesTotal} exos</span>
-      </div>
-    </div>${renderWeekAdvanceBanner()}`;
-
-  const sessionExercises = getSessionExercises(state.week, state.day);
-  let currentSection = "";
+  const progress = getDayProgress(state.week, state.day);
+  let html = `${planHeader}<div class="day-header"><h2>${escHtml(dayData.name)}</h2><p>Jour ${state.day + 1}/7 · Semaine ${state.cycle}</p><div class="day-progress"><div class="progress-bar"><div class="progress-fill" style="width:${progress.exercisePct}%"></div></div><span class="progress-text">${progress.exercisesStarted}/${progress.exercisesTotal} exos</span></div></div>${renderWeekAdvanceBanner()}`;
+  let currentSection = '';
   let workIndex = 0;
-  sessionExercises.forEach((ex, ei) => {
-    const section = ex.preFatigue ? "Pré-fatigue" : ex.isFreestyle ? "Freestyle jambes" : "Exercices";
+
+  getSessionExercises(state.week, state.day).forEach((exercise, exerciseIndex) => {
+    const section = exercise.section || (exercise.preFatigue ? 'Bloc isométrique' : 'Séance principale');
     if (section !== currentSection) {
-      html += `<div class="workout-section-title"><span>${section}</span></div>`;
+      html += `<div class="workout-section-title"><span>${escHtml(section)}</span></div>`;
       currentSection = section;
     }
-    const exKey = exerciseCompletionKey(ex, ei);
-    const sets = getExerciseSets(ex);
-    const exerciseId = ex.id || accessoryDataKey(ex.name);
+    const exKey = exerciseCompletionKey(exercise, exerciseIndex);
+    const sets = getExerciseSets(exercise);
+    const exerciseId = exercise.id || accessoryDataKey(exercise.name);
     const skipReason = getExerciseSkip(exerciseId);
-    const allDone = !skipReason && sets.every((_, si) => isSetDone(state.week, state.day, exKey, si));
-    const cardClass = skipReason ? 'exercise-card skipped' : allDone ? 'exercise-card completed' : 'exercise-card';
+    const allDone = !skipReason && sets.length > 0 && sets.every((_, setIndex) => isSetDone(state.week, state.day, exKey, setIndex));
+    const tag = exercise.preFatigue ? 'I' : exercise.isCustom || exercise.isExtra ? '+' : String(++workIndex);
+    html += `<article class="exercise-card${allDone ? ' completed' : ''}${skipReason ? ' skipped' : ''}${exercise.preFatigue ? ' pre-fatigue-card' : ''}">`;
+    html += `<div class="exercise-header"><div class="exercise-tag">${tag}</div><div class="exercise-title"><div class="exercise-name">${escHtml(exercise.name)}</div>`;
+    html += `<div class="exercise-meta"><span>${sets.length} × ${escHtml(exercise.repsLabel || sets[0]?.r || '')}</span><span class="target-chip">Cible Rudy · ${escHtml(exercise.targetWeightLabel ?? 'Non renseignée')}</span><span>Repos · ${escHtml(exercise.restLabel || 'Non renseigné')}</span></div>`;
+    if (exercise.weightNote) html += `<div class="exercise-weight-note">${escHtml(exercise.weightNote)}</div>`;
+    if (exercise.rudyComment) html += `<div class="rudy-comment"><strong>Rudy</strong><span>${escHtml(exercise.rudyComment)}</span></div>`;
+    if (exercise.instructions) html += `<div class="exercise-instructions">${escHtml(exercise.instructions)}</div>`;
+    html += '</div>';
+    html += `<button class="exercise-edit-btn" onclick="event.stopPropagation();openExerciseEditor('${escAttr(exerciseId)}',${state.day})" title="Modifier l'exercice" aria-label="Modifier ${escAttr(exercise.name)}">&#9998;</button>`;
+    if (exercise.isCustom) html += `<button class="remove-extra-btn" onclick="event.stopPropagation();removeCustomExercise('${escAttr(exerciseId)}',${state.day})" title="Retirer l'exercice" aria-label="Retirer ${escAttr(exercise.name)}">&times;</button>`;
+    html += `<select class="skip-select${skipReason ? ' active' : ''}" aria-label="Statut de ${escAttr(exercise.name)}" onchange="setExerciseSkip('${escAttr(exerciseId)}','${escAttr(exKey)}',this.value)"><option value="">À faire</option>`;
+    Object.entries(SKIP_LABELS).forEach(([value, label]) => { html += `<option value="${value}"${skipReason === value ? ' selected' : ''}>${label}</option>`; });
+    html += `</select><div class="exercise-check" aria-hidden="true">${skipReason ? '&#8212;' : allDone ? '&#10003;' : ''}</div></div><div class="sets-container">`;
 
-    const tag = ex.preFatigue ? "P" : ex.isFreestyle ? "F" : ex.isExtra ? "+" : String(++workIndex);
-    html += `<div class="${cardClass}${ex.isExtra ? ' extra-accessory' : ''}${ex.preFatigue ? ' pre-fatigue-card' : ''}${ex.isFreestyle ? ' freestyle-card' : ''}">`;
-    html += `<div class="exercise-header">`;
-    html += `<div class="exercise-tag">${tag}</div>`;
-    html += `<div class="exercise-title"><div class="exercise-name">${ex.name}</div>`;
-    html += `<div class="exercise-meta">${ex.tempo ? `<span>${ex.tempo}</span>` : ''}${ex.rpe ? `<span>RPE ${ex.rpe}</span>` : ''}${ex.rest ? `<span>${ex.rest / 60} min repos</span>` : ''}</div>`;
-    html += ex.instructions ? `<div class="exercise-instructions">${ex.instructions}</div>` : '';
-    html += `</div>`;
-    if (ex.preFatigue) {
-      const selectedSets = state.preFatigueSets[ex.id] || 1;
-      html += `<div class="set-choice" onclick="event.stopPropagation()"><button class="${selectedSets === 1 ? 'active' : ''}" aria-label="Une série pour ${escAttr(ex.name)}" aria-pressed="${selectedSets === 1}" onclick="setPreFatigueSetCount('${ex.id}',1)">1</button><button class="${selectedSets === 2 ? 'active' : ''}" aria-label="Deux séries pour ${escAttr(ex.name)}" aria-pressed="${selectedSets === 2}" onclick="setPreFatigueSetCount('${ex.id}',2)">2</button></div>`;
+    const note = getCustomNote(exerciseId);
+    html += `<div class="acc-note-row"><label>Commentaire personnel</label><input type="text" class="acc-note-input${note ? '' : ' empty'}" aria-label="Commentaire personnel, ${escAttr(exercise.name)}" placeholder="Réglage, sensation, consigne personnelle…" value="${escAttr(note)}" data-exname="${escAttr(exerciseId)}" onchange="onNoteInputChange(this)"></div>`;
+    html += renderRecentExerciseHistory(exercise, history);
+    html += '<div class="set-table-label"><span>Charge réellement utilisée</span><span>Effort par série</span></div>';
+    sets.forEach((set, setIndex) => { html += renderTrackedSet(exercise, exKey, set, setIndex, skipReason); });
+
+    if (!skipReason) {
+      const rating = getExerciseRating(exerciseId);
+      html += `<div class="effort-rating"><span class="effort-rating-label">Ressenti du bloc</span><button class="easy${rating === 'easy' ? ' active' : ''}" aria-pressed="${rating === 'easy'}" onclick="setExerciseRating('${escAttr(exerciseId)}','easy')">Très facile</button><button class="right${rating === 'right' ? ' active' : ''}" aria-pressed="${rating === 'right'}" onclick="setExerciseRating('${escAttr(exerciseId)}','right')">Adapté</button><button class="hard${rating === 'hard' ? ' active' : ''}" aria-pressed="${rating === 'hard'}" onclick="setExerciseRating('${escAttr(exerciseId)}','hard')">Très difficile</button></div>`;
+      const pain = getExercisePain(exerciseId);
+      html += `<div class="pain-tracking"><span class="pain-title">Douleur</span><label>Intensité<input type="number" min="0" max="10" step="1" inputmode="numeric" value="${pain.score ?? ''}" placeholder="0-10" data-exercise="${escAttr(exerciseId)}" data-field="score" onchange="onPainInputChange(this)"></label><label>Localisation<input type="text" value="${escAttr(pain.location)}" placeholder="Ex. épaule gauche" data-exercise="${escAttr(exerciseId)}" data-field="location" onchange="onPainInputChange(this)"></label></div>`;
     }
-    if (ex.isFreestyle) {
-      html += `<div class="freestyle-controls" onclick="event.stopPropagation()"><button onclick="changeFreestyleSetCount(-1)" aria-label="Retirer une série">−</button><span>${sets.length} séries</span><button onclick="changeFreestyleSetCount(1)" aria-label="Ajouter une série">+</button><button onclick="openFreestylePicker()" aria-label="Changer d'exercice">↻</button><button onclick="removeFreestyleExercise()" aria-label="Retirer l'exercice">×</button></div>`;
-    }
-    if (ex.isExtra) {
-      html += `<button class="remove-extra-btn" onclick="event.stopPropagation();removeExtraAccessory('${ex.id}')" title="Retirer de cette séance" aria-label="Retirer ${escAttr(ex.name)}">&times;</button>`;
-    }
-    if (!ex.preFatigue) {
-      html += `<select class="skip-select${skipReason ? ' active' : ''}" aria-label="Statut de ${escAttr(ex.name)}" onclick="event.stopPropagation()" onchange="setExerciseSkip('${escAttr(exerciseId)}','${escAttr(exKey)}',this.value)">`;
-      html += `<option value="">À faire</option>`;
-      Object.entries(SKIP_LABELS).forEach(([value, label]) => {
-        html += `<option value="${value}"${skipReason === value ? ' selected' : ''}>${label}</option>`;
-      });
-      html += `</select>`;
-    }
-    html += `<div class="exercise-check" aria-hidden="true">${skipReason ? '&#8212;' : allDone ? '&#10003;' : ''}</div>`;
-    html += `</div>`;
-    html += `<div class="sets-container">`;
-
-    // Accessory free-text note (réglage siège, cues…) — entre le titre et les séries
-    if (!ex.ref) {
-      const note = getCustomNote(ex.name);
-      const exNameEsc = ex.name.replace(/"/g, '&quot;');
-      html += `<div class="acc-note-row"><input type="text" class="acc-note-input${note ? '' : ' empty'}" aria-label="Note, ${escAttr(ex.name)}" placeholder="&#128221; Note (ex. r&eacute;glage si&egrave;ge, prise, cran&hellip;)" value="${escAttr(note)}" data-exname="${exNameEsc}" onclick="event.stopPropagation()" onchange="onNoteInputChange(this)"></div>`;
-    }
-
-    if (!ex.preFatigue) {
-      html += renderRecentExerciseHistory(ex, history);
-    }
-
-    sets.forEach((set, si) => {
-      const done = isSetDone(state.week, state.day, exKey, si);
-      const rowClass = done ? 'set-row done' : 'set-row';
-      const checkClass = done ? 'set-checkbox checked' : 'set-checkbox';
-
-      // Build set info
-      let info = '';
-
-      if (set.pct !== undefined && set.ref) {
-        // PR-based exercise: fixed reps + calculated weight
-        info += '<span class="reps">';
-        if (set.r === "AMRAP") {
-          info += `1 rep</span><span class="amrap-badge">AMRAP</span>`;
-        } else {
-          info += `${set.r} rep${set.r > 1 ? 's' : ''}</span>`;
-        }
-        const kg = calcWeight(set.pct, set.ref);
-        if (kg !== null) {
-          const actualPct = Math.round(kg / getMax(set.ref) * 100);
-          info += `<span class="weight">${kg} kg</span>`;
-          info += `<span class="pct">(${actualPct}%)</span>`;
-        }
-      } else if (!set.ref) {
-        // Accessory exercise: editable reps + editable weight (double progression)
-        const exNameEsc = ex.name.replace(/"/g, '&quot;');
-        const programReps = set.r === "AMRAP" || set.r === "MAX" ? "MAX" : set.r;
-
-        // Reps input (independent per set — keyed by absolute set index si)
-        const cr = getCustomReps(ex.name, si);
-        const repsVal = (cr !== null) ? cr : '';
-        const repsEmpty = (cr === null) ? ' empty' : '';
-        info += `<input type="number" step="1" inputmode="numeric" class="acc-input reps-input${repsEmpty}" aria-label="Répétitions, ${escAttr(ex.name)}, série ${si + 1}" placeholder="${programReps}" value="${repsVal}" data-exname="${exNameEsc}" data-set="${si}" data-ekey="${exKey}" onclick="event.stopPropagation()" onchange="onRepsInputChange(this)"${skipReason ? ' disabled' : ''}>`;
-        info += `<span class="acc-unit">${ex.tracking === "time" ? "sec" : "reps"}</span>`;
-
-        info += `<span class="acc-x">&times;</span>`;
-
-        // Weight input
-        const cw = getCustomWeight(ex.name, si);
-        const weightVal = (cw !== null) ? cw : '';
-        const weightEmpty = (cw === null) ? ' empty' : '';
-        info += `<input type="number" step="0.5" inputmode="decimal" class="acc-input weight-input${weightEmpty}" aria-label="Poids, ${escAttr(ex.name)}, série ${si + 1}" placeholder="—" value="${weightVal}" data-exname="${exNameEsc}" data-set="${si}" onclick="event.stopPropagation()" oninput="onWeightInputChange(this)"${skipReason ? ' disabled' : ''}>`;
-        info += `<span class="acc-unit">kg</span>`;
-      } else {
-        // Fallback (shouldn't happen): just show reps
-        info += '<span class="reps">';
-        if (set.r === "AMRAP") {
-          info += `1 rep</span><span class="amrap-badge">AMRAP</span>`;
-        } else {
-          info += `${set.r} rep${set.r > 1 ? 's' : ''}</span>`;
-        }
-      }
-
-      if (set.rpe !== undefined) {
-        info += `<span class="rpe">RPE ${set.rpe}</span>`;
-      }
-
-      // Accessory range label (right-aligned)
-      const range = (!set.ref && !ex.ref) ? (ex.range || ACC_RANGES[ex.name]) : null;
-      if (range) {
-        info += `<span class="acc-range">${range}</span>`;
-      }
-
-      html += `<div class="${rowClass}">`;
-      html += `<button type="button" class="${checkClass}" aria-label="${done ? 'Décocher' : 'Cocher'} ${escAttr(ex.name)}, série ${si + 1}" aria-pressed="${done}" onclick="toggleSetDone(${state.week},${state.day},'${exKey}',${si})"${skipReason ? ' disabled' : ''}>&#10003;</button>`;
-      html += `<div class="set-info">${info}</div>`;
-      html += `</div>`;
-    });
-
-    if (!ex.preFatigue && !skipReason) {
-      const rating = getExerciseRating(ex.id || accessoryDataKey(ex.name));
-      const ratingId = escAttr(ex.id || accessoryDataKey(ex.name));
-      html += `<div class="effort-rating"><span class="effort-rating-label">Ressenti du bloc</span>`;
-      html += `<button class="easy${rating === 'easy' ? ' active' : ''}" aria-label="${escAttr(ex.name)} : très facile" aria-pressed="${rating === 'easy'}" onclick="setExerciseRating('${ratingId}','easy')">Très facile</button>`;
-      html += `<button class="right${rating === 'right' ? ' active' : ''}" aria-label="${escAttr(ex.name)} : adapté" aria-pressed="${rating === 'right'}" onclick="setExerciseRating('${ratingId}','right')">Adapté</button>`;
-      html += `<button class="hard${rating === 'hard' ? ' active' : ''}" aria-label="${escAttr(ex.name)} : très difficile" aria-pressed="${rating === 'hard'}" onclick="setExerciseRating('${ratingId}','hard')">Très difficile</button></div>`;
-    }
-
-    html += `</div></div>`;
+    html += renderExerciseMedia(exercise, exerciseId);
+    html += '</div></article>';
   });
 
-  if (dayData.freestyle && !state.freestyleSelections[sessionOccurrenceKey()]) {
-    html += `<button class="freestyle-picker-btn" onclick="openFreestylePicker()"><span>+</span><strong>Choisir l'exercice libre jambes</strong><small>Squat, presse, deadlift, fentes et autres classiques</small></button>`;
+  html += `<button class="add-accessory-btn" onclick="openExerciseEditor('',${state.day})"><span aria-hidden="true">+</span> Ajouter un exercice</button>`;
+  const logged = isSessionLogged(state.week, state.day);
+  if (logged || progress.done > 0 || progress.skipped > 0) {
+    html += '<div class="session-validate">';
+    if (logged) html += `<span class="session-validate-ok">&#10003; Séance enregistrée dans l'historique</span><button class="btn-devalider" onclick="devalidateSession(${state.week},${state.day})">Dévalider</button>`;
+    else html += `<button class="btn-valider" onclick="showValidateModal(${state.week},${state.day})">Valider la séance</button>`;
+    html += '</div>';
   }
-
-  html += `<button class="add-accessory-btn" onclick="openAccessoryPicker()">`
-    + `<span aria-hidden="true">+</span> Ajouter un accessoire</button>`;
-
-  // Session validation footer — valider une séance partielle OU complète vers l'historique
-  {
-    const sp = getDayProgress(state.week, state.day);
-    const logged = isSessionLogged(state.week, state.day);
-    if (logged || sp.done > 0 || sp.skipped > 0) {
-      html += `<div class="session-validate">`;
-      if (logged) {
-        html += `<span class="session-validate-ok">&#10003; Séance enregistrée dans l'historique</span>`;
-        html += `<button class="btn-devalider" onclick="devalidateSession(${state.week},${state.day})">Dévalider</button>`;
-      } else {
-        html += `<button class="btn-valider" onclick="showValidateModal(${state.week},${state.day})">Valider la séance</button>`;
-      }
-      html += `</div>`;
-    }
-  }
-
   content.innerHTML = html;
 }
 
 function render() {
-  document.getElementById('cycleDisplay').textContent = `Semaine ${state.cycle}`;
+  document.getElementById('cycleDisplay').textContent = `Entraînement 2 · Semaine ${state.cycle}`;
   renderNav();
   renderContent();
 }
@@ -2459,6 +2701,8 @@ function advanceCycle() {
     const occurrence = sessionOccurrenceKey(state.cycle, 0, dayIndex);
     delete state.sessionDrafts[occurrence];
     delete state.exerciseRatings[occurrence];
+    delete state.exercisePain[occurrence];
+    delete state.personalMedia[occurrence];
     delete state.exerciseSkips[occurrence];
     delete state.extraAccessories[occurrence];
     delete state.freestyleSelections[occurrence];
@@ -2490,6 +2734,8 @@ function resetDay() {
   const occurrence = sessionOccurrenceKey();
   delete state.sessionDrafts[occurrence];
   delete state.exerciseRatings[occurrence];
+  delete state.exercisePain[occurrence];
+  delete state.personalMedia[occurrence];
   delete state.exerciseSkips[occurrence];
   saveState();
   render();
@@ -2675,6 +2921,8 @@ function resetAllProgress() {
     state.day = 0;
     state.sessionDrafts = {};
     state.exerciseRatings = {};
+    state.exercisePain = {};
+    state.personalMedia = {};
     state.exerciseSkips = {};
     state.extraAccessories = {};
     state.preFatigueSets = {};
@@ -2850,11 +3098,16 @@ function serializeState() {
     sessionDrafts: state.sessionDrafts,
     customNotes: state.customNotes,
     exerciseRatings: state.exerciseRatings,
+    exercisePain: state.exercisePain,
+    personalMedia: state.personalMedia,
+    exerciseOverrides: state.exerciseOverrides,
+    customSessions: state.customSessions,
     exerciseSkips: state.exerciseSkips,
     weightDataVersion: WEIGHT_DATA_VERSION,
     extraAccessories: state.extraAccessories,
     preFatigueSets: state.preFatigueSets,
     freestyleSelections: state.freestyleSelections,
+    historySeedVersion: state.historySeedVersion,
     updatedAt: state.updatedAt,
     timerDuration: state.timerDuration
   };
@@ -2873,6 +3126,7 @@ function loadState() {
     const data = JSON.parse(localStorage.getItem(storageKey(STORAGE_PROGRAM)));
     if (data) {
       if (data.programVersion !== PROGRAM_VERSION) {
+        storeRecoverySnapshot('before-program-migration');
         state.updatedAt = Date.now();
         saveState();
         return;
@@ -2893,12 +3147,17 @@ function loadState() {
       state.sessionDrafts = data.sessionDrafts || {};
       state.customNotes = migrateAccessoryKeys(data.customNotes || {});
       state.exerciseRatings = data.exerciseRatings || {};
+      state.exercisePain = data.exercisePain || {};
+      state.personalMedia = data.personalMedia || {};
+      state.exerciseOverrides = data.exerciseOverrides || {};
+      state.customSessions = data.customSessions || {};
       state.exerciseSkips = data.exerciseSkips || {};
       const migrateWeights = data.weightDataVersion !== WEIGHT_DATA_VERSION;
       if (migrateWeights) migrateWeightsToIndependentSets();
       state.extraAccessories = migrateExtraAccessories(data.extraAccessories || {});
       state.preFatigueSets = data.preFatigueSets || {};
       state.freestyleSelections = data.freestyleSelections || {};
+      state.historySeedVersion = data.historySeedVersion || 0;
       state.updatedAt = data.updatedAt || 0;
       state.timerDuration = data.timerDuration || 120;
       state.timerRemaining = state.timerDuration;
@@ -2959,27 +3218,28 @@ function getSessionDraft(exName, create = false, cycle = state.cycle, week = sta
   if (create) {
     if (!state.sessionDrafts[occurrence]) state.sessionDrafts[occurrence] = {};
     if (!state.sessionDrafts[occurrence][exerciseKey]) {
-      state.sessionDrafts[occurrence][exerciseKey] = { weights: [], reps: [] };
+      state.sessionDrafts[occurrence][exerciseKey] = { weights: [], reps: [], rpes: [] };
     }
+    if (!state.sessionDrafts[occurrence][exerciseKey].rpes) state.sessionDrafts[occurrence][exerciseKey].rpes = [];
   }
   return state.sessionDrafts[occurrence]?.[exerciseKey] || null;
 }
 
-function getCustomWeight(exName, setIdx, cycle = state.cycle, week = state.week, day = state.day) {
+function getCustomWeight(exName, setIdx, cycle = state.cycle, week = state.week, day = state.day, targetWeight = null) {
   const draft = getSessionDraft(exName, false, cycle, week, day);
   if (draft?.weights && Object.prototype.hasOwnProperty.call(draft.weights, setIdx)) {
     const value = draft.weights[setIdx];
     return typeof value === 'number' && !isNaN(value) ? value : null;
   }
   const arr = state.customWeights[accessoryDataKey(exName)];
-  if (!arr) return null;
+  if (!arr) return typeof targetWeight === 'number' ? targetWeight : null;
   const entry = arr[setIdx];
   if (typeof entry === 'number') return entry; // legacy format
   if (entry && typeof entry === 'object') {
     const w = entry.w;
     return (typeof w === 'number' && !isNaN(w)) ? w : null;
   }
-  return null;
+  return typeof targetWeight === 'number' ? targetWeight : null;
 }
 
 function getCustomReps(exName, setIdx, cycle = state.cycle, week = state.week, day = state.day) {
@@ -2997,6 +3257,49 @@ function getCustomReps(exName, setIdx, cycle = state.cycle, week = state.week, d
 function setCustomWeight(exName, setIdx, weight) {
   const draft = getSessionDraft(exName, true);
   draft.weights[setIdx] = (weight === null || weight === '' || isNaN(weight)) ? null : Number(weight);
+  saveState();
+}
+
+function getSetRpe(exName, setIdx, cycle = state.cycle, week = state.week, day = state.day) {
+  const draft = getSessionDraft(exName, false, cycle, week, day);
+  const value = draft?.rpes?.[setIdx];
+  return typeof value === 'number' && !isNaN(value) ? value : null;
+}
+
+function setSetRpe(exName, setIdx, rpe) {
+  const draft = getSessionDraft(exName, true);
+  draft.rpes[setIdx] = (rpe === null || rpe === '' || isNaN(rpe)) ? null : Math.max(1, Math.min(10, Number(rpe)));
+  saveState();
+}
+
+function getExercisePain(exerciseId, cycle = state.cycle, week = state.week, day = state.day) {
+  return state.exercisePain[sessionOccurrenceKey(cycle, week, day)]?.[exerciseId] || { score: null, location: '' };
+}
+
+function setExercisePain(exerciseId, field, value) {
+  const occurrence = sessionOccurrenceKey();
+  if (!state.exercisePain[occurrence]) state.exercisePain[occurrence] = {};
+  const current = state.exercisePain[occurrence][exerciseId] || { score: null, location: '' };
+  if (field === 'score') current.score = value === '' || value === null || isNaN(value) ? null : Math.max(0, Math.min(10, Number(value)));
+  if (field === 'location') current.location = String(value || '').trim();
+  if (current.score === null && !current.location) delete state.exercisePain[occurrence][exerciseId];
+  else state.exercisePain[occurrence][exerciseId] = current;
+  if (!Object.keys(state.exercisePain[occurrence]).length) delete state.exercisePain[occurrence];
+  saveState();
+}
+
+function getPersonalMedia(exerciseId, cycle = state.cycle, week = state.week, day = state.day) {
+  return state.personalMedia[sessionOccurrenceKey(cycle, week, day)]?.[exerciseId] || { photoUrl: '', videoUrl: '' };
+}
+
+function setPersonalMedia(exerciseId, field, value) {
+  const occurrence = sessionOccurrenceKey();
+  if (!state.personalMedia[occurrence]) state.personalMedia[occurrence] = {};
+  const current = state.personalMedia[occurrence][exerciseId] || { photoUrl: '', videoUrl: '' };
+  current[field] = String(value || '').trim();
+  if (!current.photoUrl && !current.videoUrl) delete state.personalMedia[occurrence][exerciseId];
+  else state.personalMedia[occurrence][exerciseId] = current;
+  if (!Object.keys(state.personalMedia[occurrence]).length) delete state.personalMedia[occurrence];
   saveState();
 }
 
@@ -3048,6 +3351,17 @@ function escHtml(s) {
   return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function safeExternalUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    const parsed = new URL(raw);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.href : '';
+  } catch(e) {
+    return '';
+  }
 }
 
 // Per-exercise free-text note (keyed by exercise name, persists across cycles/days).
@@ -3140,6 +3454,190 @@ function onRepsInputChange(inputEl) {
   afterSessionChange(state.week, state.day, wasComplete);
 }
 
+function onRpeInputChange(inputEl) {
+  const wasComplete = getDayProgress(state.week, state.day).pct === 100;
+  const raw = inputEl.value.trim();
+  const value = raw === '' ? null : parseFloat(raw);
+  setSetRpe(inputEl.dataset.exname, parseInt(inputEl.dataset.set, 10), value);
+  inputEl.classList.toggle('empty', value === null);
+  afterSessionChange(state.week, state.day, wasComplete);
+}
+
+function onPainInputChange(inputEl) {
+  const wasComplete = getDayProgress(state.week, state.day).pct === 100;
+  setExercisePain(inputEl.dataset.exercise, inputEl.dataset.field, inputEl.value);
+  afterSessionChange(state.week, state.day, wasComplete);
+}
+
+function onPersonalMediaChange(inputEl) {
+  const wasComplete = getDayProgress(state.week, state.day).pct === 100;
+  setPersonalMedia(inputEl.dataset.exercise, inputEl.dataset.field, inputEl.value);
+  afterSessionChange(state.week, state.day, wasComplete);
+  render();
+}
+
+let editingExercise = null;
+
+function findExerciseById(exerciseId, day = state.day) {
+  return getSessionExercises(state.week, day).find(exercise => exercise.id === exerciseId) || null;
+}
+
+function setEditorValue(id, value) {
+  const element = document.getElementById(id);
+  if (element) element.value = value ?? '';
+}
+
+function openExerciseEditor(exerciseId = '', day = state.day) {
+  const exercise = exerciseId ? findExerciseById(exerciseId, day) : null;
+  editingExercise = { exerciseId: exercise?.id || '', sourceDay: day, isNew: !exercise };
+  document.getElementById('exerciseEditorTitle').textContent = exercise ? 'Modifier l’exercice' : 'Ajouter un exercice';
+  setEditorValue('editorExerciseName', exercise?.name || '');
+  setEditorValue('editorExerciseDay', day);
+  setEditorValue('editorExerciseSection', exercise?.section || 'Séance principale');
+  setEditorValue('editorExerciseSets', exercise ? getExerciseSets(exercise).length : 3);
+  setEditorValue('editorExerciseReps', exercise?.sets?.[0]?.r ?? 10);
+  setEditorValue('editorExerciseRepsLabel', exercise?.repsLabel || '');
+  setEditorValue('editorExerciseTracking', exercise?.tracking || 'reps');
+  setEditorValue('editorExerciseWeight', exercise?.targetWeight ?? '');
+  setEditorValue('editorExerciseWeightLabel', exercise?.targetWeightLabel || '');
+  setEditorValue('editorExerciseWeightNote', exercise?.weightNote || '');
+  setEditorValue('editorExerciseRest', exercise?.rest ?? '');
+  setEditorValue('editorExerciseRestLabel', exercise?.restLabel || '');
+  setEditorValue('editorExerciseRudy', exercise?.rudyComment || '');
+  setEditorValue('editorExerciseInstructions', exercise?.instructions || '');
+  setEditorValue('editorExercisePhoto', exercise?.media?.photo || '');
+  setEditorValue('editorExerciseVideo', exercise?.media?.video || exercise?.media?.reference || '');
+  document.getElementById('editorExerciseVideoType').value = exercise?.media?.reference && !exercise?.media?.video ? 'reference' : 'video';
+  document.getElementById('editorExercisePersonalVideo').checked = !!exercise?.requiresPersonalVideo;
+  document.getElementById('exerciseEditorModal').classList.add('show');
+}
+
+function closeExerciseEditor() {
+  document.getElementById('exerciseEditorModal').classList.remove('show');
+  editingExercise = null;
+}
+
+function saveExerciseEditor() {
+  if (!editingExercise) return;
+  const name = document.getElementById('editorExerciseName').value.trim();
+  if (!name) {
+    document.getElementById('exerciseEditorMessage').textContent = 'Le nom de l’exercice est obligatoire.';
+    return;
+  }
+  const dayIndex = Number(document.getElementById('editorExerciseDay').value);
+  const setCount = Math.max(1, Math.min(12, Number(document.getElementById('editorExerciseSets').value) || 1));
+  const targetReps = Math.max(0, Number(document.getElementById('editorExerciseReps').value) || 0);
+  const targetWeightRaw = document.getElementById('editorExerciseWeight').value.trim();
+  const targetWeight = targetWeightRaw === '' ? null : Math.max(0, Number(targetWeightRaw));
+  const restRaw = document.getElementById('editorExerciseRest').value.trim();
+  const rest = restRaw === '' ? null : Math.max(0, Number(restRaw));
+  const tracking = document.getElementById('editorExerciseTracking').value === 'time' ? 'time' : 'reps';
+  const videoType = document.getElementById('editorExerciseVideoType').value;
+  const videoValue = document.getElementById('editorExerciseVideo').value.trim();
+  const media = {
+    photo: document.getElementById('editorExercisePhoto').value.trim(),
+    video: videoType === 'video' ? videoValue : '',
+    reference: videoType === 'reference' ? videoValue : ''
+  };
+  const payload = {
+    name,
+    section: document.getElementById('editorExerciseSection').value.trim() || 'Séance principale',
+    setCount,
+    targetReps,
+    tracking,
+    repsLabel: document.getElementById('editorExerciseRepsLabel').value.trim() || (tracking === 'time' ? `${targetReps} sec` : String(targetReps)),
+    targetWeight,
+    targetWeightLabel: document.getElementById('editorExerciseWeightLabel').value.trim() || (targetWeight === null ? 'Non renseignée' : `${targetWeight} kg`),
+    weightNote: document.getElementById('editorExerciseWeightNote').value.trim(),
+    rest,
+    restLabel: document.getElementById('editorExerciseRestLabel').value.trim() || (rest === null ? 'Non renseigné' : rest < 60 ? `${rest} sec` : `${Math.floor(rest / 60)} min${rest % 60 ? ` ${rest % 60}` : ''}`),
+    rudyComment: document.getElementById('editorExerciseRudy').value.trim(),
+    instructions: document.getElementById('editorExerciseInstructions').value.trim(),
+    requiresPersonalVideo: document.getElementById('editorExercisePersonalVideo').checked,
+    media,
+    dayIndex
+  };
+
+  if (editingExercise.isNew) {
+    const id = `custom-${createRunId()}`.replace(/[^a-zA-Z0-9-]/g, '-');
+    if (!state.customSessions[String(dayIndex)]) {
+      state.customSessions[String(dayIndex)] = PROGRAM[state.week].days[dayIndex]?.pending
+        ? { name: `Séance libre · Jour ${dayIndex + 1}`, exercises: [] }
+        : { exercises: [] };
+    }
+    state.customSessions[String(dayIndex)].exercises.push({
+      id,
+      ...payload,
+      preFatigue: payload.section.toLocaleLowerCase('fr').includes('isométr'),
+      sets: [{ s: setCount, r: targetReps }],
+      isCustom: true
+    });
+  } else {
+    const customEntry = Object.entries(state.customSessions).find(([, session]) =>
+      (session.exercises || []).some(exercise => exercise.id === editingExercise.exerciseId)
+    );
+    if (customEntry) {
+      const [oldDay, session] = customEntry;
+      const existing = session.exercises.find(exercise => exercise.id === editingExercise.exerciseId);
+      session.exercises = session.exercises.filter(exercise => exercise.id !== editingExercise.exerciseId);
+      if (!state.customSessions[String(dayIndex)]) state.customSessions[String(dayIndex)] = PROGRAM[state.week].days[dayIndex]?.pending
+        ? { name: `Séance libre · Jour ${dayIndex + 1}`, exercises: [] }
+        : { exercises: [] };
+      state.customSessions[String(dayIndex)].exercises.push({
+        ...existing,
+        ...payload,
+        preFatigue: payload.section.toLocaleLowerCase('fr').includes('isométr'),
+        sets: [{ s: setCount, r: targetReps }],
+        isCustom: true
+      });
+      if (!session.exercises.length && Number(oldDay) !== dayIndex && PROGRAM[state.week].days[Number(oldDay)]?.pending) delete state.customSessions[oldDay];
+    } else {
+      state.exerciseOverrides[editingExercise.exerciseId] = payload;
+      if (PROGRAM[state.week].days[dayIndex]?.pending && !state.customSessions[String(dayIndex)]) {
+        state.customSessions[String(dayIndex)] = { name: `Séance libre · Jour ${dayIndex + 1}`, exercises: [] };
+      }
+    }
+  }
+  saveState();
+  closeExerciseEditor();
+  state.day = dayIndex;
+  render();
+}
+
+function removeCustomExercise(exerciseId, day = state.day) {
+  const session = state.customSessions[String(day)];
+  const exercise = (session?.exercises || []).find(item => item.id === exerciseId);
+  if (!session || !exercise) return;
+  if (!confirm(`Retirer ${exercise.name} du planning actuel ? Son historique restera conservé.`)) return;
+  session.exercises = session.exercises.filter(item => item.id !== exerciseId);
+  delete state.exerciseOverrides[exerciseId];
+  saveState();
+  render();
+}
+
+function openSessionEditor(day = state.day) {
+  const session = getCustomSession(day);
+  document.getElementById('sessionEditorDay').value = day;
+  document.getElementById('sessionEditorName').value = session?.name || `Séance libre · Jour ${day + 1}`;
+  document.getElementById('sessionEditorModal').classList.add('show');
+}
+
+function closeSessionEditor() {
+  document.getElementById('sessionEditorModal').classList.remove('show');
+}
+
+function saveSessionEditor() {
+  const day = Number(document.getElementById('sessionEditorDay').value);
+  const name = document.getElementById('sessionEditorName').value.trim();
+  if (!name) return;
+  const existing = state.customSessions[String(day)] || { exercises: [] };
+  state.customSessions[String(day)] = { ...existing, name, shortName: name };
+  state.day = day;
+  saveState();
+  closeSessionEditor();
+  render();
+}
+
 // ============================================================
 // HISTORY SYSTEM
 // ============================================================
@@ -3152,6 +3650,124 @@ function loadHistory() {
     const data = JSON.parse(localStorage.getItem(storageKey(STORAGE_HISTORY)));
     return data || { sessions: [], maxHistory: [] };
   } catch(e) { return { sessions: [], maxHistory: [] }; }
+}
+
+function buildTrainingOneArchive(seedTimestamp = Date.now()) {
+  const set = (reps, weight = null, rpe = null, tracking = 'reps', done = true) => {
+    const unit = tracking === 'time' ? ' sec' : 'r';
+    let desc = `${reps}${unit}`;
+    if (weight !== null) desc += ` ${weight}kg`;
+    if (rpe !== null) desc += ` RPE${rpe}`;
+    return { desc, done, reps, weight, rpe, tracking };
+  };
+  const repeat = (count, reps, weight, rpe = null, tracking = 'reps') =>
+    Array.from({ length: count }, () => set(reps, weight, rpe, tracking));
+  const exercise = (id, name, sets, summary, options = {}) => ({
+    id, name, source: 'archive', sets, summary,
+    note: options.note || '',
+    difficultyText: options.difficultyText || '',
+    pain: options.pain || { score: null, location: '' },
+    media: options.media || {},
+    rudyComment: options.rudyComment || '',
+    target: options.target || null,
+    rating: options.rating || '',
+    skipped: false,
+    done: sets.filter(item => item.done).length,
+    total: sets.length
+  });
+  const session = (day, dayName, exercises) => ({
+    sessionId: `training-1-archive-day-${day + 1}`,
+    schemaVersion: DATA_SCHEMA_VERSION,
+    programId: TRAINING_ONE_ARCHIVE_ID,
+    runId: 'documented-week-1',
+    date: `archive-training-1-day-${day + 1}`,
+    displayDate: 'Semaine précédente',
+    archiveLabel: 'Entraînement 1 · Première semaine',
+    cycle: 1,
+    week: 0,
+    day,
+    dayName,
+    weekName: 'Entraînement 1',
+    setsDone: exercises.reduce((sum, item) => sum + item.done, 0),
+    setsTotal: exercises.reduce((sum, item) => sum + item.total, 0),
+    exercises,
+    validatedAt: day + 1,
+    updatedAt: seedTimestamp
+  });
+  const iso = {
+    lateral: { photo: 'https://www.dropbox.com/scl/fi/0jzsqujt2b910yio6kgtm/KEV01197.jpg?rlkey=9u4puo1wknhrf3xc0j24915ja&dl=0' },
+    internal: { photo: 'https://www.dropbox.com/scl/fi/ydqj1pfykqytjdzceuxy5/KEV01213.jpg?rlkey=6fp0p7h558apth1on4di9hpt6&dl=0' },
+    external: { photo: 'https://www.dropbox.com/scl/fi/6daj7vjrua1dbcvolvpuc/KEV01209.jpg?rlkey=c6zooamnoh5fve2fwvzj0mmat&dl=0' },
+    pullover: { photo: 'https://www.dropbox.com/scl/fi/nags3sr2oo3eu8nzq0ptm/KEV01205.jpg?rlkey=p50588c6050tovomwh3oynvom&dl=0' },
+    neck: { photo: 'https://www.dropbox.com/scl/fi/jm9u6migwohaflctn0smm/KEV01221.jpg?rlkey=v8xcut4valhlwk8h1ch9guj70&dl=0' },
+    curl: { photo: 'https://www.dropbox.com/scl/fi/2vqm63eokwffwzox0jo18/KEV01222.jpg?rlkey=vvsebsnp5z6w7g4gkncxljn60&dl=0' }
+  };
+
+  const day1 = [
+    exercise('iso-elevation-laterale', 'Élévation latérale en isométrie', repeat(2, 45, 3, null, 'time'), '3 kg par bras · légèrement trop lourd.', { difficultyText: '≈8/10', media: iso.lateral, target: { sets: 2, reps: '45 sec' } }),
+    exercise('iso-rotation-interne', 'Rotation interne en isométrie', repeat(2, 45, 3, null, 'time'), '3 kg.', { difficultyText: '≈7/10', media: iso.internal, target: { sets: 2, reps: '45 sec' } }),
+    exercise('iso-rotation-externe', 'Rotation externe en isométrie', repeat(2, 45, 3, null, 'time'), '3 kg.', { difficultyText: '≈6–7/10', media: iso.external, target: { sets: 2, reps: '45 sec' } }),
+    exercise('iso-pull-over', 'Pull-over en isométrie', repeat(2, 45, 6, null, 'time'), '6 kg · facile.', { difficultyText: '≈5/10', media: iso.pullover, target: { sets: 2, reps: '45 sec' } }),
+    exercise('iso-extension-nuque', 'Extension nuque en isométrie', [set(45, 6, null, 'time'), set(45, 6, null, 'time')], '6 kg · côté droit ≈5/10 · côté gauche ≈7–8/10, plus difficile à gauche.', { difficultyText: 'Droite ≈5/10 · gauche ≈7–8/10', media: iso.neck, target: { sets: 2, reps: '45 sec' } }),
+    exercise('iso-curl-barre', 'Curl barre en supination en isométrie', [set(45, 15, null, 'time'), set(45, 15, null, 'time')], '15 kg · supination ≈7/10 · pronation ≈7–8/10, plus difficile en pronation.', { difficultyText: 'Supination ≈7/10 · pronation ≈7–8/10', media: iso.curl, target: { sets: 2, reps: '45 sec' } }),
+    exercise('crunch', 'Crunch', [set(20, 0), set(11, 0), set(10, 0, '≈7')], '20 / 11 / 10 reps · dernière série ≈7/10.', { target: { sets: 3, reps: 20, restLabel: '30 sec' }, media: { reference: 'https://www.superphysique.org/exercices/crunch' } }),
+    exercise('developpe-couche-halteres', 'Développé couché avec haltères', repeat(4, 10, 26), '26 kg par bras · 4×10 validé · ≈7/10.', { difficultyText: '≈7/10', target: { sets: 4, reps: 10, restLabel: '2 min' }, media: { reference: 'https://www.superphysique.org/exercices/319' } }),
+    exercise('ecarte-incline-halteres', 'Écarté incliné avec haltères', [], '12 kg par bras · meilleur angle : banc ≈30° · meilleur recrutement des pecs qu’à 15° · légère gêne épaule ≈3–4/10 · tension intercostale droite si trop de cambrure.', { pain: { score: 4, location: 'Épaule ; intercostal droit si cambrure excessive' }, target: { sets: 3, reps: 25, restLabel: '1 min 30' }, media: { reference: 'https://www.superphysique.org/exercices/175' } }),
+    exercise('pull-over', 'Pull-over', repeat(4, 14, 12), '12 kg · 4×14 validé · très bonnes sensations · impression positive pour l’épaule.', { difficultyText: '≈4–5/10', target: { sets: 4, reps: 14, restLabel: '1 min' }, media: { reference: 'https://www.superphysique.org/exercices/pull_over' } }),
+    exercise('curl-incline', 'Curl incliné', [set(12, 12), set(8, 12, '≈8–9'), set(12, 10), set(9, 10, '≈8–9')], '12 kg : 12 puis 8 reps · 10 kg : 12 puis 9 reps · nouvelle cible retenue : 8 kg pour un mouvement propre.', { target: { sets: 4, reps: 12, restLabel: '1 min 30' }, media: { reference: 'https://www.superphysique.org/exercices/135' } }),
+    exercise('curl-pupitre-un-bras', 'Curl pupitre un bras', [set(12, 8, '≈10')], 'Environ 8 kg testés · blocage autour de 12 reps côté droit · échec · trop lourd · nouvelle base : 6 kg.', { difficultyText: '≈10/10', target: { sets: 3, reps: '16 / bras', restLabel: '45 sec entre chaque bras' }, media: { reference: 'https://www.superphysique.org/exercices/136' } })
+  ];
+
+  const day2 = [
+    exercise('traction-poulie-haute-large-pronation', 'Traction poulie haute prise large devant en pronation', [set(12, 50, 7), set(9, 50, 8), set(8, 50, '8–9'), set(5, 50, 7)], 'Charge de référence : 50 kg.', { target: { sets: 4, reps: 12, restLabel: '1 min 30' }, media: { video: 'https://www.youtube.com/results?search_query=lat+pulldown+prise+large+pronation+superphysique' } }),
+    exercise('rowing-haltere-un-bras', 'Rowing haltère un bras', [set(10, 20, '5–6'), set(10, 20, '7–8'), set(10, 20, '≈7')], '20 kg · très bonne charge.', { target: { sets: 3, reps: '10 / bras', restLabel: '45 sec entre chaque bras' }, media: { reference: 'https://www.superphysique.org/exercices/272' } }),
+    exercise('rowing-assis-poulie-basse-large-pronation', 'Rowing assis poulie basse, prise large pronation', [set(13, 30, '3–4'), set(13, 35, '≈5'), set(13, 40, '≈8–9'), set(13, 35, '≈8')], 'Excellente sensation rhomboïdes/dorsaux · meilleur gainage et meilleure stabilité · 35 kg retenus.', { target: { sets: 4, reps: 13, restLabel: '1 min 30' }, media: { reference: 'https://www.superphysique.org/exercices/263' } }),
+    exercise('barre-au-front', 'Barre au front', [set(12, 15, '≈7–8'), set(12, 15), set(12, 15), set(12, 15, '≈9–10')], 'Essai 10 kg + barre EZ trop léger · séries effectives avec 15 kg de disques + barre EZ · coudes resserrés : meilleures sensations et disparition de la tension trapèze/cou.', { target: { sets: 4, reps: 10, restLabel: '1 min 30' }, media: { reference: 'https://www.superphysique.org/exercices/barre_au_front' } }),
+    exercise('extension-nuque-deux-mains', 'Extension nuque assis à deux mains', [set(16, 12), set(16, 14, '≈8–9')], '12 kg ×16 facile · 14 kg ×16 ≈8–9/10 · retour conseillé à 12 kg · aucune douleur épaule · forte sensation d’étirement.', { pain: { score: 0, location: 'Épaule' }, target: { sets: 3, reps: 16, restLabel: '1 min 30' }, media: { reference: 'https://www.superphysique.org/exercices/163' } })
+  ];
+
+  const day4 = [
+    exercise('archive-circuit-cou', 'Circuit cou', [], 'Difficulté ≈7–8/10.', { media: { photo: 'https://www.dropbox.com/scl/fo/c977lse0km98p93tzpvmv/AD9XDy-LBhggO4l6S1DV_b8?rlkey=wvkbbe0h3wm1af7svjx1e9t2p&dl=0' } }),
+    exercise('archive-gainage-oblique-iso', 'Gainage oblique en isométrie', [], 'Difficulté ≈7/10.', { media: { photo: 'https://www.dropbox.com/scl/fi/ixnpi05m53iupe1r3h0s8/KEV01308.jpg?rlkey=f6wsel0o4unauslvmn9ilhtpn&dl=0' } }),
+    exercise('archive-sdt-sumo-iso', 'SDT sumo en isométrie', [], 'Difficulté ≈2–3/10 · très facile.', { media: { photo: 'https://www.dropbox.com/scl/fi/zl0csb40kenbs72i2x6r4/KEV01363.jpg?rlkey=nrfgb01w1hyq4unrhoerqxnsg&dl=0' } }),
+    exercise('archive-ischios-iso', 'Ischio-jambiers en isométrie', [], 'Très facile.', { media: { photo: 'https://www.dropbox.com/scl/fi/an5f9hqceocwc0in3p773/KEV01350.jpg?rlkey=pu6sw2v7z9fkhaxs84a8ezzmu&dl=0' } }),
+    exercise('archive-chaise-mur', 'Chaise contre un mur', [], 'Difficulté ≈2/10.', { media: { photo: 'https://www.dropbox.com/scl/fi/axmj7aj9qu3tfbno2n8jm/KEV01342.jpg?rlkey=13v4xgzg2u73f6lctyd0k0rdn&dl=0' } }),
+    exercise('archive-mollet-iso', 'Mollet à une jambe debout en isométrie', [], 'Difficulté ≈2–3/10.', { media: { photo: 'https://www.dropbox.com/scl/fi/qspwcxrlx21r2ock30hcm/KEV01366.jpg?rlkey=vzuhc495bchxuokxlkb7nelzd&dl=0' } }),
+    exercise('archive-gainage', 'Gainage', repeat(3, 30, 0, null, 'time'), '3×30 sec validé · facile · timer potentiellement augmentable.', { difficultyText: '≈4–5/10' }),
+    exercise('archive-leg-curl-assis', 'Leg curl assis', [set(16, 35, 8), set(12, 35), set(16, 30, 7)], 'Setup machine 2 / 1 / 4 · chauffe à 30 kg · deuxième série proche du maximum · rester calé au fond, dos au dossier, appui suffisamment avancé · charge retenue : 30 kg.', { media: { video: 'https://www.youtube.com/watch?v=Ne5MBQdvUwA' } }),
+    exercise('archive-leg-extension', 'Leg extension', [set(14, 45, 8), set(13, 45, 9)], 'Setup 2 / 1 / 4 · 45 kg légèrement trop lourd pour valider proprement tout le volume · seules les 3e et 4e séries sont précisément renseignées.', { media: { reference: 'https://www.superphysique.org/exercices/284' } }),
+    exercise('archive-fentes-halteres', 'Fentes avec haltères sur place', repeat(3, 12, 5), '5 kg par haltère · 3×12 par jambe validé · très bonne stabilité · bonnes sensations · charge volontairement conservatrice.', { difficultyText: '≈5–6/10', media: { reference: 'https://www.superphysique.org/exercices/345' } }),
+    exercise('archive-hip-thrust', 'Hip thrust', repeat(4, 10, 80), '80 kg barre comprise · 4×10 validé · grosse fatigue générale/cardio · légère réactivation de la douleur intercostale connue, au centre du dos à droite, pas lombaire.', { difficultyText: '≈6–7/10', pain: { score: null, location: 'Intercostal, centre du dos à droite ; pas lombaire' }, media: { reference: 'https://www.superphysique.org/exercices/5156' } }),
+    exercise('archive-mollets-presse', 'Mollets à la presse', [set(25, 80), set(21, 80), set(25, 60)], 'Très forte brûlure · facteur limitant : endurance / brûlure locale.', { media: { video: 'https://www.youtube.com/watch?v=xZJtQOdNbKk' } })
+  ];
+
+  const day5 = [
+    exercise('archive-enroulement-bassin', 'Enroulement de bassin au sol', repeat(3, 15, 0), '3×15 validé · facile · bon recrutement abdominal.', { media: { reference: 'https://www.superphysique.org/exercices/227' } }),
+    exercise('archive-developpe-couche-barre', 'Développé couché barre libre', repeat(4, 10, 50), '50 kg · 4×10 validé · très gros pump pecs/triceps · contact légèrement au-dessus des tétons · forte sollicitation jonction pec/deltoïde antérieur · tension épaule à surveiller.', { pain: { score: null, location: 'Épaule, tension à surveiller' }, media: { reference: 'https://www.superphysique.org/exercices/312' } }),
+    exercise('archive-poulie-haute-supination', 'Traction poulie haute prise supination', [], 'Chauffe à 45 kg · 55 kg trop lourd · 45 kg retenus · séries finales ≈7–8/10 · très bon recrutement dorsaux · rester droit, sans trop cambrer · légère douleur épaule présente avant et disparue après.', { pain: { score: 0, location: 'Épaule après l’exercice' }, media: { video: 'https://www.youtube.com/watch?v=wo24NGrlGLw' } }),
+    exercise('archive-elevations-laterales-assis', 'Élévations latérales assis', [set(25, 3)], '3 kg par bras · 25 reps validées · léger rest-pause en fin de séries · nouvelle charge envisagée : 2 kg par bras.', { pain: { score: 4, location: 'Épaule gauche' }, media: { reference: 'https://www.superphysique.org/exercices/200' } }),
+    exercise('archive-oiseau', 'Arrière d’épaule / oiseau', [], 'Technogym Upper Back rejetée : trop de rhomboïdes, pas assez de deltoïde postérieur · banc testé à 5 kg par bras · proposition future : 3–4 kg · préférer l’oiseau haltères.', { media: { reference: 'https://www.superphysique.org/exercices/209' } }),
+    exercise('archive-rowing-menton-ez', 'Rowing menton EZ', repeat(3, 12, 12), '12 kg de disques + barre EZ · prise externe / premier angle de la barre plus confortable · bonne stabilité · légère tension épaule droite.', { difficultyText: '≈5–6/10', pain: { score: null, location: 'Épaule droite, légère tension' }, media: { reference: 'https://www.superphysique.org/exercices/365' } })
+  ];
+
+  return [session(0, 'Jour 1', day1), session(1, 'Jour 2', day2), session(3, 'Jour 4', day4), session(4, 'Jour 5', day5)];
+}
+
+async function ensureTrainingOneArchive(options = {}) {
+  if (state.historySeedVersion >= 1) return false;
+  if (accountUser?.email && accountUser.email.toLocaleLowerCase('fr') !== TRAINING_ARCHIVE_OWNER_EMAIL) {
+    state.historySeedVersion = 1;
+    saveState({ sync: options.sync !== false });
+    return false;
+  }
+  const history = mergeHistory(loadHistory(), { sessions: buildTrainingOneArchive(), maxHistory: [] });
+  localStorage.setItem(storageKey(STORAGE_HISTORY), JSON.stringify(history));
+  state.historySeedVersion = 1;
+  saveState({ sync: options.sync !== false });
+  if (options.sync !== false && accountUser && accountDatabase) {
+    await replaceAccountHistory(history).catch(() => setSyncStatus('error'));
+  }
+  return true;
 }
 
 function saveHistory(history, options = {}) {
@@ -3268,7 +3884,7 @@ function getMissingRatingCount(week, day) {
 
 function showValidateModal(week, day) {
   _validateTarget = { week, day };
-  const dd = PROGRAM[week].days[day];
+  const dd = getEffectiveDayData(week, day);
   const prog = getDayProgress(week, day);
   const partial = prog.pct < 100;
   const missingRatings = getMissingRatingCount(week, day);
@@ -3299,8 +3915,8 @@ function devalidateSession(week, day) {
 }
 
 function logSession(week, day) {
-  const dayData = PROGRAM[week].days[day];
-  if (dayData.rest) return;
+  const dayData = getEffectiveDayData(week, day);
+  if (dayData.rest || dayData.pending) return;
 
   const prog = getDayProgress(week, day);
   if (prog.done === 0 && prog.skipped === 0) return;
@@ -3334,24 +3950,41 @@ function logSession(week, day) {
         if (weight !== null) desc += ` ${weight}kg`;
       } else if (!ex.ref) {
         // Accessory: use custom reps (or program default) + custom weight
-        const customR = getCustomReps(ex.name, si);
+        const dataKey = ex.id || ex.name;
+        const customR = getCustomReps(dataKey, si);
         reps = customR !== null ? customR : reps;
-        desc = `${reps === "AMRAP" ? "AMRAP" : reps + "r"}`;
-        weight = getCustomWeight(ex.name, si);
+        desc = `${reps === "AMRAP" ? "AMRAP" : reps + (ex.tracking === 'time' ? " sec" : "r")}`;
+        weight = getCustomWeight(dataKey, si, state.cycle, week, day, getExerciseTargetWeight(ex, si));
         if (weight !== null) desc += ` ${weight}kg`;
       } else {
         desc = `${set.r === "AMRAP" ? "AMRAP" : set.r + "r"}`;
       }
-      if (set.rpe) desc += ` RPE${set.rpe}`;
-      details.push({ desc, done, reps, weight });
+      const actualRpe = !ex.ref ? getSetRpe(ex.id || ex.name, si, state.cycle, week, day) : (set.rpe ?? null);
+      if (actualRpe !== null) desc += ` RPE${actualRpe}`;
+      details.push({ desc, done, reps, weight, rpe: actualRpe, tracking: ex.tracking || 'reps' });
     });
-    if (!ex.ref && completedSetIndexes.length) commitExerciseDraft(ex.name, completedSetIndexes);
+    if (!ex.ref && completedSetIndexes.length) commitExerciseDraft(ex.id || ex.name, completedSetIndexes);
     exercises.push({
       id: exerciseId,
       name: ex.name,
-      source: ex.isFreestyle ? "freestyle" : ex.isExtra ? "added" : "programmed",
-      note: getCustomNote(ex.name),
+      source: ex.isCustom ? "custom" : ex.isFreestyle ? "freestyle" : ex.isExtra ? "added" : "programmed",
+      day: day + 1,
+      section: ex.section || null,
+      target: {
+        sets: sets.length,
+        reps: ex.repsLabel || ex.sets?.[0]?.r || null,
+        weight: ex.targetWeight ?? null,
+        weightLabel: ex.targetWeightLabel || null,
+        rest: ex.rest ?? null,
+        restLabel: ex.restLabel || null
+      },
+      rudyComment: ex.rudyComment || '',
+      instructions: ex.instructions || '',
+      note: getCustomNote(exerciseId),
       rating: getExerciseRating(ex.id || accessoryDataKey(ex.name), state.cycle, week, day),
+      pain: getExercisePain(exerciseId, state.cycle, week, day),
+      personalMedia: getPersonalMedia(exerciseId, state.cycle, week, day),
+      media: ex.media || {},
       skipped: !!skipReason,
       skipReason: skipReason || null,
       sets: details,
@@ -3395,7 +4028,6 @@ function logSession(week, day) {
     history.sessions.push(session);
   }
 
-  if (prog.pct === 100) delete state.sessionDrafts[sessionOccurrenceKey(state.cycle, week, day)];
   saveState();
   saveHistory(history, { session });
 }
@@ -3407,6 +4039,7 @@ let currentPage = 'program';
 
 function showPage(page) {
   currentPage = page;
+  if (window.scrollTo) window.scrollTo({ top: 0, behavior: 'auto' });
   document.getElementById('content').style.display = page === 'program' ? '' : 'none';
   document.getElementById('nav').style.display = page === 'program' ? '' : 'none';
   document.getElementById('historyPage').style.display = page === 'history' ? '' : 'none';
@@ -3428,6 +4061,10 @@ function showPage(page) {
 function formatHistoryDate(dateKey) {
   const match = String(dateKey || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return match ? `${match[3]}/${match[2]}/${match[1].slice(2)}` : String(dateKey || '');
+}
+
+function formatSessionDate(session) {
+  return session?.displayDate || formatHistoryDate(session?.date);
 }
 
 let historySearchQuery = '';
@@ -3475,7 +4112,7 @@ function renderHistory() {
     return counts;
   }, {});
 
-  let html = '<div class="history-title-row"><div><h2>Historique</h2><p>Performances, ressentis et adaptations enregistrés</p></div></div>';
+  let html = '<div class="history-title-row"><div><span class="history-kicker">Historique / semaine précédente</span><h2>Performances conservées</h2><p>Les charges réellement utilisées restent séparées des cibles du plan actuel.</p></div></div>';
   html += `<div class="history-summary">
     <div><strong>${allSessions.length}</strong><span>Séances</span></div>
     <div><strong>${ratingCounts.easy || 0}</strong><span>Très faciles</span></div>
@@ -3486,7 +4123,7 @@ function renderHistory() {
 
   const sessions = allSessions.filter(session => {
     if (!historySearchQuery) return true;
-    const haystack = [session.date, session.dayName, session.weekName, ...(session.exercises || []).map(exercise => exercise.name)]
+    const haystack = [session.date, session.displayDate, session.dayName, session.weekName, ...(session.exercises || []).flatMap(exercise => [exercise.name, exercise.summary, exercise.note, exercise.pain?.location])]
       .join(' ').toLocaleLowerCase('fr');
     return haystack.includes(historySearchQuery);
   });
@@ -3496,36 +4133,55 @@ function renderHistory() {
   }
 
   sessions.slice(0, historyVisibleCount).forEach((session, index) => {
-    const performedExercises = (session.exercises || []).filter(exercise => (exercise.done || 0) > 0).length;
+    const performedExercises = (session.exercises || []).filter(exercise => (exercise.done || 0) > 0 || exercise.summary).length;
     const skippedExercises = (session.exercises || []).filter(exercise => exercise.skipped).length;
     const currentProgram = effectiveSessionProgramId(session) === PROGRAM_ID;
     const sessionLabel = currentProgram
       ? `Semaine ${session.cycle || 1} · ${session.dayName || 'Séance'}`
-      : `${session.weekName || 'Archive'} · ${session.dayName || 'Séance'}`;
+      : `${session.archiveLabel || session.weekName || 'Archive'} · ${session.dayName || 'Séance'}`;
     const badgeText = `${performedExercises} réalisé${performedExercises > 1 ? 's' : ''}${skippedExercises ? ` · ${skippedExercises} ignoré${skippedExercises > 1 ? 's' : ''}` : ''}`;
 
     html += `<div class="session-log">
       <button class="session-header" aria-expanded="false" aria-controls="session-${index}" onclick="toggleSessionDetail(${index},this)">
-        <span class="session-date">${escHtml(formatHistoryDate(session.date))}</span>
+        <span class="session-date">${escHtml(formatSessionDate(session))}</span>
         <span class="session-label">${escHtml(sessionLabel)}</span>
         <span class="session-badge ${skippedExercises ? 'partial' : 'complete'}">${escHtml(badgeText)}</span>
       </button>
       <div class="session-detail" id="session-${index}">`;
 
     (session.exercises || []).filter(exercise =>
-      (exercise.done || 0) > 0 || exercise.skipped || exercise.rating || exercise.note
+      (exercise.done || 0) > 0 || exercise.skipped || exercise.rating || exercise.note || exercise.summary || exercise.difficultyText || (exercise.pain && (exercise.pain.score !== null || exercise.pain.location))
     ).forEach(exercise => {
       const formatDesc = desc => escHtml(desc).replace(/(\d+(?:\.\d+)?kg)/g, '<b style="color:var(--blue)">$1</b>');
       html += `<div class="session-exercise"><div class="session-exercise-name">${escHtml(exercise.name)}${exercise.source === 'added' ? ' · ajouté' : ''}</div>`;
       if (exercise.skipped) {
         html += `<span class="history-skip">Ignoré · ${escHtml(SKIP_LABELS[exercise.skipReason] || exercise.skipReason || 'Non précisé')}</span>`;
-      } else {
+      } else if ((exercise.sets || []).length) {
         html += `<div class="session-sets">${(exercise.sets || []).map(set =>
           `<span class="${set.done ? 'history-set-done' : 'history-set-missed'}">${set.done ? '&#10003;' : '&#8212;'} ${formatDesc(set.desc)}</span>`
         ).join(' &nbsp; ')}</div>`;
       }
+      if (exercise.target) {
+        const targetParts = [exercise.target.sets && exercise.target.reps ? `${exercise.target.sets} × ${exercise.target.reps}` : '', exercise.target.weightLabel || (exercise.target.weight !== null && exercise.target.weight !== undefined ? `${exercise.target.weight} kg` : ''), exercise.target.restLabel || ''].filter(Boolean);
+        if (targetParts.length) html += `<div class="history-target">Prescription de l’époque : ${escHtml(targetParts.join(' · '))}</div>`;
+      }
+      if (exercise.summary) html += `<div class="history-summary-text">${escHtml(exercise.summary)}</div>`;
+      if (exercise.difficultyText) html += `<span class="history-effort">Difficulté : ${escHtml(exercise.difficultyText)}</span>`;
       if (exercise.rating) html += `<span class="history-effort">Ressenti : ${escHtml(RATING_LABELS[exercise.rating] || exercise.rating)}</span>`;
+      if (exercise.pain && (exercise.pain.score !== null || exercise.pain.location)) {
+        const painText = `${exercise.pain.score !== null ? `${exercise.pain.score}/10` : 'intensité non renseignée'}${exercise.pain.location ? ` · ${exercise.pain.location}` : ''}`;
+        html += `<span class="history-pain">Douleur : ${escHtml(painText)}</span>`;
+      }
+      if (exercise.rudyComment) html += `<div class="history-rudy"><strong>Rudy :</strong> ${escHtml(exercise.rudyComment)}</div>`;
       if (exercise.note) html += `<div class="history-note">${escHtml(exercise.note)}</div>`;
+      const historyLinks = [
+        ['Photo', safeExternalUrl(exercise.media?.photo)],
+        ['Vidéo', safeExternalUrl(exercise.media?.video)],
+        ['Référence', safeExternalUrl(exercise.media?.reference)],
+        ['Vidéo personnelle', safeExternalUrl(exercise.personalMedia?.videoUrl)],
+        ['Photo personnelle', safeExternalUrl(exercise.personalMedia?.photoUrl)]
+      ].filter(([, url]) => url);
+      if (historyLinks.length) html += `<div class="history-media">${historyLinks.map(([label, url]) => `<a href="${escAttr(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`).join('')}</div>`;
       html += '</div>';
     });
     html += '</div></div>';
@@ -3554,6 +4210,8 @@ function toggleSessionDetail(idx, button) {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if (document.getElementById('accountModal').classList.contains('show')) closeAccountModal();
+    else if (document.getElementById('exerciseEditorModal').classList.contains('show')) closeExerciseEditor();
+    else if (document.getElementById('sessionEditorModal').classList.contains('show')) closeSessionEditor();
     else if (document.getElementById('accessoryPickerModal').classList.contains('show')) closeAccessoryPicker();
     else if (document.getElementById('validateModal').classList.contains('show')) closeValidateModal();
     else if (document.getElementById('settingsModal').classList.contains('show')) closeSettings();
@@ -3583,6 +4241,14 @@ document.getElementById('validateModal').addEventListener('click', (e) => {
 
 document.getElementById('accessoryPickerModal').addEventListener('click', (e) => {
   if (e.target.classList.contains('modal-overlay')) closeAccessoryPicker();
+});
+
+document.getElementById('exerciseEditorModal').addEventListener('click', (e) => {
+  if (e.target.classList.contains('modal-overlay')) closeExerciseEditor();
+});
+
+document.getElementById('sessionEditorModal').addEventListener('click', (e) => {
+  if (e.target.classList.contains('modal-overlay')) closeSessionEditor();
 });
 
 document.getElementById('accountModal').addEventListener('click', (e) => {
@@ -3616,6 +4282,7 @@ const localPreviewMode = ['localhost', '127.0.0.1'].includes(location.hostname)
 if (localPreviewMode) {
   activateAccountStorage('local-preview', { claimLegacy: false });
   loadState();
+  ensureTrainingOneArchive({ sync: false });
   restoreLocalTimerState();
   if (!getLocalProgramData()) saveState({ sync: false });
   document.getElementById('loginOverlay').style.display = 'none';
