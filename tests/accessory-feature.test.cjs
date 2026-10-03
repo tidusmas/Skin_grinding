@@ -15,6 +15,7 @@ assert.match(html, /Plan actuel/);
 assert.match(html, /En attente du nouveau programme Rudy/);
 assert.match(html, /Charge réellement utilisée/);
 assert.match(html, /Vidéo personnelle/);
+assert.match(html, /updateViaCache: 'none'/);
 assert.match(serviceWorker, /url\.origin !== self\.location\.origin/);
 assert.match(serviceWorker, /type === 'SKIP_WAITING'/);
 assert.equal(databaseRules.rules.accounts.$uid[".read"], "auth != null && auth.uid === $uid");

@@ -4314,8 +4314,9 @@ if ('serviceWorker' in navigator) {
     refreshing = true;
     location.reload();
   });
-  navigator.serviceWorker.register('sw.js').then(registration => {
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(registration => {
     if (registration.waiting) showAppUpdate(registration.waiting);
+    registration.update().catch(() => {});
     registration.addEventListener('updatefound', () => {
       const worker = registration.installing;
       if (!worker) return;
