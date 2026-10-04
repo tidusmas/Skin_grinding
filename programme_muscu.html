@@ -876,6 +876,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .recent-exercise-rating.right { background:#3c2d13; color:#f0c66f; }
 .recent-exercise-rating.hard { background:#421c1c; color:#ff9696; }
 .recent-exercise-difficulty { padding:3px 6px; border-radius:4px; background:#2f2b20; color:#f0c66f; font-size:10px; font-weight:800; white-space:nowrap; }
+.recent-exercise-comment { grid-column:2 / -1; min-width:0; color:var(--text-muted); font-size:10px; }
+.recent-exercise-comment summary { width:max-content; max-width:100%; cursor:pointer; color:var(--blue); font-weight:750; }
+.recent-exercise-comment p { margin:5px 0 2px; line-height:1.45; overflow-wrap:anywhere; }
 .week-complete-banner { display:flex; align-items:center; justify-content:space-between; gap:18px; margin:0 0 20px; padding:15px 16px; border:1px solid var(--green); border-radius:8px; background:#101b14; }
 .week-complete-banner div { display:grid; gap:3px; }
 .week-complete-banner strong { color:var(--green); font-size:15px; }
@@ -1177,7 +1180,7 @@ const FIREBASE_CONFIG = {
   appId: "1:94530619554:web:4d54f18fa30a1f7f442ffb"
 };
 
-const APP_VERSION = "3.0.0";
+const APP_VERSION = "3.1.0";
 const PROGRAM_ID = "rudy-training-2-v1";
 const PREVIOUS_PROGRAM_ID = "upper-lower-2026-v1";
 const TRAINING_ONE_ARCHIVE_ID = "rudy-training-1-archive";
@@ -1718,7 +1721,9 @@ function buildWeeklyProgram() {
     repsLabel: options.repsLabel || String(reps),
     targetWeight: weight,
     targetWeights: options.targetWeights || null,
-    targetWeightLabel: options.targetWeightLabel || `${weight} kg`,
+    defaultWeights: options.defaultWeights || null,
+    targetKind: options.targetKind || "Cible Rudy",
+    targetWeightLabel: options.targetWeightLabel || (weight == null ? "Non renseignée" : `${weight} kg`),
     rest,
     restLabel: options.restLabel || (rest == null ? "Non renseigné" : rest < 60 ? `${rest} sec` : `${Math.floor(rest / 60)} min${rest % 60 ? ` ${rest % 60}` : ""}`),
     rudyComment: options.rudyComment || "",
@@ -1844,8 +1849,130 @@ function buildWeeklyProgram() {
         ]
       },
       { name: "Repos", shortName: "Repos", rest: true },
-      { name: "Jour 4", shortName: "En attente", pending: true, exercises: [] },
-      { name: "Jour 5", shortName: "En attente", pending: true, exercises: [] },
+      {
+        name: "Jour 4", shortName: "Jambes",
+        exercises: [
+          exercise("archive-circuit-cou", "Circuit cou", "Bloc isométrique", 2, 45, null, null, {
+            tracking: "time", repsLabel: "45 sec / face", targetKind: "Dernière charge", targetWeightLabel: "Sans charge",
+            instructions: "Rentre le menton sur chaque position et tiens.",
+            media: { photo: "https://www.dropbox.com/scl/fo/c977lse0km98p93tzpvmv/AD9XDy-LBhggO4l6S1DV_b8?rlkey=wvkbbe0h3wm1af7svjx1e9t2p&dl=0" }
+          }),
+          exercise("archive-gainage-oblique-iso", "Gainage oblique en isométrie", "Bloc isométrique", 2, 45, null, null, {
+            tracking: "time", repsLabel: "45 sec / côté", targetKind: "Dernière charge", targetWeightLabel: "Non renseignée",
+            instructions: "Fais bien bloc.",
+            media: { photo: "https://www.dropbox.com/scl/fi/ixnpi05m53iupe1r3h0s8/KEV01308.jpg?rlkey=f6wsel0o4unauslvmn9ilhtpn&dl=0" }
+          }),
+          exercise("archive-sdt-sumo-iso", "SDT sumo en isométrie", "Bloc isométrique", 2, 45, null, null, {
+            tracking: "time", repsLabel: "45 sec", targetKind: "Dernière charge", targetWeightLabel: "Non renseignée",
+            instructions: "Pieds dans l'axe des genoux. Descends le plus possible sans tension excessive et tiens la position.",
+            media: { photo: "https://www.dropbox.com/scl/fi/zl0csb40kenbs72i2x6r4/KEV01363.jpg?rlkey=nrfgb01w1hyq4unrhoerqxnsg&dl=0" }
+          }),
+          exercise("archive-ischios-iso", "Ischio-jambiers en isométrie", "Bloc isométrique", 2, 45, null, null, {
+            tracking: "time", repsLabel: "45 sec / côté", targetKind: "Dernière charge", targetWeightLabel: "Sans charge",
+            instructions: "Cherche l'étirement et maintiens la pression dans le talon.",
+            media: { photo: "https://www.dropbox.com/scl/fi/an5f9hqceocwc0in3p773/KEV01350.jpg?rlkey=pu6sw2v7z9fkhaxs84a8ezzmu&dl=0" }
+          }),
+          exercise("archive-chaise-mur", "Chaise contre un mur", "Bloc isométrique", 2, 45, null, null, {
+            tracking: "time", repsLabel: "45 sec", targetKind: "Dernière charge", targetWeightLabel: "Non renseignée",
+            instructions: "Reproduis l'angle montré sur la photo.",
+            media: { photo: "https://www.dropbox.com/scl/fi/axmj7aj9qu3tfbno2n8jm/KEV01342.jpg?rlkey=13v4xgzg2u73f6lctyd0k0rdn&dl=0" }
+          }),
+          exercise("archive-mollet-iso", "Mollet à une jambe debout en isométrie", "Bloc isométrique", 2, 45, null, null, {
+            tracking: "time", repsLabel: "45 sec / jambe", targetKind: "Dernière charge", targetWeightLabel: "Non renseignée",
+            instructions: "Garde les pieds parallèles puis alterne les orientations de pied.",
+            media: { photo: "https://www.dropbox.com/scl/fi/qspwcxrlx21r2ock30hcm/KEV01366.jpg?rlkey=vzuhc495bchxuokxlkb7nelzd&dl=0" }
+          }),
+          exercise("archive-gainage", "Gainage", "Séance principale", 3, 30, 0, 30, {
+            tracking: "time", repsLabel: "30 sec", targetKind: "Dernière charge", targetWeightLabel: "Poids du corps", defaultWeights: [0, 0, 0],
+            instructions: "Rentre le ventre et ne cambre pas les reins."
+          }),
+          exercise("archive-leg-curl-assis", "Leg curl assis", "Séance principale", 3, 16, 30, 90, {
+            targetKind: "Charge retenue", targetWeightLabel: "30 kg", defaultWeights: [35, 35, 30],
+            weightNote: "Dernière séance : 35 kg ×16, 35 kg ×12, puis 30 kg ×16. Réglages 2 / 1 / 4.",
+            instructions: "Reste calé au fond, dos au dossier, avec l'appui suffisamment avancé.",
+            media: { video: "https://www.youtube.com/watch?v=Ne5MBQdvUwA" }
+          }),
+          exercise("archive-leg-extension", "Leg extension", "Séance principale", 4, 14, 45, 120, {
+            targetKind: "Dernière charge", targetWeightLabel: "45 kg · légèrement trop lourd", defaultWeights: [45, 45, 45, 45],
+            weightNote: "Dernière séance : 3e série 14 reps à RPE 8, 4e série 13 reps à RPE 9. Réglages 2 / 1 / 4.",
+            media: { reference: "https://www.superphysique.org/exercices/284" }
+          }),
+          exercise("archive-fentes-halteres", "Fentes avec haltères sur place", "Séance principale", 3, 12, 5, 45, {
+            repsLabel: "12 / jambe", restLabel: "45 sec entre chaque jambe", targetKind: "Dernière charge", targetWeightLabel: "5 kg / haltère", defaultWeights: [5, 5, 5],
+            instructions: "Descends le genou jusqu'au sol en restant stable.",
+            media: { reference: "https://www.superphysique.org/exercices/345" }
+          }),
+          exercise("archive-hip-thrust", "Hip thrust", "Séance principale", 4, 10, 80, 90, {
+            targetKind: "Dernière charge", targetWeightLabel: "80 kg · barre comprise", defaultWeights: [80, 80, 80, 80],
+            weightNote: "Surveille la douleur intercostale connue au centre du dos à droite.",
+            media: { reference: "https://www.superphysique.org/exercices/5156" }
+          }),
+          exercise("archive-mollets-presse", "Mollets à la presse", "Séance principale", 3, 25, 60, 60, {
+            targetKind: "Dernières charges", targetWeightLabel: "80 / 80 / 60 kg", defaultWeights: [80, 80, 60],
+            instructions: "Descends bien le talon. La brûlure locale était le facteur limitant.",
+            media: { video: "https://www.youtube.com/watch?v=xZJtQOdNbKk" }
+          })
+        ]
+      },
+      {
+        name: "Jour 5", shortName: "Haut du corps",
+        exercises: [
+          exercise("iso-elevation-laterale", "Élévation latérale en isométrie", "Bloc isométrique", 2, 45, 3, null, {
+            tracking: "time", repsLabel: "45 sec", targetKind: "Dernière charge", targetWeightLabel: "3 kg / bras", defaultWeights: [3, 3],
+            instructions: "Bras pratiquement tendus et parallèles au sol.", media: isoMedia.lateral
+          }),
+          exercise("iso-rotation-interne", "Rotation interne en isométrie", "Bloc isométrique", 2, 45, 3, null, {
+            tracking: "time", repsLabel: "45 sec", targetKind: "Dernière charge", defaultWeights: [3, 3],
+            instructions: "Fais attention de ne pas lever l'épaule.", media: isoMedia.internal
+          }),
+          exercise("iso-rotation-externe", "Rotation externe en isométrie", "Bloc isométrique", 2, 45, 3, null, {
+            tracking: "time", repsLabel: "45 sec", targetKind: "Dernière charge", defaultWeights: [3, 3],
+            instructions: "Coudes dans l'axe des épaules à 90°, descends le plus possible et tiens.", media: isoMedia.external
+          }),
+          exercise("iso-pull-over", "Pull-over en isométrie", "Bloc isométrique", 2, 45, 6, null, {
+            tracking: "time", repsLabel: "45 sec", targetKind: "Dernière charge", defaultWeights: [6, 6],
+            instructions: "Plaque le bas du dos sur le banc et arrête la descente au début de l'étirement du grand dorsal.", media: isoMedia.pullover
+          }),
+          exercise("iso-extension-nuque", "Extension nuque en isométrie", "Bloc isométrique", 2, 45, 6, null, {
+            tracking: "time", repsLabel: "45 sec", targetKind: "Dernière charge", defaultWeights: [6, 6],
+            instructions: "Coude à 90° sans accentuer la cambrure du bas du dos.", media: isoMedia.neck
+          }),
+          exercise("iso-curl-barre", "Curl barre en supination en isométrie", "Bloc isométrique", 2, 45, 15, null, {
+            tracking: "time", repsLabel: "45 sec", targetKind: "Dernière charge", targetWeights: [15, null], defaultWeights: [15, 15],
+            targetWeightLabel: "15 kg en supination · pronation plus légère à ajuster", instructions: "Une série en supination, puis une série en pronation plus légère.", media: isoMedia.curl
+          }),
+          exercise("archive-enroulement-bassin", "Enroulement de bassin au sol", "Séance principale", 3, 15, 0, 30, {
+            targetKind: "Dernière charge", targetWeightLabel: "Poids du corps", defaultWeights: [0, 0, 0],
+            media: { reference: "https://www.superphysique.org/exercices/227" }
+          }),
+          exercise("archive-developpe-couche-barre", "Développé couché barre libre", "Séance principale", 4, 10, 50, 90, {
+            targetKind: "Dernière charge", targetWeightLabel: "50 kg", defaultWeights: [50, 50, 50, 50],
+            instructions: "Prise largeur d'épaules. Place les coudes dans la position la plus confortable.",
+            weightNote: "Contact légèrement au-dessus des tétons. Surveille la tension à l'épaule.",
+            media: { reference: "https://www.superphysique.org/exercices/312" }
+          }),
+          exercise("archive-poulie-haute-supination", "Traction poulie haute prise supination", "Séance principale", 4, 12, 45, 90, {
+            targetKind: "Charge retenue", targetWeightLabel: "45 kg", defaultWeights: [45, 45, 45, 45],
+            weightNote: "55 kg était trop lourd lors de la dernière séance.", instructions: "Amplitude complète jusqu'à la poitrine. Reste droit sans trop cambrer.",
+            media: { video: "https://www.youtube.com/watch?v=wo24NGrlGLw" }
+          }),
+          exercise("archive-elevations-laterales-assis", "Élévations latérales assis", "Séance principale", 4, 25, 2, 90, {
+            targetKind: "Charge envisagée", targetWeightLabel: "2 kg / bras", defaultWeights: [3, 3, 3, 3],
+            weightNote: "Dernière charge : 3 kg par bras avec léger rest-pause et douleur à l'épaule gauche.",
+            instructions: "Garde les bras tendus sur les côtés.", media: { reference: "https://www.superphysique.org/exercices/200" }
+          }),
+          exercise("archive-oiseau", "Arrière d'épaule / oiseau", "Séance principale", 3, 15, null, 90, {
+            targetKind: "Charge envisagée", targetWeightLabel: "3 à 4 kg / bras", defaultWeights: [5, 5, 5],
+            weightNote: "5 kg par bras ont été testés. Préfère l'oiseau haltères à la machine Upper Back.",
+            media: { reference: "https://www.superphysique.org/exercices/209" }
+          }),
+          exercise("archive-rowing-menton-ez", "Rowing menton EZ", "Séance principale", 3, 12, 12, 90, {
+            targetKind: "Dernière charge", targetWeightLabel: "12 kg de disques + barre EZ", defaultWeights: [12, 12, 12],
+            weightNote: "Le poids de la barre EZ n'est pas comptabilisé.", instructions: "Utilise la prise externe, au premier angle de la barre, plus confortable.",
+            media: { reference: "https://www.superphysique.org/exercices/365" }
+          })
+        ]
+      },
       { name: "Repos", shortName: "Repos", rest: true },
       { name: "Repos", shortName: "Repos", rest: true }
     ]
@@ -2078,6 +2205,8 @@ function applyExerciseOverride(exercise, originalDay = null) {
     tracking: own("tracking", exercise.tracking || 'reps'),
     targetWeight: own("targetWeight", exercise.targetWeight),
     targetWeights: Object.prototype.hasOwnProperty.call(override, "targetWeight") ? null : exercise.targetWeights,
+    defaultWeights: Object.prototype.hasOwnProperty.call(override, "targetWeight") ? null : exercise.defaultWeights,
+    targetKind: own("targetKind", exercise.targetKind || "Cible Rudy"),
     targetWeightLabel: own("targetWeightLabel", exercise.targetWeightLabel),
     repsLabel: own("repsLabel", exercise.repsLabel),
     range: own("repsLabel", exercise.range),
@@ -2124,6 +2253,9 @@ function expandSets(exercise) {
 }
 
 function getExerciseTargetWeight(exercise, setIndex) {
+  if (Array.isArray(exercise.defaultWeights) && Object.prototype.hasOwnProperty.call(exercise.defaultWeights, setIndex)) {
+    return exercise.defaultWeights[setIndex];
+  }
   if (Array.isArray(exercise.targetWeights) && Object.prototype.hasOwnProperty.call(exercise.targetWeights, setIndex)) {
     return exercise.targetWeights[setIndex];
   }
@@ -2557,6 +2689,10 @@ function renderRecentExerciseHistory(exercise, history) {
       const pain = `${item.exercise.pain.score !== null ? `Douleur ${item.exercise.pain.score}/10` : 'Douleur'}${item.exercise.pain.location ? ` · ${item.exercise.pain.location}` : ''}`;
       html += `<span class="recent-exercise-pain">${escHtml(pain)}</span>`;
     }
+    const previousComment = [item.exercise.summary, item.exercise.note].filter(Boolean).join(' · ');
+    if (previousComment) {
+      html += `<details class="recent-exercise-comment"><summary>Commentaires de la séance</summary><p>${escHtml(previousComment)}</p></details>`;
+    }
     html += '</div>';
   });
   return html + '</div>';
@@ -2640,7 +2776,7 @@ function renderContent() {
     const tag = exercise.preFatigue ? 'I' : exercise.isCustom || exercise.isExtra ? '+' : String(++workIndex);
     html += `<article class="exercise-card${allDone ? ' completed' : ''}${skipReason ? ' skipped' : ''}${exercise.preFatigue ? ' pre-fatigue-card' : ''}">`;
     html += `<div class="exercise-header"><div class="exercise-tag">${tag}</div><div class="exercise-title"><div class="exercise-name">${escHtml(exercise.name)}</div>`;
-    html += `<div class="exercise-meta"><span>${sets.length} × ${escHtml(exercise.repsLabel || sets[0]?.r || '')}</span><span class="target-chip">Cible Rudy · ${escHtml(exercise.targetWeightLabel ?? 'Non renseignée')}</span><span>Repos · ${escHtml(exercise.restLabel || 'Non renseigné')}</span></div>`;
+    html += `<div class="exercise-meta"><span>${sets.length} × ${escHtml(exercise.repsLabel || sets[0]?.r || '')}</span><span class="target-chip">${escHtml(exercise.targetKind || 'Cible Rudy')} · ${escHtml(exercise.targetWeightLabel ?? 'Non renseignée')}</span><span>Repos · ${escHtml(exercise.restLabel || 'Non renseigné')}</span></div>`;
     if (exercise.weightNote) html += `<div class="exercise-weight-note">${escHtml(exercise.weightNote)}</div>`;
     if (exercise.rudyComment) html += `<div class="rudy-comment"><strong>Rudy</strong><span>${escHtml(exercise.rudyComment)}</span></div>`;
     if (exercise.instructions) html += `<div class="exercise-instructions">${escHtml(exercise.instructions)}</div>`;
@@ -3971,6 +4107,7 @@ function logSession(week, day) {
       day: day + 1,
       section: ex.section || null,
       target: {
+        kind: ex.targetKind || 'Cible Rudy',
         sets: sets.length,
         reps: ex.repsLabel || ex.sets?.[0]?.r || null,
         weight: ex.targetWeight ?? null,

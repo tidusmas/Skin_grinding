@@ -12,8 +12,9 @@ const script = html.match(/<script>([\s\S]*)<\/script>/)[1].split("// INIT")[0];
 
 assert.doesNotMatch(html, /PASSWORD_HASH|attemptLogin|id="loginPassword"/);
 assert.match(html, /Plan actuel/);
-assert.match(html, /En attente du nouveau programme Rudy/);
 assert.match(html, /Charge réellement utilisée/);
+assert.match(html, /Charge retenue/);
+assert.match(html, /Dernières charges/);
 assert.match(html, /Vidéo personnelle/);
 assert.match(html, /updateViaCache: 'none'/);
 assert.match(serviceWorker, /url\.origin !== self\.location\.origin/);
@@ -49,7 +50,7 @@ vm.runInContext(`${script}
 globalThis.testApi = {
   state, PROGRAM, PROGRAM_VERSION, PROGRAM_ID, PREVIOUS_PROGRAM_ID, TRAINING_ONE_ARCHIVE_ID,
   INITIAL_RUN_ID, DATA_SCHEMA_VERSION, WEIGHT_DATA_VERSION,
-  getEffectiveDayData, getSessionExercises, getExerciseSets, sessionOccurrenceKey,
+  getEffectiveDayData, getSessionExercises, getExerciseSets, getExerciseTargetWeight, sessionOccurrenceKey,
   exerciseCompletionKey, getExerciseTimerDuration, getDayProgress, setKey,
   saveState, loadState, buildLocalBackup, serializeState, resetStateToDefaults,
   historyToCloudMap, cloudMapToHistory, mergeHistory, accountSessionKey, localDateKey,
@@ -72,13 +73,17 @@ assert.equal(api.PROGRAM.length, 1);
 assert.deepEqual(Array.from(api.PROGRAM[0].days, day => day.name), [
   "Jour 1", "Jour 2", "Repos", "Jour 4", "Jour 5", "Repos", "Repos"
 ]);
-assert.equal(api.PROGRAM[0].days[3].pending, true);
-assert.equal(api.PROGRAM[0].days[4].pending, true);
+assert.equal(api.PROGRAM[0].days[3].pending, undefined);
+assert.equal(api.PROGRAM[0].days[4].pending, undefined);
 
 const day1 = api.PROGRAM[0].days[0];
 const day2 = api.PROGRAM[0].days[1];
+const day4 = api.PROGRAM[0].days[3];
+const day5 = api.PROGRAM[0].days[4];
 assert.equal(day1.exercises.length, 12);
 assert.equal(day2.exercises.length, 6);
+assert.equal(day4.exercises.length, 12);
+assert.equal(day5.exercises.length, 12);
 const lateralIso = day1.exercises.find(ex => ex.id === "iso-elevation-laterale");
 assert.equal(api.getExerciseSets(lateralIso).length, 2);
 assert.equal(lateralIso.targetWeight, 3);
@@ -98,8 +103,16 @@ assert.equal(api.getDayProgress(0, 0).exercisesTotal, 12);
 assert.equal(api.getDayProgress(0, 1).total, 21);
 assert.deepEqual(
   { total: api.getDayProgress(0, 3).total, pct: api.getDayProgress(0, 3).pct },
-  { total: 0, pct: 100 }
+  { total: 32, pct: 0 }
 );
+assert.equal(api.getDayProgress(0, 4).total, 33);
+const archivedLegCurl = day4.exercises.find(ex => ex.id === "archive-leg-curl-assis");
+assert.deepEqual([0, 1, 2].map(index => api.getExerciseTargetWeight(archivedLegCurl, index)), [35, 35, 30]);
+const archivedCalves = day4.exercises.find(ex => ex.id === "archive-mollets-presse");
+assert.deepEqual([0, 1, 2].map(index => api.getExerciseTargetWeight(archivedCalves, index)), [80, 80, 60]);
+const archivedLateralRaise = day5.exercises.find(ex => ex.id === "archive-elevations-laterales-assis");
+assert.equal(archivedLateralRaise.targetWeight, 2);
+assert.equal(api.getExerciseTargetWeight(archivedLateralRaise, 0), 3);
 assert.equal(api.getExerciseTimerDuration(0, 0, api.exerciseCompletionKey(lateralIso, 0)), 0);
 const bench = day1.exercises.find(ex => ex.id === "developpe-couche-halteres");
 const benchKey = api.exerciseCompletionKey(bench, day1.exercises.indexOf(bench));
@@ -136,6 +149,7 @@ let loggedBench = currentHistory.sessions[0].exercises.find(ex => ex.id === benc
 assert.equal(loggedBench.sets[0].weight, 20);
 assert.equal(loggedBench.sets[0].rpe, 7.5);
 assert.equal(loggedBench.target.weight, 26);
+assert.equal(loggedBench.target.kind, "Cible Rudy");
 assert.equal(loggedBench.pain.score, 4);
 assert.equal(loggedBench.personalMedia.videoUrl, "https://youtu.be/example");
 
@@ -159,12 +173,18 @@ const recentCurl = api.getRecentExerciseHistory(inclineCurl, api.loadHistory());
 assert.equal(recentCurl.length, 1);
 assert.equal(api.formatPreviousSets(recentCurl[0].exercise.sets), "12×12 kg · 8×12 kg · RPE ≈8–9 · 12×10 kg · 9×10 kg · RPE ≈8–9");
 assert.match(api.renderRecentExerciseHistory(inclineCurl, api.loadHistory()), /Semaine précédente/);
+assert.match(api.renderRecentExerciseHistory(inclineCurl, api.loadHistory()), /Commentaires de la séance/);
+api.state.day = 3;
+const recentLegCurl = api.getRecentExerciseHistory(archivedLegCurl, api.loadHistory());
+assert.equal(recentLegCurl.length, 1);
+assert.deepEqual(Array.from(recentLegCurl[0].exercise.sets, set => [set.reps, set.weight]), [[16, 35], [12, 35], [16, 30]]);
+assert.match(api.renderRecentExerciseHistory(archivedLegCurl, api.loadHistory()), /Setup machine 2 \/ 1 \/ 4/);
 
-// Only currently planned sessions block week completion; pending Rudy days do not.
+// All four planned sessions are required before the next week can start.
 api.resetStateToDefaults();
 api.state.cycle = 2;
 storage.set("muscu_history", JSON.stringify({
-  sessions: [0, 1].map((day, index) => ({
+  sessions: [0, 1, 3, 4].map((day, index) => ({
     programId: api.PROGRAM_ID, runId: api.INITIAL_RUN_ID,
     date: `2026-10-0${index + 1}`, cycle: 2, week: 0, day,
     setsDone: 1, setsTotal: 1, exercises: []
@@ -173,12 +193,16 @@ storage.set("muscu_history", JSON.stringify({
 }));
 assert.equal(api.isBlocComplete(0), true);
 assert.match(api.renderWeekAdvanceBanner(), /Commencer la semaine 3/);
-api.state.customSessions["3"] = {
-  name: "Séance libre · Jour 4",
-  exercises: [{ id: "custom-test", name: "Test", section: "Séance principale", tracking: "reps", sets: [{ s: 1, r: 10 }] }]
-};
+const completionHistory = JSON.parse(storage.get("muscu_history"));
+completionHistory.sessions = completionHistory.sessions.filter(session => session.day !== 4);
+storage.set("muscu_history", JSON.stringify(completionHistory));
 assert.equal(api.isBlocComplete(0), false);
-delete api.state.customSessions["3"];
+completionHistory.sessions.push({
+  programId: api.PROGRAM_ID, runId: api.INITIAL_RUN_ID,
+  date: "2026-10-05", cycle: 2, week: 0, day: 4,
+  setsDone: 1, setsTotal: 1, exercises: []
+});
+storage.set("muscu_history", JSON.stringify(completionHistory));
 api.advanceCycle();
 assert.equal(api.state.cycle, 3);
 
